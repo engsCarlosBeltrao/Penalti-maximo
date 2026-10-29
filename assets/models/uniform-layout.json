@@ -1,0 +1,12 @@
+{
+  "_comentario": "Só é necessário se o seu modelo NÃO usa o layout 'wrap' do jogo. Retângulos [x, y, largura, altura] em pixels do atlas (origem no canto SUPERIOR esquerdo). Copie as regiões do seu mapa de UV. Remova este arquivo para usar o layout 'wrap' (padrão).",
+  "type": "atlas",
+  "size": [1024, 1024],
+  "regions": { "front": [0, 0, 512, 640], "back": [512, 0, 512, 640], "sleeveL": [0, 640, 256, 192], "sleeveR": [256, 640, 256, 192], "collar": [512, 640, 512, 64] },
+  "print": {
+    "name": { "region": "back", "rect": [0.12, 0.07, 0.76, 0.10] },
+    "numberBack": { "region": "back", "rect": [0.20, 0.20, 0.60, 0.46] },
+    "numberFront": { "region": "front", "rect": [0.10, 0.16, 0.20, 0.14] },
+    "crest": { "region": "front", "rect": [0.64, 0.13, 0.22, 0.24] }
+  }
+}

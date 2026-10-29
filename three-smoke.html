@@ -1,0 +1,54 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Diagnóstico Three.js + GLB — Pênalti Máximo</title>
+<script>
+// Descobre a pasta base do projeto: se esta pagina estiver numa pasta "tools", a base e "../"; senao, "./" (nao presume a pasta "tools").
+(function () { var dir = location.pathname.slice(0, location.pathname.lastIndexOf('/') + 1).toLowerCase(); var base = dir.slice(-7) === '/tools/' ? '../' : './'; window.__BASE = base;
+  var s = document.createElement('script'); s.type = 'importmap'; s.textContent = JSON.stringify({ imports: { 'three': base + 'vendor/three/three.module.js', 'three/addons/': base + 'vendor/three/addons/' } }); document.head.appendChild(s); })();
+</script>
+<style>body{margin:0;background:#0b1220;color:#e8eefc;font:13px system-ui,sans-serif;display:flex;height:100vh}#side{width:430px;padding:10px;overflow:auto;border-right:1px solid #1f2b46}#c{flex:1;display:block;width:100%;height:100%}
+.ok{color:#38d96b}.err{color:#ff6b6b}.warn{color:#ffb703}.line{margin:3px 0}label{display:block;margin:6px 0 2px;color:#9fb3d9}select,input[type=text],button{width:100%;padding:5px;background:#10192e;color:#fff;border:1px solid #2a3b60;border-radius:5px}button{cursor:pointer;margin-top:6px;background:#ffe66d;color:#10223a;font-weight:700}
+.row{display:flex;gap:10px;margin-top:6px}.row label{margin:0;display:flex;gap:4px;align-items:center}h3{margin:12px 0 4px;color:#ffe66d}code{color:#9fe}</style></head><body>
+<div id="side"><h3>Diagnóstico por etapas</h3><div id="log"></div>
+<h3>Visualizar</h3><label>Modelo (GLB)</label><input id="model" type="text"><button id="reload">Recarregar</button>
+<label>Pose</label><select id="pose"></select><label>Uniforme (clube)</label><select id="team"></select><label>Camisa</label><select id="variant"><option value="home">Casa</option><option value="away">Fora</option><option value="third">Terceiro</option></select>
+<div class="row"><label><input type="checkbox" id="wire"> malha (wireframe)</label><label><input type="checkbox" id="skel"> esqueleto</label><label><input type="checkbox" id="spin" checked> girar</label></div>
+<button id="shot">Baixar captura (PNG)</button><p style="color:#9fb3d9">Arraste para girar, role para aproximar. Mande a captura com "wireframe" e "esqueleto" ligados para provar que é malha 3D real.</p></div>
+<canvas id="c"></canvas>
+<script type="module">
+const $ = id => document.getElementById(id), logEl = $('log'); const log = (cls, msg) => { const d = document.createElement('div'); d.className = 'line ' + cls; d.textContent = (cls === 'ok' ? '✔ ' : cls === 'err' ? '✖ ' : '• ') + msg; logEl.appendChild(d); };
+const q = new URLSearchParams(location.search); $('model').value = q.get('model') || (window.__BASE + 'assets/models/athlete.glb');
+let THREE; try { THREE = await import('three'); log('ok', `1) Three.js r${THREE.REVISION} carregado de vendor/three/`); } catch (e) { log('err', '1) Falha ao importar o Three.js: ' + e.message); log('warn', 'Rode: node setup-3d.mjs (na pasta onde ele estiver)  e abra esta página pelo Live Server (http), não por file://'); throw e; }
+const canvas = $('c'); let renderer; try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true }); log('ok', '2) WebGL disponível (' + renderer.capabilities.isWebGL2 + ' WebGL2)'); } catch (e) { log('err', '2) WebGL indisponível: ' + e.message); throw e; }
+const [{ inspect }, { loadTemplate, instantiate }, rig, { TEAMS }, { pickKicker }, { loadKitPack }] = await Promise.all([import(window.__BASE + 'js/three/glbInspect.js'), import(window.__BASE + 'js/three/loader.js'), import(window.__BASE + 'js/rig.js'), import(window.__BASE + 'js/teams.js'), import(window.__BASE + 'js/players.js'), import(window.__BASE + 'js/three/kitPack.js')]);
+try { await loadKitPack(window.__BASE); } catch (e) { log('warn', 'pack de camisas (assets/kits) indisponível: usando a camisa procedural'); }
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#14203a'); scene.add(new THREE.HemisphereLight(0xffffff, 0x334455, 1.1)); const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(-3, 6, 5); scene.add(sun);
+const grid = new THREE.GridHelper(12, 24, 0x4466aa, 0x223355); grid.position.set(0, 0, 11); scene.add(grid); const ball = new THREE.Mesh(new THREE.SphereGeometry(.11, 20, 14), new THREE.MeshStandardMaterial({ color: '#fff' })); ball.position.set(...rig.BALL0); scene.add(ball);
+const goal = new THREE.Mesh(new THREE.BoxGeometry(7.32, 2.44, .05), new THREE.MeshBasicMaterial({ color: '#ffffff', wireframe: true })); goal.position.set(0, 1.22, 0); scene.add(goal);
+const camera = new THREE.PerspectiveCamera(35, 1, .1, 100); let az = .6, el = .25, dist = 5.2; const target = new THREE.Vector3(-.6, 1.0, 11.2);
+canvas.addEventListener('pointermove', e => { if (e.buttons) { az -= e.movementX*.01; el = Math.max(-.2, Math.min(1.3, el + e.movementY*.01)); $('spin').checked = false; } }); canvas.addEventListener('wheel', e => { dist = Math.max(1.5, Math.min(14, dist*(1 + e.deltaY*.001))); e.preventDefault(); }, { passive: false });
+// poses: as MESMAS do jogo (rig.js) aplicadas ao GLB por retargeting
+const keeper = (gx, gy, tt, res) => rig.keeperPose({ x: .5 + (gx - .5)*Math.min(1, tt/.6), tx: gx, th: gy, t0: 0 }, { t: tt, gx, gy }, res, tt - .7, 0, rig.goalToWorld(gx, gy)).P;
+const POSES = { 'Atleta: em pé (espera)': () => rig.kickerPose({ mode: 'idle', t: 1 }), 'Chute: apoio e recuo (tc −0,12)': () => rig.kickerPose({ mode: 'kick', tc: -.12 }), 'Chute: CONTATO (tc 0)': () => rig.kickerPose({ mode: 'kick', tc: 0 }), 'Chute: acompanhamento (tc 0,3)': () => rig.kickerPose({ mode: 'kick', tc: .3 }),
+  'Comemoração': () => rig.cheerPose(1, 0, [0, 0, 11], 0), 'Goleiro: espera': () => ({ ...keeper(.5, .4, -1, null) }), 'Goleiro: defesa ALTA': () => keeper(.2, .85, .7, 'defesa'), 'Goleiro: defesa MÉDIA': () => keeper(.8, .5, .7, 'defesa'), 'Goleiro: defesa BAIXA': () => keeper(.2, .12, .7, 'defesa'), 'Goleiro: defesa CENTRAL': () => keeper(.5, .35, .7, 'defesa'), 'Goleiro: central ALTA (salto)': () => keeper(.5, .9, .7, 'defesa') };
+Object.keys(POSES).forEach(k => $('pose').add(new Option(k))); TEAMS.forEach(t => $('team').add(new Option(t.nome, t.id))); $('team').value = TEAMS.find(t => t.key === 'santos')?.id ?? 0;
+let inst = null, skelHelper = null, tpl = null;
+async function load() {
+  if (inst) { scene.remove(inst.root); inst.dispose(); inst = null; } if (skelHelper) { scene.remove(skelHelper); skelHelper = null; } const url = $('model').value; logEl.innerHTML = ''; log('ok', `1) Three.js r${THREE.REVISION}`); log('ok', '2) WebGL disponível');
+  try { const r = await fetch(url); if (!r.ok) throw new Error(`HTTP ${r.status}`); const rep = inspect(new Uint8Array(await r.arrayBuffer())); log(rep.ok ? 'ok' : 'err', `3) Inspetor: ${rep.ok ? 'modelo atende ao contrato' : 'modelo NÃO atende'} — ${rep.info.triangles} triângulos, ${rep.info.joints} ossos, altura ≈ ${rep.info.heightApprox} m`);
+    rep.errors.forEach(e => log('err', e)); rep.warnings.forEach(w => log('warn', w)); log('ok', 'Materiais: ' + Object.entries(rep.info.materialSlots).map(([k, v]) => `${k}=${v ?? '—'}`).join(' ')); if (!rep.ok) { log('warn', 'Corrija com: node prepare-athlete.mjs <seu-modelo.glb> assets/models/athlete.glb'); return; } }
+  catch (e) { log('err', `3) Não foi possível ler ${url}: ${e.message}`); return; }
+  try { tpl = await loadTemplate(url); inst = instantiate(tpl); scene.add(inst.root); log('ok', `4) GLB carregado pelo GLTFLoader: escala do modelo ≈ ${tpl.rest.scale.toFixed(2)}× o rig do jogo; ${tpl.animations.length} animação(ões) embutida(s)`); }
+  catch (e) { log('err', '4) Falha ao carregar/instanciar: ' + e.message); console.error(e); return; }
+  let meshes = 0, tris = 0; inst.root.traverse(o => { if (o.isSkinnedMesh) { meshes++; tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count)/3; } }); log(meshes ? 'ok' : 'err', `5) ${meshes} malha(s) com esqueleto (SkinnedMesh), ${tris} triângulos — ${meshes ? 'malha 3D real' : 'NÃO é uma malha com esqueleto'}`); apply();
+}
+function apply() {
+  if (!inst) return; const t = TEAMS[+$('team').value], pose = $('pose').value, isKeeper = /^Goleiro/.test(pose), look = pickKicker(t, 1, null);
+  const kit = isKeeper ? { c1: '#00c853', c2: '#141414', c3: '#fff', pat: 'p', sh: '#1b1b1b', keeper: true, long: true, glove: true, key: 'gk' + t.id } : { ...t, sh: t.c2, variant: ($('variant') && $('variant').value) || 'home' };
+  inst.apply(kit, isKeeper ? { nome: 'GOL', num: 1 } : look); inst.pose(rig.humanJoints(POSES[pose]())); inst.root.updateMatrixWorld(true);
+  inst.root.traverse(o => { if (o.isMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { m.wireframe = $('wire').checked; }); });
+  if (skelHelper) { scene.remove(skelHelper); skelHelper = null; } if ($('skel').checked) { skelHelper = new THREE.SkeletonHelper(inst.root); scene.add(skelHelper); }
+  const J = rig.humanJoints(POSES[pose]()); target.set(J.pelvis[0], 1.0, J.pelvis[2]);
+}
+['pose', 'team', 'variant', 'wire', 'skel'].forEach(id => $(id).addEventListener('change', apply)); $('reload').onclick = load; $('shot').onclick = () => { renderer.render(scene, camera); canvas.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'captura-three-glb.png'; a.click(); }); };
+function frame() { const w = canvas.clientWidth, h = canvas.clientHeight; if (canvas.width !== w || canvas.height !== h) { renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix(); } if ($('spin').checked) az += .004; camera.position.set(target.x + Math.sin(az)*Math.cos(el)*dist, target.y + Math.sin(el)*dist, target.z + Math.cos(az)*Math.cos(el)*dist); camera.lookAt(target); renderer.render(scene, camera); requestAnimationFrame(frame); }
+await load(); frame();
+</script></body></html>

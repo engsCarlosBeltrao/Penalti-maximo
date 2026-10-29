@@ -1,0 +1,37 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Demo de uniformes — Pênalti Máximo</title>
+<script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
+<style>body{margin:0;background:#0b1220;color:#e8eefc;font:13px system-ui,sans-serif;display:flex;height:100vh}#side{width:300px;padding:12px;overflow:auto;border-right:1px solid #1f2b46}#c{flex:1;display:block;width:100%;height:100%}
+label{display:block;margin:8px 0 2px;color:#9fb3d9}select,input,button{width:100%;box-sizing:border-box;padding:6px;background:#10192e;color:#e8eefc;border:1px solid #2a3a5e;border-radius:6px}.row{display:flex;gap:6px;margin-top:8px}.row button{flex:1}
+#log{margin-top:10px;font-size:12px;color:#ffb703;white-space:pre-wrap}h3{margin:0 0 6px;color:#ffe66d}.ok{color:#38d96b}</style></head><body>
+<div id="side"><h3>Uniformes (pack 26-27)</h3>
+<label>Clube</label><select id="team"></select><label>Uniforme</label><select id="variant"><option value="home">Titular</option><option value="away">Reserva</option><option value="third">Terceira</option></select>
+<label>Nome (costas)</label><input id="nome" value="SILVA" maxlength="12"><label>Número</label><input id="num" type="number" min="1" max="99" value="10">
+<label>Vista</label><div class="row"><button data-v="front">Frente</button><button data-v="back">Costas</button></div><div class="row"><button data-v="left">Lado E</button><button data-v="right">Lado D</button></div>
+<div class="row"><button id="anim">▶ Movimento (chute)</button></div><div class="row"><button id="shot">Baixar PNG</button></div><div id="log"></div></div>
+<canvas id="c"></canvas>
+<script type="module">
+const $ = id => document.getElementById(id), log = m => { $('log').textContent += m + '\n'; };
+let THREE, loader, rig, kp, TEAMS;
+try { THREE = await import('three'); [loader, rig, kp, { TEAMS }] = await Promise.all([import('./js/three/loader.js'), import('./js/rig.js'), import('./js/three/kitPack.js'), import('./js/teams.js')]); } catch (e) { log('Falha ao carregar Three.js/módulos: ' + e.message); throw e; }
+const canvas = $('c'), renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true }); renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#14203a'); scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.5)); const sun = new THREE.DirectionalLight(0xffffff, 2); sun.position.set(3, 6, 5); scene.add(sun);
+const floor = new THREE.Mesh(new THREE.CircleGeometry(3, 48), new THREE.MeshStandardMaterial({ color: '#1d6b3a' })); floor.rotation.x = -Math.PI/2; scene.add(floor);
+const cam = new THREE.PerspectiveCamera(30, 1, .1, 50); let az = Math.PI, el = .08, dist = 5.2, anim = false;
+canvas.addEventListener('pointermove', e => { if (e.buttons) { az -= e.movementX*.01; el = Math.max(-.2, Math.min(1.2, el + e.movementY*.01)); } }); canvas.addEventListener('wheel', e => { dist = Math.max(1.8, Math.min(12, dist + e.deltaY*.004)); e.preventDefault(); }, { passive: false });
+document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { az = { front: Math.PI, back: 0, left: -Math.PI/2, right: Math.PI/2 }[b.dataset.v]; anim = false; $('anim').textContent = '▶ Movimento (chute)'; });
+await kp.loadKitPack(); if (!kp.kitPackReady()) log('assets/kits/kits.json não encontrado — usando uniformes procedurais.'); else log('Pack carregado.');
+TEAMS.forEach(t => { const o = document.createElement('option'); o.value = t.key; o.textContent = t.nome; $('team').appendChild(o); });
+let inst; try { const tpl = await loader.loadTemplate('assets/models/athlete.glb'); inst = loader.instantiate(tpl); scene.add(inst.root); log('Modelo carregado (' + tpl.animations.length + ' animações).'); } catch (e) { log('Falha ao carregar assets/models/athlete.glb:\n' + e.message); throw e; }
+const tgt = new THREE.Vector3(0, 1, 11), pose = P => { const J = rig.humanJoints(P); inst.pose(J); inst.root.updateMatrixWorld(true); tgt.set(J.pelvis[0], 1, J.pelvis[2]); floor.position.set(J.pelvis[0], 0, J.pelvis[2]); };
+const idle = () => rig.kickerPose({ mode: 'idle', t: 1 });
+const refresh = () => { const t = TEAMS.find(x => x.key === $('team').value); inst.apply({ ...t, sh: t.c2, variant: $('variant').value }, { nome: $('nome').value.toUpperCase(), num: +$('num').value || 0 }); if (!anim) pose(idle()); };
+['team', 'variant', 'nome', 'num'].forEach(id => $(id).addEventListener('input', refresh)); refresh();
+$('anim').onclick = () => { anim = !anim; $('anim').textContent = anim ? '■ Parar' : '▶ Movimento (chute)'; if (!anim) pose(idle()); };
+$('shot').onclick = () => { const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = `uniforme-${$('team').value}-${$('variant').value}.png`; a.click(); };
+const clock = new THREE.Clock();   // o jogador do jogo olha para -z (o gol): a vista "frente" é a câmera do lado do gol
+renderer.setAnimationLoop(() => {
+  const w = canvas.clientWidth, h = canvas.clientHeight; if (canvas.width !== w || canvas.height !== h) { renderer.setSize(w, h, false); cam.aspect = w/h; cam.updateProjectionMatrix(); }
+  if (anim) { const t = clock.getElapsedTime(), c = ((t % 3.2)/3.2); const P = c < .3 ? rig.kickerPose({ mode: 'walkin', t: c/.3*.9 }) : rig.kickerPose({ mode: 'kick', tc: rig.KICK_T0 + (c - .3)/.7*(.8 - rig.KICK_T0) }); pose(P); }
+  cam.position.set(tgt.x + Math.sin(az)*Math.cos(el)*dist, 1 + Math.sin(el)*dist, tgt.z + Math.cos(az)*Math.cos(el)*dist); cam.lookAt(tgt); renderer.render(scene, cam);
+});
+</script></body></html>

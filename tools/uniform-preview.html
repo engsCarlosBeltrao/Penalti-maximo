@@ -1,0 +1,12 @@
+<!doctype html><meta charset="utf-8"><title>Pré-visualização de uniformes</title><body style="margin:0;background:#222;color:#fff;font:14px sans-serif">
+<p style="padding:8px">Abra pelo Live Server. Mostra a textura da camisa de cada clube com o layout de <code>assets/models/uniform-layout.json</code> (ou o padrão).</p><div id="out" style="display:flex;flex-wrap:wrap;gap:6px;padding:6px"></div>
+<script>
+// Descobre a pasta base do projeto: se esta pagina estiver numa pasta "tools", a base e "../"; senao, "./" (nao presume a pasta "tools").
+(function () { var dir = location.pathname.slice(0, location.pathname.lastIndexOf('/') + 1).toLowerCase(); var base = dir.slice(-7) === '/tools/' ? '../' : './'; window.__BASE = base;
+  var s = document.createElement('script'); s.type = 'importmap'; s.textContent = JSON.stringify({ imports: { 'three': base + 'vendor/three/three.module.js', 'three/addons/': base + 'vendor/three/addons/' } }); document.head.appendChild(s); })();
+</script>
+<script type="module">
+const B = window.__BASE; const { composeShirt, DEFAULT_ATLAS } = await import(B + 'js/three/uniform.js'); const { TEAMS } = await import(B + 'js/teams.js'); const { pickKicker } = await import(B + 'js/players.js');
+const layout = await fetch(B + 'assets/models/uniform-layout.json').then(r => r.ok ? r.json() : DEFAULT_ATLAS).catch(() => DEFAULT_ATLAS), out = document.getElementById('out');
+TEAMS.forEach(t => { const p = pickKicker(t, 1, null), cv = composeShirt(layout, { ...t, sh: t.c2 }, p); cv.style.width = '230px'; cv.title = t.nome; out.appendChild(cv); });
+</script>

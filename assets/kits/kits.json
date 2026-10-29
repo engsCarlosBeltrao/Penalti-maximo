@@ -1,0 +1,634 @@
+{
+ "flamengo": {
+  "home": {
+   "main": "#1e1e1e",
+   "sleeve": "#1e1e1e",
+   "shorts": "#dddbdd",
+   "socks": "#cd0405",
+   "trim": "#cf0504",
+   "packId": "322",
+   "file": "assets/kits/flamengo_home.jpg",
+   "sb": 40
+  },
+  "away": {
+   "main": "#dfdcde",
+   "sleeve": "#dddadc",
+   "shorts": "#202020",
+   "socks": "#d0cfcf",
+   "trim": "#e30a06",
+   "packId": "322",
+   "file": "assets/kits/flamengo_away.jpg",
+   "sb": 46
+  },
+  "third": {
+   "main": "#e20001",
+   "sleeve": "#e40002",
+   "shorts": "#1e1e1e",
+   "socks": "#f20000",
+   "trim": "#e15454",
+   "packId": "322",
+   "file": "assets/kits/flamengo_third.jpg",
+   "sb": 46
+  }
+ },
+ "corinthians": {
+  "home": {
+   "main": "#dfdedf",
+   "sleeve": "#dfdedf",
+   "shorts": "#191919",
+   "socks": "#c8c8c8",
+   "trim": "#b3b3b3",
+   "packId": "319",
+   "file": "assets/kits/corinthians_home.jpg",
+   "sb": 90
+  },
+  "away": {
+   "main": "#1e1e1e",
+   "sleeve": "#1c1c1c",
+   "shorts": "#e7e3e7",
+   "socks": "#1e1e1e",
+   "trim": "#b7b6b7",
+   "packId": "319",
+   "file": "assets/kits/corinthians_away.jpg",
+   "sb": 90
+  },
+  "third": {
+   "main": "#242424",
+   "sleeve": "#242424",
+   "shorts": "#292929",
+   "socks": "#282828",
+   "trim": "#6b6a6b",
+   "packId": "319",
+   "file": "assets/kits/corinthians_third.jpg",
+   "sb": 90
+  }
+ },
+ "palmeiras": {
+  "home": {
+   "main": "#1d5438",
+   "sleeve": "#1d5438",
+   "shorts": "#e7e3e7",
+   "socks": "#165437",
+   "trim": "#3c6b52",
+   "packId": "329",
+   "file": "assets/kits/palmeiras_home.jpg",
+   "sb": 46
+  },
+  "away": {
+   "main": "#e7e3e7",
+   "sleeve": "#e6e3e6",
+   "shorts": "#185539",
+   "socks": "#e1dfe1",
+   "trim": "#cccfcf",
+   "packId": "329",
+   "file": "assets/kits/palmeiras_away.jpg",
+   "sb": 46
+  },
+  "third": {
+   "main": "#003f81",
+   "sleeve": "#003f81",
+   "shorts": "#004082",
+   "socks": "#003f7d",
+   "trim": "#3a5b79",
+   "packId": "329",
+   "file": "assets/kits/palmeiras_third.jpg",
+   "sb": 46
+  }
+ },
+ "saopaulo": {
+  "home": {
+   "main": "#d3d1d3",
+   "sleeve": "#d3d2d3",
+   "shorts": "#dbd9db",
+   "socks": "#d2d2d2",
+   "trim": "#cc0b07",
+   "packId": "337",
+   "file": "assets/kits/saopaulo_home.jpg"
+  },
+  "away": {
+   "main": "#ca110e",
+   "sleeve": "#262626",
+   "shorts": "#242424",
+   "socks": "#232323",
+   "trim": "#222222",
+   "packId": "337",
+   "file": "assets/kits/saopaulo_away.jpg"
+  },
+  "third": {
+   "main": "#e4e2d3",
+   "sleeve": "#e3e0d2",
+   "shorts": "#e3e1d3",
+   "socks": "#dcdcc9",
+   "trim": "#cdc8bb",
+   "packId": "337",
+   "file": "assets/kits/saopaulo_third.jpg"
+  }
+ },
+ "santos": {
+  "home": {
+   "main": "#eff3ef",
+   "sleeve": "#f2f3f3",
+   "shorts": "#efefef",
+   "socks": "#f2f2f2",
+   "trim": "#caccca",
+   "packId": "335",
+   "file": "assets/kits/santos_home.jpg",
+   "sb": 84
+  },
+  "away": {
+   "main": "#1c1c1c",
+   "sleeve": "#191919",
+   "shorts": "#191919",
+   "socks": "#181818",
+   "trim": "#e8e8e8",
+   "packId": "335",
+   "file": "assets/kits/santos_away.jpg",
+   "sb": 100
+  },
+  "third": {
+   "main": "#0c0c0c",
+   "sleeve": "#0c0c0c",
+   "shorts": "#111111",
+   "socks": "#0d0d0d",
+   "trim": "#3c3b3b",
+   "packId": "335",
+   "file": "assets/kits/santos_third.jpg",
+   "sb": 84
+  }
+ },
+ "gremio": {
+  "home": {
+   "main": "#161616",
+   "sleeve": "#161616",
+   "shorts": "#161616",
+   "socks": "#161616",
+   "trim": "#008cde",
+   "packId": "324",
+   "file": "assets/kits/gremio_home.jpg",
+   "sb": 68
+  },
+  "away": {
+   "main": "#72bee7",
+   "sleeve": "#e7ebe7",
+   "shorts": "#e7ebe7",
+   "socks": "#e7ebe7",
+   "trim": "#e8ebe7",
+   "packId": "324",
+   "file": "assets/kits/gremio_away.jpg",
+   "sb": 68
+  },
+  "third": {
+   "main": "#0062d1",
+   "sleeve": "#0062d1",
+   "shorts": "#0061d1",
+   "socks": "#0062ce",
+   "trim": "#3d6e9d",
+   "packId": "324",
+   "file": "assets/kits/gremio_third.jpg",
+   "sb": 80
+  }
+ },
+ "internacional": {
+  "home": {
+   "main": "#d12d2c",
+   "sleeve": "#d42c2e",
+   "shorts": "#e7e3e7",
+   "socks": "#cccccc",
+   "trim": "#e1e1e2",
+   "packId": "326",
+   "file": "assets/kits/internacional_home.jpg",
+   "sb": 62
+  },
+  "away": {
+   "main": "#e5e3e5",
+   "sleeve": "#e4e3e4",
+   "shorts": "#e7e3e7",
+   "socks": "#cccccc",
+   "trim": "#df9a9c",
+   "packId": "326",
+   "file": "assets/kits/internacional_away.jpg",
+   "sb": 62
+  },
+  "third": {
+   "main": "#831b1b",
+   "sleeve": "#561719",
+   "shorts": "#531617",
+   "socks": "#551d1e",
+   "trim": "#c82120",
+   "packId": "326",
+   "file": "assets/kits/internacional_third.jpg"
+  }
+ },
+ "atletico-mg": {
+  "home": {
+   "main": "#0c0c0c",
+   "sleeve": "#0c0c0c",
+   "shorts": "#0a0a0a",
+   "socks": "#0c0c0c",
+   "trim": "#e2e3e3",
+   "packId": "314",
+   "file": "assets/kits/atletico-mg_home.jpg",
+   "sb": 90
+  },
+  "away": {
+   "main": "#e0e0e0",
+   "sleeve": "#e2e3e2",
+   "shorts": "#e3e3e3",
+   "socks": "#dddddd",
+   "trim": "#1e1e1e",
+   "packId": "314",
+   "file": "assets/kits/atletico-mg_away.jpg",
+   "sb": 90
+  },
+  "third": {
+   "main": "#ff6700",
+   "sleeve": "#ff6700",
+   "shorts": "#252525",
+   "socks": "#1f1f1f",
+   "trim": "#212121",
+   "packId": "314",
+   "file": "assets/kits/atletico-mg_third.jpg",
+   "sb": 90
+  }
+ },
+ "cruzeiro": {
+  "home": {
+   "main": "#2a62b7",
+   "sleeve": "#2b63b7",
+   "shorts": "#e7e3e7",
+   "socks": "#c9c9c9",
+   "trim": "#5380c5",
+   "packId": "321",
+   "file": "assets/kits/cruzeiro_home.jpg",
+   "sb": 82
+  },
+  "away": {
+   "main": "#e6e5e6",
+   "sleeve": "#e4e4e4",
+   "shorts": "#2961b5",
+   "socks": "#295aaa",
+   "trim": "#b9c6db",
+   "packId": "321",
+   "file": "assets/kits/cruzeiro_away.jpg",
+   "sb": 82
+  },
+  "third": {
+   "main": "#f4f4f4",
+   "sleeve": "#f5f4f4",
+   "shorts": "#005dc8",
+   "socks": "#ecedee",
+   "trim": "#84afe0",
+   "packId": "321",
+   "file": "assets/kits/cruzeiro_third.jpg",
+   "sb": 82
+  }
+ },
+ "botafogo": {
+  "home": {
+   "main": "#d1d2d1",
+   "sleeve": "#d2d3d2",
+   "shorts": "#191919",
+   "socks": "#1e1e1e",
+   "trim": "#1c1c1c",
+   "packId": "316",
+   "file": "assets/kits/botafogo_home.jpg"
+  },
+  "away": {
+   "main": "#e8e5e8",
+   "sleeve": "#e8e5e8",
+   "shorts": "#e7e3e7",
+   "socks": "#c8c8c8",
+   "trim": "#cdcbcc",
+   "packId": "316",
+   "file": "assets/kits/botafogo_away.jpg"
+  },
+  "third": {
+   "main": "#cac8ca",
+   "sleeve": "#cac9ca",
+   "shorts": "#bfb9bf",
+   "socks": "#9a9a9a",
+   "trim": "#9d9a9d",
+   "packId": "316",
+   "file": "assets/kits/botafogo_third.jpg"
+  }
+ },
+ "fluminense": {
+  "home": {
+   "main": "#7a1227",
+   "sleeve": "#0d4337",
+   "shorts": "#eeeeee",
+   "socks": "#eceaec",
+   "trim": "#0b4236",
+   "packId": "323",
+   "file": "assets/kits/fluminense_home.jpg",
+   "sb": 46
+  },
+  "away": {
+   "main": "#dedfde",
+   "sleeve": "#dedfde",
+   "shorts": "#7b1429",
+   "socks": "#731223",
+   "trim": "#c8b2b5",
+   "packId": "323",
+   "file": "assets/kits/fluminense_away.jpg",
+   "sb": 46
+  },
+  "third": {
+   "main": "#275258",
+   "sleeve": "#265055",
+   "shorts": "#29555a",
+   "socks": "#284f56",
+   "trim": "#6a867e",
+   "packId": "323",
+   "file": "assets/kits/fluminense_third.jpg",
+   "sb": 46
+  }
+ },
+ "vasco": {
+  "home": {
+   "main": "#111111",
+   "sleeve": "#121212",
+   "shorts": "#131313",
+   "socks": "#141414",
+   "trim": "#d2d2d2",
+   "packId": "339",
+   "file": "assets/kits/vasco_home.jpg",
+   "sb": 90
+  },
+  "away": {
+   "main": "#f8f6f8",
+   "sleeve": "#f8f6f8",
+   "shorts": "#191919",
+   "socks": "#e5e1e0",
+   "trim": "#272727",
+   "packId": "339",
+   "file": "assets/kits/vasco_away.jpg",
+   "sb": 90
+  },
+  "third": {
+   "main": "#f4e89c",
+   "sleeve": "#f4e89e",
+   "shorts": "#f5e99f",
+   "socks": "#f7e893",
+   "trim": "#1f1f1f",
+   "packId": "339",
+   "file": "assets/kits/vasco_third.jpg",
+   "sb": 100
+  }
+ },
+ "bahia": {
+  "home": {
+   "main": "#d3d3d3",
+   "sleeve": "#d2d2d2",
+   "shorts": "#d5d5d5",
+   "socks": "#d2d2d2",
+   "trim": "#c8020b",
+   "packId": "315",
+   "file": "assets/kits/bahia_home.jpg",
+   "sb": 110
+  },
+  "away": {
+   "main": "#0540b9",
+   "sleeve": "#053fbc",
+   "shorts": "#0642b9",
+   "socks": "#d21d2a",
+   "trim": "#2169c8",
+   "packId": "315",
+   "file": "assets/kits/bahia_away.jpg",
+   "sb": 110
+  },
+  "third": {
+   "main": "#10233b",
+   "sleeve": "#10253e",
+   "shorts": "#112640",
+   "socks": "#10233a",
+   "trim": "#cda35b",
+   "packId": "315",
+   "file": "assets/kits/bahia_third.jpg",
+   "sb": 110
+  }
+ },
+ "sport": {
+  "home": {
+   "main": "#c50f20",
+   "sleeve": "#181818",
+   "shorts": "#191919",
+   "socks": "#1f1f1f",
+   "trim": "#191919",
+   "packId": "338",
+   "file": "assets/kits/sport_home.jpg",
+   "sb": 60
+  },
+  "away": {
+   "main": "#dec78c",
+   "sleeve": "#191919",
+   "shorts": "#dec78c",
+   "socks": "#c8b67d",
+   "trim": "#1c1c1c",
+   "packId": "338",
+   "file": "assets/kits/sport_away.jpg",
+   "sb": 60
+  },
+  "third": {
+   "main": "#086d94",
+   "sleeve": "#086d94",
+   "shorts": "#086d94",
+   "socks": "#086d94",
+   "trim": "#00496b",
+   "packId": "338",
+   "file": "assets/kits/sport_third.jpg",
+   "sb": 60
+  }
+ },
+ "fortaleza": {
+  "home": {
+   "main": "#0150b2",
+   "sleeve": "#0051b5",
+   "shorts": "#0051b5",
+   "socks": "#044ba4",
+   "trim": "#ac1e35",
+   "packId": "104750",
+   "file": "assets/kits/fortaleza_home.jpg",
+   "sb": 90
+  },
+  "away": {
+   "main": "#f2f2eb",
+   "sleeve": "#efefe7",
+   "shorts": "#efefe7",
+   "socks": "#e7e6da",
+   "trim": "#e9dcb7",
+   "packId": "104750",
+   "file": "assets/kits/fortaleza_away.jpg",
+   "sb": 66
+  },
+  "third": {
+   "main": "#6ba5cc",
+   "sleeve": "#6ba6ce",
+   "shorts": "#6ba6ce",
+   "socks": "#6396ba",
+   "trim": "#3a506d",
+   "packId": "104750",
+   "file": "assets/kits/fortaleza_third.jpg"
+  }
+ },
+ "ceara": {
+  "home": {
+   "main": "#131313",
+   "sleeve": "#131313",
+   "shorts": "#131313",
+   "socks": "#141414",
+   "trim": "#cfcfd0",
+   "packId": "104749",
+   "file": "assets/kits/ceara_home.jpg",
+   "sb": 126
+  },
+  "away": {
+   "main": "#b7b8bc",
+   "sleeve": "#b9babe",
+   "shorts": "#b6b6ba",
+   "socks": "#dbdce0",
+   "trim": "#0f0f0f",
+   "packId": "104749",
+   "file": "assets/kits/ceara_away.jpg",
+   "sb": 96
+  },
+  "third": {
+   "main": "#161616",
+   "sleeve": "#161616",
+   "shorts": "#161616",
+   "socks": "#161616",
+   "trim": "#9a9a9a",
+   "packId": "104749",
+   "file": "assets/kits/ceara_third.jpg",
+   "sb": 56
+  }
+ },
+ "athletico-pr": {
+  "home": {
+   "main": "#272727",
+   "sleeve": "#272727",
+   "shorts": "#282828",
+   "socks": "#242424",
+   "trim": "#ac1b18",
+   "packId": "107206",
+   "file": "assets/kits/athletico-pr_home.jpg",
+   "sb": 62
+  },
+  "away": {
+   "main": "#e5e2e5",
+   "sleeve": "#e7e3e7",
+   "shorts": "#e7e3e7",
+   "socks": "#c8c8c8",
+   "trim": "#cecacc",
+   "packId": "107206",
+   "file": "assets/kits/athletico-pr_away.jpg",
+   "sb": 62
+  },
+  "third": {
+   "main": "#0b0b0b",
+   "sleeve": "#0c0c0c",
+   "shorts": "#0c0c0c",
+   "socks": "#0b0b0b",
+   "trim": "#530e10",
+   "packId": "107206",
+   "file": "assets/kits/athletico-pr_third.jpg",
+   "sb": 62
+  }
+ },
+ "coritiba": {
+  "home": {
+   "main": "#e2e2e7",
+   "sleeve": "#e2e3e7",
+   "shorts": "#e5e6eb",
+   "socks": "#dadbe1",
+   "trim": "#245359",
+   "packId": "104776",
+   "file": "assets/kits/coritiba_home.jpg",
+   "sb": 66
+  },
+  "away": {
+   "main": "#1f1f1f",
+   "sleeve": "#1c1c1c",
+   "shorts": "#d9d9d9",
+   "socks": "#c6c7cd",
+   "trim": "#728583",
+   "packId": "104776",
+   "file": "assets/kits/coritiba_away.jpg",
+   "sb": 58
+  },
+  "third": {
+   "main": "#e0e0e0",
+   "sleeve": "#d5d5d5",
+   "shorts": "#26314b",
+   "socks": "#232e49",
+   "trim": "#25304b",
+   "packId": "104776",
+   "file": "assets/kits/coritiba_third.jpg",
+   "sb": 66
+  }
+ },
+ "bragantino": {
+  "home": {
+   "main": "#e4e2e5",
+   "sleeve": "#e6e3e6",
+   "shorts": "#ce2421",
+   "socks": "#c32223",
+   "trim": "#dfb4b6",
+   "packId": "317",
+   "file": "assets/kits/bragantino_home.jpg",
+   "sb": 86
+  },
+  "away": {
+   "main": "#131313",
+   "sleeve": "#141414",
+   "shorts": "#161616",
+   "socks": "#131313",
+   "trim": "#3c3b3c",
+   "packId": "317",
+   "file": "assets/kits/bragantino_away.jpg",
+   "sb": 112
+  },
+  "third": {
+   "main": "#d60417",
+   "sleeve": "#d60417",
+   "shorts": "#0c0c0c",
+   "socks": "#d30316",
+   "trim": "#040404",
+   "packId": "317",
+   "file": "assets/kits/bragantino_third.jpg",
+   "sb": 86
+  }
+ },
+ "vitoria": {
+  "home": {
+   "main": "#1a1a1a",
+   "sleeve": "#1e1e1e",
+   "shorts": "#191919",
+   "socks": "#1b1b1b",
+   "trim": "#bb2522",
+   "packId": "340",
+   "file": "assets/kits/vitoria_home.jpg",
+   "sb": 44
+  },
+  "away": {
+   "main": "#f1f1f1",
+   "sleeve": "#efefef",
+   "shorts": "#e7ebe7",
+   "socks": "#c8c8c8",
+   "trim": "#d0cfcf",
+   "packId": "340",
+   "file": "assets/kits/vitoria_away.jpg",
+   "sb": 44
+  },
+  "third": {
+   "main": "#f1e8db",
+   "sleeve": "#f1e7da",
+   "shorts": "#ede4d7",
+   "socks": "#ede4d6",
+   "trim": "#3f2d33",
+   "packId": "340",
+   "file": "assets/kits/vitoria_third.jpg",
+   "sb": 44
+  }
+ }
+}

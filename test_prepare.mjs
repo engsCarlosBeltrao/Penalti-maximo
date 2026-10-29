@@ -1,0 +1,34 @@
+// Testa tools/prepare-athlete.mjs de ponta a ponta com um humanoide sintético (sem Three.js): separação de materiais, UV, pesos, animações.
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+// localiza um modulo auxiliar sem presumir a pasta "tools" (nem js/three)
+const load = async (name) => { for (const d of ['tools', '.', 'js/three', 'js']) { const p = path.resolve(d, name); if (fs.existsSync(p)) return import(pathToFileURL(p).href); } throw new Error('nao encontrei ' + name); };
+import os from 'node:os';
+const { makeTubeGLB } = await load('make-tube-glb.mjs');
+const { prepare, SLOT_LIST } = await load('prepare-athlete.mjs');
+const { readModel, readAccessor } = await load('gltf-io.mjs');
+const { inspect, parseGLB } = await load('glbInspect.js');
+let ok = 0, bad = 0; const t = (n, c) => { c ? ok++ : (bad++, console.log('FALHOU:', n)); };
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'prep-')), src = makeTubeGLB(), inFile = path.join(tmp, 'in.glb'); fs.writeFileSync(inFile, src.glb);
+let r0 = inspect(new Uint8Array(src.glb)); t('modelo cru (1 material) é recusado pelo inspetor', !r0.ok && r0.errors.some(e => /shirt/.test(e)));
+const res = prepare(readModel(inFile)), outFile = path.join(tmp, 'out.glb'); fs.writeFileSync(outFile, res.glb);
+const rep = inspect(new Uint8Array(res.glb)); t('depois de preparado, o inspetor APROVA', rep.ok && rep.errors.length === 0);
+t('os 7 materiais do uniforme existem e têm triângulos (Eyes só existe se o modelo tiver malha de olhos)', SLOT_LIST.filter(s => s !== 'Eyes').every(s => (res.stats[s] || 0) > 0)); t('corpo particionado sem perder triângulo (Skin+Gloves+Hair+Eyes = original) e roupas extras criadas', ['Skin', 'Gloves', 'Hair', 'Eyes'].reduce((a, k) => a + (res.stats[k] || 0), 0) === src.triangles && ['Shirt', 'Shorts', 'Socks', 'Boots', 'Sole', 'Trim'].every(k => (res.stats[k] || 0) > 0));
+const M = readModel(outFile), pr = M.json.meshes[0].primitives, mats = M.json.materials.map(m => m.name); t('um primitivo por material, com nomes certos', pr.length >= 7 && pr.length === new Set(pr.map(p => p.material)).size && SLOT_LIST.every(s => mats.includes(s)));
+const slotOf = p => mats[p.material]; const uvOf = p => readAccessor(M, p.attributes.TEXCOORD_0), posOf = p => readAccessor(M, p.attributes.POSITION);
+const shirt = pr.find(p => slotOf(p) === 'Shirt'), su = uvOf(shirt), sp = posOf(shirt); t('UV da camisa: v em [0,1], u em [0,2] (costura com RepeatWrapping)', su.every(([u, v]) => u >= -.001 && u <= 2.001 && v >= 0 && v <= 1));
+const torso = sp.map((p, i) => [p, su[i]]).filter(([p]) => Math.abs(p[0]) < .06 && p[1] > .95 && p[1] < 1.3); const front = torso.filter(([p]) => p[2] > .08), back = torso.filter(([p]) => p[2] < -.08);
+t('frente do tronco mapeia perto de u=0,25 e costas perto de u=0,75', front.length > 0 && back.length > 0 && front.every(([, [u]]) => Math.abs(u - .25) < .12) && back.every(([, [u]]) => Math.abs(u - .75) < .12));
+t('chuteira só na ponta do pé; meia na canela', posOf(pr.find(p => slotOf(p) === 'Boots')).every(p => p[1] < .2) && posOf(pr.find(p => slotOf(p) === 'Socks')).every(p => p[1] < .52));
+t('cabelo só acima da articulação da cabeça', posOf(pr.find(p => slotOf(p) === 'Hair')).every(p => p[1] >= 1.47 - 1e-6));
+t('calção na região do quadril/coxa alta', posOf(pr.find(p => slotOf(p) === 'Shorts')).every(p => p[1] > .5 && p[1] < 1.0));
+const gl = pr.find(p => slotOf(p) === 'Gloves'); t('osso extra (dedo) e mão viram luvas', gl && posOf(gl).some(p => p[0] > .8));
+let wbad = 0, jbad = 0; const nj = M.json.skins[0].joints.length; pr.forEach(p => { readAccessor(M, p.attributes.WEIGHTS_0).forEach(w => { if (Math.abs(w.reduce((a, b) => a + b, 0) - 1) > 1e-4) wbad++; }); readAccessor(M, p.attributes.JOINTS_0).forEach(j => j.forEach(x => { if (x >= nj) jbad++; })); });
+t('pesos somam 1 e índices de osso são válidos', wbad === 0 && jbad === 0); t('animações originais preservadas', (M.json.animations || []).map(a => a.name).join() === 'Idle' && rep.info.animations[0].name === 'Idle');
+t('texturas e imagens originais descartadas', !M.json.textures && !M.json.images);
+let msg0 = ''; try { prepare(readModel(outFile)); } catch (e) { msg0 = e.message; } t('rodar sobre um modelo já preparado é recusado com mensagem clara', /já foi preparado/.test(msg0));
+const pref = makeTubeGLB({ prefix: 'mixamorig:' }); fs.writeFileSync(path.join(tmp, 'mx.glb'), pref.glb); t('nomes Mixamo são aceitos', inspect(new Uint8Array(prepare(readModel(path.join(tmp, 'mx.glb'))).glb)).ok);
+let msg = ''; const bad1 = JSON.parse(JSON.stringify(readModel(inFile).json)); bad1.skins = []; try { prepare({ json: bad1, buffers: readModel(inFile).buffers }); } catch (e) { msg = e.message; } t('sem esqueleto: erro claro', /esqueleto/.test(msg));
+msg = ''; const m2 = readModel(inFile); m2.json.nodes.forEach(n => { if (n.name && n.name !== 'Armature' && n.name !== 'Body') n.name = 'X' + Math.random().toString(36).slice(2, 6); }); try { prepare(m2); } catch (e) { msg = e.message; } t('ossos com nomes desconhecidos: erro lista os nomes e sugere --map', /Nomes de ossos/.test(msg) && /--map/.test(msg));
+fs.rmSync(tmp, { recursive: true, force: true }); console.log(`PREPARE OK ${ok} | FALHAS ${bad}`); process.exit(bad ? 1 : 0);

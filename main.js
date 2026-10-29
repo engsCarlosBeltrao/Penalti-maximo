@@ -1,0 +1,65 @@
+// Interface: menu, seleção de times/jogadores, playlist, configurações, campeonato e telas de resultado.
+import { Game, cfg } from './game.js';
+import { GS } from './gameState.js';
+import { Events } from './events.js';
+import { Arduino } from './arduino.js';
+import { TEAMS } from './teams.js';
+import { squad } from './players.js';
+import { Cup } from './tournament.js';
+import { Music } from './musicPlayer.js';
+const ui = document.getElementById('ui'), cv = document.getElementById('cv'), app = document.getElementById('app'), back = document.getElementById('back');
+let sel = { a: null, b: null }, escolha = [null, null], cup = null, mode = 'solo', me = null;
+// --- layout: UI lógica 960x540 escalada; canvas com resolução interna × devicePixelRatio ---
+function fit() { const s = app.clientWidth / 960, d = window.devicePixelRatio || 1; ui.style.transform = `scale(${s})`; cv.width = Math.round(960*s*d); cv.height = Math.round(540*s*d); }
+window.addEventListener('resize', fit); fit();
+const crest = t => `<img src="assets/crests/${t.key}.png" alt="${t.sigla}" title="${t.nome}" onerror="this.outerHTML='<svg viewBox=\\'0 0 46 54\\'><path d=\\'M3 3h40v26c0 13-12 20-20 23C15 49 3 42 3 29z\\' fill=\\'#2a3b52\\' stroke=\\'#8da2bd\\' stroke-width=\\'2\\'/><text x=\\'23\\' y=\\'32\\' font-size=\\'14\\' font-weight=\\'900\\' text-anchor=\\'middle\\' fill=\\'#fff\\'>${t.sigla}</text></svg>'">`;
+const show = h => { ui.className = ''; ui.innerHTML = h; back.hidden = true; };
+const hide = () => { ui.className = 'off'; back.hidden = false; };
+const on = (id, f) => { const e = document.getElementById(id); if (e) e.onclick = f; };
+const T = i => TEAMS[i];
+Game.init(cv); Music.init(); Arduino.registrarComandos({ iniciar: () => Game.restart(), pausar: () => Game.paused = !Game.paused, reiniciar: () => Game.restart() }); Arduino.iniciar();
+back.onclick = () => { Game.stop(); Music.setMode('menu'); menu(); };
+document.addEventListener('pointerdown', () => { if (!Music.playing && !Music.msg && Music.tracks.length && !GS.equipes[0]?.jogando) Music.play(); }, { once: true });
+
+function menu() { GS.estado = 'MENU'; Music.onChange = null; Music.setMode('menu');
+  show(`<h1>PÊNALTI MÁXIMO</h1><p>${sel.a != null ? `${T(sel.a).nome} x ${sel.b != null ? T(sel.b).nome : 'sorteio'}` : 'Segure, mire no tempo certo e solte.'}</p><div class="menu">
+  <button id="solo">JOGAR SOZINHO</button><button id="duo">JOGAR COM ALGUÉM</button><button id="tm" class="sec">ESCOLHER TIMES</button><button id="pj" class="sec">ESCOLHER JOGADORES</button>
+  <button id="cp" class="sec">CAMPEONATO</button><button id="pl" class="sec">PLAYLIST</button><button id="cf" class="sec">CONFIGURAÇÕES</button><button id="hw" class="sec">COMO JOGAR</button></div>`);
+  on('solo', () => need('solo')); on('duo', () => need('duo')); on('tm', () => pickTeam('a', 'Time do Jogador 1', () => pickTeam('b', 'Time do Jogador 2 / adversário', menu))); on('pj', pickPlayers);
+  on('cp', () => need('copa')); on('pl', playlist); on('cf', settings); on('hw', how); }
+function need(m) { mode = m; const go = () => m === 'duo' && sel.b == null ? pickTeam('b', 'Time do Jogador 2', go) : launch(); sel.a == null ? pickTeam('a', m === 'duo' ? 'Time do Jogador 1' : 'Escolha seu time', go) : go(); }
+function pickTeam(slot, title, next) { GS.estado = 'SELECAO_EQUIPE';
+  show(`<h2>${title}</h2><div class="grid">${TEAMS.map(t => `<div class="card" data-i="${t.id}">${crest(t)}<br>${t.nome}</div>`).join('')}</div><button id="b" class="sec">VOLTAR</button>`);
+  ui.querySelectorAll('.card').forEach(c => c.onclick = () => { sel[slot] = +c.dataset.i; if (slot === 'a') escolha[0] = null; else escolha[1] = null; next(); }); on('b', menu); }
+function pickPlayers() { if (sel.a == null) return pickTeam('a', 'Primeiro escolha o time do Jogador 1', pickPlayers);
+  const slots = sel.b == null ? [0] : [0, 1], one = s => { const t = T(s ? sel.b : sel.a), sq = squad(t);
+    show(`<h2>Cobrador — ${t.nome}</h2><div class="box"><div class="pl"><button data-p="" class="sec">★ AUTOMÁTICO</button>${sq.map(p => `<button data-p="${p.id}" ${p.isStar ? '' : 'class="sec"'}>${p.isStar ? '★ ' : ''}${p.pending ? 'Pendente' : (p.nickname || p.name)} · ${p.jerseyNumber} · ${p.rating}</button>`).join('')}</div><p style="font-size:12px;margin-top:8px">Elencos verificados: só atletas com fonte e data em js/players.js. "Pendente" = elenco ainda não verificado.</p></div><button id="b" class="sec">VOLTAR</button>`);
+    ui.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { escolha[s] = b.dataset.p || null; s < slots.length - 1 ? one(s + 1) : menu(); }); on('b', menu); }; one(0); }
+function launch() { if (mode === 'copa') { cup = new Cup(sel.a); return cupScreen(); } const b = mode === 'duo' ? sel.b : (sel.b ?? T(sel.a).id === 0 ? 1 : 0); versus(sel.a, mode === 'duo' || sel.b != null ? sel.b : [...TEAMS.keys()].filter(i => i !== sel.a)[Math.floor(Math.random() * 19)]); }
+function versus(a, b) { me = a; show(`<h2>${mode === 'copa' ? cup.stageName() : mode === 'duo' ? 'Dois jogadores' : 'Amistoso'}</h2><div style="display:flex;gap:30px;align-items:center">${crest(T(a))}<h1>VS</h1>${crest(T(b))}</div><h3>${T(a).nome} x ${T(b).nome}</h3><button id="go">INICIAR DISPUTA</button><button id="b" class="sec">VOLTAR</button>`);
+  on('b', menu); on('go', () => { hide(); Music.setMode('game'); Game.start(T(a), T(b), (win, [x, y], marks) => end(win, x, y, a, b, marks), mode === 'duo', escolha); }); }
+function resumo(marks) { const s = m => m.map(v => `<span style="color:${v === 'g' ? '#38b000' : v === 'd' ? '#4cc9f0' : '#e63946'}">${v === 'g' ? '● gol' : v === 'd' ? '● defesa' : '● fora/trave'}</span>`).join(' '); return `<div class="box" style="font-size:12px">${[0, 1].map(i => `<b>${GS.equipes[i].nome}:</b> ${s(marks[i])}`).join('<br>')}</div>`; }
+function end(win, x, y, a, b, marks) { Music.setMode('menu');
+  if (mode === 'copa') { cup.playerResult(x, y); return cupScreen(win, x, y, a, b); }
+  const msg = mode === 'duo' ? `${T(win ? a : b).nome} venceu!` : win ? 'VITÓRIA!' : 'DERROTA';
+  show(`<h1>${msg}</h1><h2>${T(a).nome} ${x} x ${y} ${T(b).nome}</h2>${resumo(marks)}<button id="r">REVANCHE</button><button id="m" class="sec">VOLTAR AO MENU</button>`);
+  on('r', () => { hide(); Music.setMode('game'); Game.restart(); }); on('m', menu); }
+function cupScreen(win, x, y, a, b) {
+  if (cup.champion !== null) { GS.estado = 'CAMPEONATO_FINALIZADO'; const t = T(cup.champion); show(`<h1>${cup.champion === sel.a ? 'CAMPEÃO!' : 'CAMPEONATO ENCERRADO'}</h1>${crest(t)}<h2>${t.nome}</h2><div class="box" style="font-size:12px">${cup.hist.slice(-8).join('<br>')}</div><button id="m">MENU</button>`); on('m', menu); cup = null; return; }
+  const nx = cup.alive ? cup.nextForMe() : null, res = win == null ? '' : `<p>Último jogo: ${T(a).nome} ${x} x ${y} ${T(b).nome} — ${win ? 'vitória' : 'derrota'}</p>`;
+  const tbl = cup.groups.map((g, i) => `<table><tr><th>Grupo ${'ABCD'[i]}</th><th>P</th><th>V</th><th>D</th><th>SG</th></tr>${cup.rank(g).map(id => { const r = cup.tab[id]; return `<tr${id === sel.a ? ' style="color:#ffe66d"' : ''}><td>${cup.name(id)}</td><td>${r.pts}</td><td>${r.w}</td><td>${r.l}</td><td>${r.gf - r.ga}</td></tr>`; }).join('')}</table>`).join('');
+  show(`<h2>${cup.stageName()}</h2>${res}<div class="box" style="display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;font-size:11px">${tbl}</div>${nx ? `<button id="n">PRÓXIMO: vs ${cup.name(nx[1])}</button>` : ''}<button id="m" class="sec">SAIR</button>`);
+  if (nx) on('n', () => { mode = 'copa'; versus(nx[0], nx[1]); }); on('m', menu); }
+function playlist() { const render = () => { const m = Music; show(`<h2>Playlist</h2><div class="box" style="min-width:420px">${m.tracks.length ? m.tracks.map((t, i) => `<div style="${i === m.i ? 'color:#ffe66d' : ''}">${i === m.i && m.playing ? '▶ ' : ''}${t.title} — ${t.artist}</div>`).join('') : 'Nenhuma faixa cadastrada.'}${m.msg ? `<p style="color:#ff9f1c;font-size:12px">${m.msg}</p>` : ''}</div>
+    <div><button class="sm" id="pv">◀◀</button> <button class="sm" id="pp">${m.playing ? '⏸ PAUSAR' : '▶ TOCAR'}</button> <button class="sm" id="nx">▶▶</button> <button class="sm ${m.shuffle ? '' : 'sec'}" id="sh">ALEATÓRIO</button> <button class="sm ${m.repeat ? '' : 'sec'}" id="rp">REPETIR</button></div>
+    <label>Volume<input id="vl" type="range" min="0" max="1" step=".05" value="${m.vol}"></label><button id="b" class="sec">VOLTAR</button>`);
+    on('pv', () => m.prev()); on('pp', () => m.toggle()); on('nx', () => m.next()); on('sh', () => m.flag('shuffle')); on('rp', () => m.flag('repeat')); on('b', menu);
+    document.getElementById('vl').oninput = e => m.setVol(+e.target.value, true); }; Music.onChange = render; render(); }
+function how() { show(`<h2>Como jogar</h2><div class="box" style="max-width:700px"><b>Cobrando:</b> segure o botão esquerdo do mouse. A mira sobe e balança ao mesmo tempo; solte quando ela estiver onde quer chutar (espere o cobrador chegar à bola).<br><b>Defendendo (modo sozinho):</b> setas ← ↑ → logo após o chute adversário.<br><b>Jogar com alguém:</b> dois jogadores no mesmo computador alternam as cobranças com o mouse; os goleiros são da IA.<br><b>Regras:</b> 5 cobranças por time, alternadas; a disputa termina antes se um time não puder mais alcançar o outro; empate vai para morte súbita.<br><b>☰ MENU</b> (canto superior esquerdo) volta ao menu durante a partida.</div><button id="b">VOLTAR</button>`); on('b', menu); }
+function settings() { show(`<h2>Configurações</h2><div class="box"><label>Mira horizontal<input id="hs" type="range" min=".4" max="2" step=".1" value="${cfg.hs}"></label><label>Mira vertical<input id="vs" type="range" min=".2" max="1.4" step=".1" value="${cfg.vs}"></label>
+<label>Goleiro<select id="df">${['easy', 'normal', 'hard'].map(d => `<option value="${d}" ${cfg.diff === d ? 'selected' : ''}>${{ easy: 'Fácil', normal: 'Normal', hard: 'Difícil' }[d]}</option>`).join('')}</select></label>
+<label>Efeitos sonoros<input id="sn" type="checkbox" ${cfg.sound ? 'checked' : ''}></label><label>Volume dos efeitos<input id="vl" type="range" min="0" max="1" step=".1" value="${cfg.vol}"></label></div><button id="rc" class="sec">REINICIAR CAMPEONATO</button><button id="b">VOLTAR</button>`);
+  const bind = (id, k, f) => document.getElementById(id).oninput = e => cfg[k] = f(e.target);
+  bind('hs', 'hs', e => +e.value); bind('vs', 'vs', e => +e.value); bind('df', 'diff', e => e.value); bind('sn', 'sound', e => e.checked); bind('vl', 'vol', e => +e.value); on('rc', () => { cup = null; alert('Campeonato reiniciado.'); }); on('b', menu); }
+menu();
+window.JOGO = { GS, Events };   // depuração/integração: JOGO.GS.placar, JOGO.Events.on('gol', ...)
