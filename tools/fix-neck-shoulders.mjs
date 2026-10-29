@@ -3,7 +3,8 @@
 // Mexe SÓ nos vértices da malha do corpo com material Skin, Shirt e Trim (posição, normal e, opcionalmente, pesos da base do pescoço).
 // Todo o resto (rosto, olhos, cabelos, barbas, texturas, materiais, esqueleto, UVs da camisa, extras.shirtUV) sai byte a byte igual: o script confere isso no fim.
 // O mesmo campo de deformação (função só da posição) é aplicado à pele e às roupas, então a camisa acompanha o corpo sem abrir buracos.
-// Uso: node tools/fix-neck-shoulders.mjs [entrada.glb] [saida.glb]   (padrão: assets/models/athlete.glb → assets/models/athlete.fixed.glb; nunca sobrescreve a entrada)
+// Uso: node tools/fix-neck-shoulders.mjs [entrada.glb] [saida.glb]   (padrão: assets/models/athlete.original.glb → assets/models/athlete.fixed.glb; nunca sobrescreve a entrada)
+// O athlete.glb do jogo JÁ é o resultado deste script (copiado de athlete.fixed.glb). Para refazer com outros parâmetros: rode no original e copie a saída para athlete.glb.
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -95,7 +96,7 @@ export function fixModel(m) {
 }
 const entry = process.argv[1] && process.argv[1].endsWith('fix-neck-shoulders.mjs');
 if (entry) {
-  const [inp = 'assets/models/athlete.glb', outp = 'assets/models/athlete.fixed.glb'] = process.argv.slice(2).filter(a => !a.startsWith('--'));
+  const [inp = 'assets/models/athlete.original.glb', outp = 'assets/models/athlete.fixed.glb'] = process.argv.slice(2).filter(a => !a.startsWith('--'));
   try { if (path.resolve(inp) === path.resolve(outp)) throw new Error('A saída não pode ser o próprio arquivo de entrada.'); if (/athlete\.(glb|original\.glb)$/i.test(path.basename(outp))) throw new Error(`Recusado: não sobrescrevo ${path.basename(outp)}. Use outro nome de saída.`);
     const r = fixModel(readModel(inp)); fs.writeFileSync(outp, r.glb); console.log(`✔ ${outp} gerado (${(r.glb.length/1024).toFixed(0)} KB) a partir de ${inp}`, r.st); }
   catch (e) { console.log('✖', e.message); process.exit(1); }
