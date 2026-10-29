@@ -102,12 +102,12 @@ export function drawAthlete(E, J, kit, look) {
     E.limb(kn, an, .066*build, .047*build, kit.c1); E.limb(lerp(kn, an, .1), lerp(kn, an, .17), .066*build, .066*build, kit.c2);   // meia com panturrilha e faixa
     E.limb(an, toe, .054, .042, F.boot); E.limb(add(an, mul(J.right, .03)), add(toe, mul(J.right, .02)), .01, .01, kit.keeper ? '#fff' : kit.c2); void cuff; void heel; });   // chuteira com detalhe lateral
   cyl(E, { p0: add(J.pelvis, [0, -.1, 0]), p1: add(J.pelvis, [0, .06, 0]), R: J.tright, F: J.tfwd, rx: [.15*build, .148*build], rz: [.1, .096], seg: 10, col: kit.sh });   // shorts
-  const dn = norm(sub(J.chest, J.pelvis)), t0 = add(J.pelvis, mul(dn, .02)), t1 = sub(J.chest, mul(dn, .01)), tx = shirtTex(kit, look);
-  cyl(E, { p0: t0, p1: t1, R: J.tright, F: J.tfwd, rx: [.15*build, .17*build, .195*build, .192*build], rz: [.098, .105, .114, .102], seg: 12, tex: tx, col: kit.c1 });                  // tronco (camisa mapeada)
+  const dn = norm(sub(J.chest, J.pelvis)), t0 = add(J.pelvis, mul(dn, .02)), t1 = add(J.chest, mul(dn, .005)), tx = shirtTex(kit, look);   // topo do tronco (gola) 1,5 cm mais alto que antes: menos pescoço à mostra
+  cyl(E, { p0: t0, p1: t1, R: J.tright, F: J.tfwd, rx: [.15*build, .17*build, .195*build, .19*build, .17*build], rz: [.098, .105, .114, .11, .095], seg: 12, tex: tx, col: kit.c1 });   // tronco (camisa mapeada); o último anel afina: a bola do ombro vira a quina arredondada do tronco (antes o topo era reto e largo e os ombros sobravam acima dele)
   ['L', 'R'].forEach(n => { const s = J['sh' + n], el = J['el' + n], ha = J['ha' + n], dirH = norm(sub(ha, el));
-    E.ellip(add(s, mul(J.tright, n === 'L' ? .015 : -.015)), .05*build, .05*build, J.up, sleeve);                                                                                                                                                                  // ombro
-    E.limb(s, lerp(s, el, .8), .06*build, .052*build, sleeve); E.limb(lerp(s, el, .78), el, .052*build, .05*build, kit.c2); E.limb(el, ha, .045, .034, kit.long ? kit.c1 : skin);   // braço
+    E.ellip(sub(s, mul(J.up, .02)), .058*build, .058*build, J.up, sleeve);                                                                                                                                                                                        // ombro: do tamanho do braço e um pouco abaixo da articulação (não sobra "bola" acima do tronco)
+    E.limb(lerp(s, el, .1), lerp(s, el, .8), .06*build, .052*build, sleeve); E.limb(lerp(s, el, .78), el, .052*build, .05*build, kit.c2); E.limb(el, ha, .045, .034, kit.long ? kit.c1 : skin);   // braço
     if (kit.glove) { E.ellip(add(ha, mul(dirH, .06)), .075, .085, dirH, '#f3f3f3'); E.limb(lerp(el, ha, .78), ha, .05, .05, kit.c2); } else E.ellip(add(ha, mul(dirH, .035)), .04, .052, dirH, skin); });                    // luvas / mãos
-  E.limb(add(J.chest, mul(J.up, .0)), add(J.neck, mul(J.up, .03)), .052, .046, shade(skin, .85));
+  E.limb(sub(J.chest, mul(J.up, .02)), J.neck, .068, .062, shade(skin, .88));   // pescoço: nasce dentro do tronco e termina sob a cabeça; ~3/4 da largura da cabeça, como no athlete.glb (antes era um "palito" fino que passava da junta)
   head(E, J, F, look.mood, kit.keeper);
 }
