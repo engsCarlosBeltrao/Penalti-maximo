@@ -3,7 +3,7 @@
 // Convenção (coincide com glTF): modelo olha para +Z, +Y para cima, +X = lado ESQUERDO do personagem. No rig.js, lado 'L' = lado ANATÔMICO DIREITO.
 import { sub, add, mul, norm, qmul, qconj, qrot, qslerp, matCols, matT, matMul, qfromMat, orth, frameXZ } from './math.js';
 import { CANON, PARENT } from './skeletonMap.js';
-export const SHOULDER_DROOP = .5;   // rad: queda máxima da clavícula com o braço pendurado
+export const SHOULDER_DROOP = 0;   // rad: queda extra da clavícula com o braço pendurado. O athlete.glb corrigido (tools/fix-neck-shoulders.mjs) já tem o caimento do trapézio na malha: com .5 o ombro caía ~48° parado (pescoço parecia comprido); com 0 fica ~25° parado, ~22° no chute
 const UP = [0, 1, 0], FWD = [0, 0, 1], RIGSIDE = { Right: 'L', Left: 'R' }, RIG_ANKLE_REST = .075;
 const present = (rest, b) => !!rest.bones[b];
 // (osso, filho que define a direção, joint do rig de origem, joint do rig de destino, referência "para frente")
