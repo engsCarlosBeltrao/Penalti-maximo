@@ -1,6 +1,7 @@
 // Cena 3D da partida: estádio com arquibancada TRIDIMENSIONAL logo atrás do gol, gol com rede deformável, bola com física,
 // cobrador e goleiro com esqueleto articulado (FK/IK), uniformes com nome/número mapeados no tecido, câmera cinematográfica.
-import { Engine, W, H, sub, add, mul, dot, norm, len, lerp, shade } from './engine3d.js';
+import { Engine, W, H } from './engine3d.js';
+import { sub, add, mul, dot, norm, len, lerp, shade } from './vec.js';
 import { humanJoints, kickerPose, keeperPose, cheerPose, dejectedPose, goalToWorld, BALL0, BALL_R, GOAL_W, GOAL_H, SPOT_Z, KICK_T0, sm } from './rig.js';
 import { GS } from './gameState.js';
 import { Events } from './events.js';
@@ -10,7 +11,8 @@ import { AIM_LIM } from './aim.js';
 import { drawBall } from './ball.js';
 import { hud } from './hud.js';
 import { Renderer } from './renderer.js';
-import { drawAthlete, faceOf } from './athlete.js';
+import { drawAthlete } from './athlete.js';
+import { faceOf } from './face.js';
 import { TF, HS, KC, kcol, ballWorld, camTarget, characters } from './frame.js';
 import { ROWS, AISLES, byRow, colorize, drawFan, frameStart, clearSprites } from './crowd.js';
 export const DBG = { cam: null, t: { s: 0, f: 0, n: 0 } };   // câmera de depuração (testes visuais)

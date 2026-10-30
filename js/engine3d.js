@@ -1,14 +1,7 @@
 // Mini motor 3D próprio (sem dependências): câmera em perspectiva real, projeção, fila de profundidade (algoritmo do pintor)
 // e primitivas (esfera, cápsula, quadrilátero, textura mapeada em plano). Coordenadas: x direita · y cima · z em direção à câmera.
 export const W = 960, H = 540;
-export const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]], mul = (a, s) => [a[0]*s, a[1]*s, a[2]*s];
-export const dot = (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2], cross = (a, b) => [a[1]*b[2] - a[2]*b[1], a[2]*b[0] - a[0]*b[2], a[0]*b[1] - a[1]*b[0]];
-export const len = a => Math.hypot(a[0], a[1], a[2]), norm = a => { const l = len(a) || 1; return [a[0]/l, a[1]/l, a[2]/l]; }, lerp = (a, b, t) => [a[0] + (b[0]-a[0])*t, a[1] + (b[1]-a[1])*t, a[2] + (b[2]-a[2])*t];
-const cache = new Map();
-export function shade(hex, f) {                       // clareia (f>1) ou escurece (f<1) uma cor #rrggbb
-  const key = hex + f; let v = cache.get(key); if (v) return v; const n = parseInt(hex.slice(1), 16);
-  const r = Math.min(255, (n >> 16)*f | 0), g = Math.min(255, (n >> 8 & 255)*f | 0), b = Math.min(255, (n & 255)*f | 0); v = `rgb(${r},${g},${b})`; cache.set(key, v); return v;
-}
+import { sub, add, mul, dot, cross, norm, len, lerp, shade } from './vec.js';
 export class Engine {
   constructor() { this.pos = [0, 2.8, 22]; this.tgt = [0, 1.15, 0]; this.fov = 30; this.items = []; this.c = null; }
   begin(c) { this.c = c; this.items.length = 0; const f = norm(sub(this.tgt, this.pos)), r = norm(cross(f, [0, 1, 0])), u = cross(r, f); this.f = f; this.r = r; this.u = u; this.focal = (H/2)/Math.tan(this.fov*Math.PI/360); }

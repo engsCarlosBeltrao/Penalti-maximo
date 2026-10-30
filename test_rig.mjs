@@ -1,6 +1,6 @@
 // Testes do esqueleto 3D e das poses (Node): contato pé-bola, comprimento dos ossos, valores válidos, categorias de defesa.
 import { humanJoints, kickerPose, keeperPose, cheerPose, dejectedPose, BALL0, KICK_T0, saveCategory, goalToWorld, GOAL_W } from './js/rig.js';
-import { sub, len } from './js/engine3d.js';
+import { sub, len } from './js/vec.js';
 let ok = 0, bad = 0; const t = (n, c) => { c ? ok++ : (bad++, console.log('FALHOU:', n)); };
 const fin = J => Object.values(J).every(v => !Array.isArray(v) || v.every(Number.isFinite));
 let nan = 0, longBone = 0, under = 0;

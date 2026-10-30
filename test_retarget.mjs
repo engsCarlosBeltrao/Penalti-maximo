@@ -1,6 +1,6 @@
 // Testes do retargeting e do mapeamento de ossos (Node, sem Three.js): as poses do rig.js aplicadas a esqueletos T-pose/A-pose/escalados.
 import { solvePose, fk, syntheticModel } from './js/three/retarget.js'; import { resolveBones, normalizeName, CANON } from './js/three/skeletonMap.js';
-import { humanJoints, kickerPose, keeperPose, cheerPose, dejectedPose, goalToWorld, KICK_T0, BALL0 } from './js/rig.js'; import { sub, norm, len, dot } from './js/engine3d.js';
+import { humanJoints, kickerPose, keeperPose, cheerPose, dejectedPose, goalToWorld, KICK_T0, BALL0 } from './js/rig.js'; import { sub, norm, len, dot } from './js/vec.js';
 let ok = 0, bad = 0; const t = (n, c) => { c ? ok++ : (bad++, console.log('FALHOU:', n)); };
 // ---- nomes de ossos ----
 const mixamo = CANON.map(c => 'mixamorig:' + c).map(n => n.replace('LeftToeBase', 'LeftToeBase')); let r = resolveBones(mixamo); t('Mixamo: todos os 22 ossos', r.ok && r.missing.length === 0);

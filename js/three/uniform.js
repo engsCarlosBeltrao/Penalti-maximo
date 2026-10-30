@@ -1,7 +1,7 @@
 // UNIFORMES SEM UM MODELO POR TIME: um único GLB recebe, em tempo de execução, cores (materiais), estampa da camisa (textura gerada), nome, número,
 // escudo, cor de pele/cabelo/chuteira. A camisa é desenhada num canvas e usada como textura do material "Shirt".
 // Dois formatos de UV do modelo são suportados: 'wrap' (padrão do jogo: u dá a volta no tronco) e 'atlas' (regiões retangulares descritas em assets/models/uniform-layout.json).
-import { shirtTex } from '../athlete.js';
+import { shirtTex } from '../shirtTex.js';
 import { CRESTS } from '../teams.js';
 export const DEFAULT_ATLAS = {
   type: 'atlas', size: [1024, 1024],                                   // retângulos [x, y, largura, altura] em PIXELS do atlas (origem no canto superior esquerdo, como no glTF)

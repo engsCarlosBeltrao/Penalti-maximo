@@ -1,6 +1,6 @@
 // Esqueleto 3D articulado: cinemática direta (FK) + cinemática inversa de 2 ossos (IK) para pernas e braços.
 // Eixos locais: x direita · y cima · z para FRENTE do personagem. Poses do cobrador, do goleiro e comemorações.
-import { sub, add, mul, dot, norm, len, lerp } from './engine3d.js';
+import { sub, add, mul, dot, norm, len, lerp } from './vec.js';
 export const GOAL_W = 7.32, GOAL_H = 2.44, SPOT_Z = 11, BALL_R = .11;
 export const BALL0 = [0, BALL_R, SPOT_Z];
 export const goalToWorld = (gx, gy) => [(gx - .5)*GOAL_W, gy*GOAL_H, 0];

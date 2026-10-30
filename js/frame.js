@@ -2,9 +2,9 @@
 // É a ÚNICA fonte da animação: o motor 2D/3D procedural (scene3d.js) e o futuro motor Three.js/GLB (js/three/) apenas desenham este quadro.
 import { GS } from './gameState.js';
 import { pickKicker, keeperOf } from './players.js';
-import { lerp } from './engine3d.js';
+import { lerp } from './vec.js';
 import { kickerPose, keeperPose, cheerPose, dejectedPose, goalToWorld, BALL0, BALL_R, SPOT_Z, KICK_T0, sm } from './rig.js';
-import { faceOf, SKINS, HAIRC } from './athlete.js';
+import { faceOf, SKINS, HAIRC } from './face.js';
 export const TF = .7, HS = ['short', 'long', 'bald', 'afro'], KC = ['#00c853', '#ff4fd8', '#ffd23f', '#27e1ff', '#ff7a1a'];
 export const kcol = t => KC[(t.id + 2) % 5] === t.c1 ? KC[0] : KC[(t.id + 2) % 5];
 export function ballWorld(b, k) {

@@ -1,6 +1,6 @@
 // TORCIDA: ~900 pessoas únicas (corpo, cabeça, cabelo, braços, roupa, acessórios) em degraus 3D. Poses: sentado, em pé, aplaudindo,
 // braços para o alto (pulando), mãos na cabeça (decepção), bandeira. Cada pessoa reage com atraso e energia próprios. Desenho em lote, 2 níveis de detalhe.
-import { shade } from './engine3d.js';
+import { shade } from './vec.js';
 export const ROWS = 13, AISLES = [-7.5, 0, 7.5];
 const SK = ['#f6d0a8', '#e8b88a', '#c68642', '#a0693a', '#7a4a2a', '#53341f'], HC = ['#15110e', '#2b1d12', '#4a3020', '#7a5230', '#c9a45c', '#a6401e', '#9aa0a6', '#e8d9b0'], NEUTRAL = ['#e9e9e9', '#1a1a1a', '#6b7280', '#2f5aa8', '#3b7a4a', '#8a2f2f'];
 let csd = 12345; const crnd = () => (csd = csd*16807 % 2147483647)/2147483647;

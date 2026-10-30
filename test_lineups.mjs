@@ -5,7 +5,7 @@ import { LINEUPS, validateLineups, POS_PT, makePlayer } from './js/lineups/lineu
 import { appearanceOf } from './js/lineups/appearance.js';
 import { TEAMS } from './js/teams.js';
 import { characters, TF } from './js/frame.js';
-import { SKINS, HAIRC } from './js/athlete.js';
+import { SKINS, HAIRC } from './js/face.js';
 import { GS } from './js/gameState.js';
 import { BALL0 } from './js/rig.js';
 import { readModel, readAccessor } from './tools/gltf-io.mjs';

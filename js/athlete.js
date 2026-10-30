@@ -1,36 +1,8 @@
 // ATLETA 3D procedural (malhas, não cápsulas): torso cilíndrico com a camisa MAPEADA ao redor (nome/número curvam com o corpo),
 // membros afilados com sombreamento, shorts/meias/chuteiras, cabeça elipsoidal com rosto 3D e cabelos com volume. Cada atleta tem aparência própria.
-import { sub, add, mul, dot, norm, lerp, shade } from './engine3d.js';
-import { CRESTS } from './teams.js';
-export const SKINS = ['#f6d0a8', '#e8b88a', '#c68642', '#a0693a', '#7a4a2a', '#53341f'], HAIRC = ['#15110e', '#2b1d12', '#4a3020', '#7a5230', '#c9a45c', '#a6401e', '#9aa0a6', '#e8d9b0'], BOOTS = ['#14161a', '#f4f4f4', '#ff5a1f', '#2bd96b', '#2f7bff', '#ffd23f'];
-export const STYLES = ['short', 'buzz', 'long', 'afro', 'curly', 'bald', 'bun'];
-const hash = s => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
-const rngOf = seed => { let a = seed >>> 0; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0)/4294967296; }; };
-const faces = new Map();
-export function faceOf(key, hint = {}) {               // aparência determinística por atleta (rosto, cabelo, pele, porte)
-  const id = String(key) + (hint.hair || ''); let f = faces.get(id); if (f) return f; const r = rngOf(hash(id));
-  const skin = r() < .5 ? 1 + (r()*3 | 0) : (r()*6 | 0), style = hint.hair && STYLES.includes(hint.hair) ? hint.hair : STYLES[r()*STYLES.length | 0];
-  f = { skin: SKINS[skin], skinI: skin, hairC: HAIRC[skin >= 4 ? (r()*3 | 0) : (r()*8 | 0)], style, build: .92 + r()*.16, height: .96 + r()*.08, eyeW: .034 + r()*.012, nose: .8 + r()*.45, brow: .7 + r()*.7, mouth: .8 + r()*.5, ear: .8 + r()*.5, eyeC: ['#3b2a1a', '#2a4a6b', '#3d5a2f', '#1b1b1b'][r()*4 | 0], boot: BOOTS[r()*BOOTS.length | 0], head: .94 + r()*.12 }; faces.set(id, f); return f;
-}
-// ---- camisa: textura que dá a volta no tronco (frente em u=.25, costas em u=.75; a costura fica na lateral) ----
-const shirts = new Map(), crestImgs = new Map();
-function crestImg(key) { if (!CRESTS.includes(key) || typeof Image === 'undefined') return null; let i = crestImgs.get(key); if (!i) { i = new Image(); i.onload = () => { for (const k of [...shirts.keys()]) if (k.startsWith(key + '|')) shirts.delete(k); }; i.src = `assets/crests/${key}.png`; crestImgs.set(key, i); } return i.complete && i.naturalWidth ? i : null; }
-const lumOf = h => { const n = parseInt(h.slice(1), 16); return (.3*(n >> 16) + .59*(n >> 8 & 255) + .11*(n & 255))/255; };
-export function shirtTex(kit, p) {
-  const key = [kit.key || kit.c1, kit.pat, kit.keeper ? 'k' : '', p.nome, p.num, !!crestImg(kit.key)].join('|'); let cv = shirts.get(key); if (cv) return cv; if (typeof document === 'undefined') return null;
-  cv = document.createElement('canvas'); cv.width = 512; cv.height = 192; const c = cv.getContext('2d'); c.fillStyle = kit.c1; c.fillRect(0, 0, 512, 192); c.fillStyle = kit.c2;
-  if (kit.pat === 'v') for (let x = 16; x < 512; x += 64) c.fillRect(x, 0, 32, 192); else if (kit.pat === 'h') for (let y = 12; y < 192; y += 42) c.fillRect(0, y, 512, 21);
-  else if (kit.pat === 's') { c.fillRect(0, 70, 512, 38); c.fillStyle = kit.c3; c.fillRect(0, 70, 512, 6); c.fillRect(0, 102, 512, 6); } else if (kit.pat === 'd') { c.save(); c.translate(128, 96); c.rotate(-.9); c.fillRect(-300, -22, 600, 44); c.restore(); c.save(); c.translate(384, 96); c.rotate(.9); c.fillRect(-300, -22, 600, 44); c.restore(); } else if (kit.pat === 'f') c.fillRect(0, 0, 256, 192);
-  const ink = lumOf(kit.c1) > .55 ? '#101820' : '#fff', stroke = ink === '#fff' ? 'rgba(0,0,0,.45)' : 'rgba(255,255,255,.5)'; c.textAlign = 'center'; c.fillStyle = ink; c.strokeStyle = stroke; c.lineWidth = 4;
-  const num = p.noNum ? '?' : String(p.num);
-  c.font = '900 80px Arial'; c.strokeText(num, 384, 126); c.fillText(num, 384, 126); c.font = '700 20px Arial'; c.fillText((p.nome || '').slice(0, 11), 384, 50);   // COSTAS: nome em cima, número grande
-  if (!kit.keeper) { c.font = '900 30px Arial'; c.strokeText(num, 96, 70); c.fillText(num, 96, 70); }                                                     // FRENTE: número pequeno
-  c.fillStyle = kit.c2; c.fillRect(0, 0, 512, 7);                                                                             // gola
-  if (kit.keeper) { shirts.set(key, cv); return cv; }
-  const ci = crestImg(kit.key), cx = 168, cy = 62;                                                                                                          // ESCUDO no peito esquerdo (lado direito de quem olha)
-  if (ci) c.drawImage(ci, cx - 17, cy - 21, 34, 42); else { c.fillStyle = shade(kit.c2, .85); c.strokeStyle = '#fff'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(cx - 16, cy - 20); c.lineTo(cx + 16, cy - 20); c.lineTo(cx + 16, cy + 4); c.quadraticCurveTo(cx + 16, cy + 18, cx, cy + 24); c.quadraticCurveTo(cx - 16, cy + 18, cx - 16, cy + 4); c.closePath(); c.fill(); c.stroke(); c.fillStyle = '#fff'; c.font = '900 13px Arial'; c.fillText((kit.sigla || '').slice(0, 3), cx, cy + 5); }
-  shirts.set(key, cv); return cv;
-}
+import { sub, add, mul, dot, norm, lerp, shade } from './vec.js';
+import { faceOf } from './face.js';
+import { shirtTex } from './shirtTex.js';
 // ---- malha cilíndrica (torso/shorts): triângulos com recorte de faces traseiras, textura por padrão e luz por normal ----
 const LIGHT = norm([-.45, .85, .55]);
 function drawTri(c, s, t, pat, col) {

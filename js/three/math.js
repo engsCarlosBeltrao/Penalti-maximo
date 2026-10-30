@@ -1,5 +1,5 @@
 // Matemática pura (sem Three.js) usada para aplicar as poses do rig.js a um esqueleto GLB. Quaternions = [x, y, z, w]; matrizes 3x3 por linha.
-import { sub, add, mul, dot, cross, norm, len } from '../engine3d.js';
+import { sub, add, mul, dot, cross, norm, len } from '../vec.js';
 export { sub, add, mul, dot, cross, norm, len };
 export const qmul = (a, b) => [a[3]*b[0] + a[0]*b[3] + a[1]*b[2] - a[2]*b[1], a[3]*b[1] - a[0]*b[2] + a[1]*b[3] + a[2]*b[0], a[3]*b[2] + a[0]*b[1] - a[1]*b[0] + a[2]*b[3], a[3]*b[3] - a[0]*b[0] - a[1]*b[1] - a[2]*b[2]];
 export const qconj = q => [-q[0], -q[1], -q[2], q[3]];

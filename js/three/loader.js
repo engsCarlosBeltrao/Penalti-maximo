@@ -9,7 +9,7 @@ import { solvePose } from './retarget.js';
 import { composeShirt, uniformColors, hairVisibility, beardVisibility, hairColors, LAYOUTS, crestImageFor } from './uniform.js';
 import { setupHairMaterial } from './hairMaterial.js';
 import { packMeta, packImage } from './kitPack.js';
-import { faceOf } from '../athlete.js';
+import { faceOf } from '../face.js';
 const ALL_SLOTS = { ...SLOTS, ...OPT_SLOTS }, LEG_RIG = .43 + .44;
 const TEX = new WeakMap(), imgTex = img => { if (!img) return null; let t = TEX.get(img); if (!t) { t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.flipY = false; t.anisotropy = 4; t.needsUpdate = true; TEX.set(img, t); } return t; };   // uma textura por imagem (calção/meião), compartilhada pelas instâncias
 export async function fetchJSON(url) { try { const r = await fetch(url); return r.ok ? await r.json() : null; } catch { return null; } }

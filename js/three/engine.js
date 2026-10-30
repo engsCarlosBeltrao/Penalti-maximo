@@ -8,7 +8,7 @@ import { TF, ballWorld, camTarget, characters } from '../frame.js';
 import { humanJoints, goalToWorld, GOAL_W, GOAL_H } from '../rig.js';
 import { hud } from '../hud.js';
 import { AIM_LIM } from '../aim.js';
-import { lerp } from '../engine3d.js';
+import { lerp } from '../vec.js';
 import { loadTemplate, instantiate, fetchJSON } from './loader.js';
 import { loadKitPack } from './kitPack.js';
 import { LAYOUTS } from './uniform.js';
