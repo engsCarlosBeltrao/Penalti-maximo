@@ -1,6 +1,6 @@
 (function(){
-// Seleção do motor de renderização. Padrão: motor PROCEDURAL (scene3d.js), que permanece como alternativa e fallback.
-// O motor Three.js/GLB (js/three/engine.js) só assume depois de carregar com sucesso (index.html?engine=three).
+// Seleção do motor de renderização. O motor do jogo é o Three.js/GLB (js/three/engine.js), que assume assim que carrega.
+// O procedural (scene3d.js) só fica ativo com ?engine=2d ou no jogar.html (sem servidor).
 const Renderer = {
   name: 'nenhum', drawScene: null, setTeams: null,
   set(impl) { this.name = impl.name; this.drawScene = impl.drawScene; this.setTeams = impl.setTeams; }
@@ -1758,9 +1758,16 @@ function settings() { show(`<h2>Configurações</h2><div class="box"><label>Mira
   bind('hs', 'hs', e => +e.value); bind('vs', 'vs', e => +e.value); bind('df', 'diff', e => e.value); bind('sn', 'sound', e => e.checked); bind('vl', 'vol', e => +e.value); bind('vc', 'volCrowd', e => +e.value); document.getElementById('vm').oninput = e => Music.setVol(+e.target.value); on('rc', () => { cup = null; alert('Campeonato reiniciado.'); }); on('b', menu); }
 document.addEventListener('click', e => { if (e.target.closest('button,.card')) sfx('click'); });
 window.addEventListener('keydown', e => { if (e.key === 'm' || e.key === 'M') { cfg.sound = !cfg.sound; ambient(cfg.sound && !!Game.m && !Game.fin); } });   // M = silenciar/ativar
-function toast(msg, ms = 9000) { const d = document.createElement('div'); d.id = 'toast'; d.textContent = msg; app.appendChild(d); setTimeout(() => d.remove(), ms); }
-if (new URLSearchParams(location.search).get('engine') === 'three') {                       // motor Three.js/GLB opcional; o procedural segue como fallback
-  import('./three/engine.js').then(m => m.start({ cv })).then(() => { console.info('Motor Three.js/GLB ativo.'); toast('Motor Three.js/GLB ativo'); }).catch(err => { console.warn('Motor Three.js indisponível — mantendo o motor procedural:', err); const m = String(err.message || err); toast('Motor Three.js/GLB indisponível — usando o motor procedural. ' + (/dynamically imported|resolve module|Failed to fetch/.test(m) ? 'Three.js não encontrado em vendor/three/ (rode: node tools/check-3d-setup.mjs).' : m.split('\n')[0].slice(0, 160))); });
+// Motor 3D (Three.js + GLB) é o motor do jogo. O procedural (scene3d.js) só é usado com ?engine=2d (ou no jogar.html, que define window.ENGINE = '2d').
+// Se o 3D falhar, o jogo NÃO troca de motor em silêncio: mostra o motivo e deixa o jogador escolher tentar de novo ou abrir o motor antigo.
+function engineError(err) {
+  const m = String(err && err.message || err), why = /dynamically imported|resolve module|Failed to fetch/.test(m) ? 'Three.js ou o modelo não foram encontrados (abra o jogo por um servidor local; rode: node tools/check-3d-setup.mjs).' : /WebGL/i.test(m) ? 'Este navegador/computador não liberou o WebGL.' : m.split('\n')[0].slice(0, 160);
+  const d = document.createElement('div'); d.id = 'engine-error'; d.innerHTML = `<div class="box"><h2>Não foi possível abrir o jogo em 3D</h2><p>${why}</p><button id="ee-retry">TENTAR DE NOVO</button><button id="ee-2d" class="sec">USAR O MOTOR ANTIGO (2D)</button></div>`;
+  Object.assign(d.style, { position: 'absolute', inset: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(5,10,20,.88)', zIndex: 50, textAlign: 'center' }); app.appendChild(d);
+  d.querySelector('#ee-retry').onclick = () => location.reload(); d.querySelector('#ee-2d').onclick = () => { const u = new URL(location.href); u.searchParams.set('engine', '2d'); location.href = u.href; };
+}
+if ((new URLSearchParams(location.search).get('engine') || window.ENGINE) !== '2d') {
+  import('./three/engine.js').then(m => m.start({ cv })).then(() => console.info('Motor 3D (Three.js/GLB) ativo.')).catch(err => { console.error('Motor 3D indisponível:', err); engineError(err); });
 }
 menu();
 window.JOGO = { GS, Events, Game, DBG };   // depuração/integração: JOGO.GS.placar, JOGO.Events.on('gol', ...)

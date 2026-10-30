@@ -1,6 +1,5 @@
-// MOTOR THREE.JS + GLB (opcional). Ativado por index.html?engine=three. Se faltar Three.js, o modelo ou o WebGL, start() REJEITA e o jogo segue
-// com o motor procedural (scene3d.js), sem alterar nada. Toda a animação vem de frame.js/rig.js (a mesma do motor atual); aqui só se desenha.
-// NÃO TESTADO com Three.js real: foi escrito para a API do Three r160 e verificado apenas quanto à sintaxe.
+// MOTOR DO JOGO: Three.js (r160) + GLB. main.js o carrega por padrão; se faltar Three.js, o modelo ou o WebGL, start() REJEITA sem efeito colateral
+// e main.js mostra o motivo (com a opção de abrir o motor antigo, ?engine=2d). Toda a animação vem de frame.js/rig.js; aqui só se desenha.
 import * as THREE from 'three';
 import { Renderer } from '../renderer.js';
 import { Events } from '../events.js';
