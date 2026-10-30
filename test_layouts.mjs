@@ -6,7 +6,7 @@ const { makeTubeGLB } = await load('make-tube-glb.mjs'), { prepare } = await loa
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'layouts-'));
 const raw = makeTubeGLB().glb, rawFile = path.join(tmp, 'raw.glb'); fs.writeFileSync(rawFile, raw); const athlete = prepare(readModel(rawFile)).glb;
 const SCRIPTS = ['check-3d-setup.mjs', 'inspect-glb.mjs', 'gltf-io.mjs', 'prepare-athlete.mjs', 'setup-3d.mjs'], MODS = ['glbInspect.js', 'skeletonMap.js'];
-const CORE = ['js/main.js', 'js/game.js', 'js/renderer.js', 'js/frame.js', 'js/rig.js', 'js/scene3d.js', 'js/three/engine.js', 'js/three/loader.js', 'js/three/retarget.js', 'js/three/skeletonMap.js', 'js/three/glbInspect.js', 'js/three/uniform.js', 'js/three/stadium.js', 'js/three/math.js'];
+const CORE = ['js/main.js', 'js/game.js', 'js/renderer.js', 'js/frame.js', 'js/rig.js', 'js/three/engine.js', 'js/three/loader.js', 'js/three/retarget.js', 'js/three/skeletonMap.js', 'js/three/glbInspect.js', 'js/three/uniform.js', 'js/three/stadium.js', 'js/three/math.js', 'js/vec.js', 'js/face.js', 'js/shirtTex.js', 'js/three/stadiumFx.js', 'js/three/hairMaterial.js'];
 const put = (root, rel, data, keep) => { const p = path.join(root, rel); if (keep && fs.existsSync(p)) return; fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, data); };
 function build(name, o) {
   const skip = o.skipCore || [];

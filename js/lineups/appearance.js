@@ -89,7 +89,7 @@ const REAL = {
     'gabriel-baralhas': 'crop_franja|preto|2|cavanhaque|bigode|raspada|2025-09', matheuzinho: 'cacheado_degrade|preto|2|nenhuma|bigode_fino|raspada|2026-08', osvaldo: 'social_risca|preto|2|nenhuma|nenhum|curta|2023-04',
     'renato-kayzer': 'degrade_medio|cclaro|1|nenhuma|nenhum|raspada|2020-09', fabri: 'cacheado_medio|preto|4|cavanhaque|bigode|curta|2023-12' },
 };
-export const SKIN_HEX = ['#f6d0a8', '#e8b88a', '#c68642', '#a0693a', '#7a4a2a', '#53341f'];   // mesmos tons de SKINS (js/athlete.js)
+export const SKIN_HEX = ['#f6d0a8', '#e8b88a', '#c68642', '#a0693a', '#7a4a2a', '#53341f'];   // mesmos tons de SKINS (js/face.js)
 const HAIR_KEYS = ['preto', 'cesc', 'cast', 'cclaro', 'loiro', 'ruivo', 'grisalho', 'plat'], HAIR_HEX = ['#15110e', '#2b1d12', '#4a3020', '#7a5230', '#c9a45c', '#a6401e', '#9aa0a6', '#e8d9b0'];
 // penteado novo → o mais parecido dos 7 do renderizador 2D (bald|buzz|short|curly|long|afro|bun)
 export const HAIR_BASE = { careca: 'bald', raspado_entradas: 'buzz', rente: 'buzz', crespo_curto: 'buzz', trancas_nago: 'buzz', black_power: 'afro', cacheado_degrade: 'curly', cacheado_medio: 'curly', twists: 'curly', longo_ombros: 'long', liso_desfiado: 'long', coque_alto: 'bun' };

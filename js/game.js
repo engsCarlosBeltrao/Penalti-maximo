@@ -124,5 +124,5 @@ export const Game = {
       if (b.t >= T_FLIGHT) this.resolve();
     } else if (b?.res) { b.t += dt; if (this.after && (this.wait -= dt) <= 0) { this.after = false; this.next(); } }
   },
-  draw() { if (this.c) Renderer.drawScene?.(this.c, this); }   // desenho 3D em js/scene3d.js
+  draw() { if (this.c) Renderer.drawScene?.(this.c, this); }   // desenho: js/three/engine.js
 };

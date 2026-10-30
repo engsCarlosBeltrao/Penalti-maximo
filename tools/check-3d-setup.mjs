@@ -34,8 +34,8 @@ console.log('Este script esta em: ' + rel(HERE) + '  (pasta tools nao e necessar
 // 1) arquivos do jogo e do motor Three.js (so verifica; nunca altera)
 title('1) Arquivos do projeto referenciados pelo motor Three.js');
 const CORE = [
-  ['index.html', 'pagina do jogo (precisa do importmap)'], ['js/main.js', 'jogo'], ['js/game.js', 'jogo'], ['js/renderer.js', 'selecao do motor'], ['js/frame.js', 'descricao de cada quadro'], ['js/rig.js', 'poses'], ['js/scene3d.js', 'motor atual (nao e alterado)'],
-  ['js/three/engine.js', 'motor Three.js'], ['js/three/loader.js', 'carregador de GLB'], ['js/three/retarget.js', 'poses -> ossos'], ['js/three/skeletonMap.js', 'nomes dos ossos'], ['js/three/glbInspect.js', 'inspetor de GLB'], ['js/three/uniform.js', 'uniformes'], ['js/three/stadium.js', 'estadio Three.js'], ['js/three/math.js', 'matematica do retargeting'],
+  ['index.html', 'pagina do jogo (precisa do importmap)'], ['js/main.js', 'jogo'], ['js/game.js', 'jogo'], ['js/renderer.js', 'selecao do motor'], ['js/frame.js', 'descricao de cada quadro'], ['js/rig.js', 'poses'], ['js/vec.js', 'vetores'], ['js/face.js', 'rosto/paletas'], ['js/shirtTex.js', 'camisa procedural'],
+  ['js/three/engine.js', 'motor Three.js'], ['js/three/loader.js', 'carregador de GLB'], ['js/three/retarget.js', 'poses -> ossos'], ['js/three/skeletonMap.js', 'nomes dos ossos'], ['js/three/glbInspect.js', 'inspetor de GLB'], ['js/three/uniform.js', 'uniformes'], ['js/three/stadium.js', 'estadio Three.js'], ['js/three/math.js', 'matematica do retargeting'], ['js/three/stadiumFx.js', 'faixas, bandeiras e fumaca'], ['js/three/hairMaterial.js', 'shader do cabelo'],
 ];
 let faltamCore = [];
 for (const [f, d] of CORE) { if (has(R(f))) ok(f); else { faltamCore.push(f); bad(f + '  (' + d + ')'); } }
@@ -85,5 +85,5 @@ for (const [f, obrig] of [['assets/models/athlete.glb', true], ['assets/models/g
 for (const f of ['assets/models/uniform-layout.json', 'assets/models/skeleton-map.json']) info(f + (has(R(f)) ? ' presente' : ' ausente (opcional)'));
 
 // 4) resumo
-title(falhas ? 'Resultado: ' + falhas + ' item(ns) a corrigir' + (avisos ? ' e ' + avisos + ' aviso(s)' : '') + '. Corrija e rode de novo.' : 'Resultado: tudo pronto' + (avisos ? ' (' + avisos + ' aviso(s))' : '') + '. Abra three-smoke.html (diagnostico visual) pelo Live Server e depois index.html?engine=three.');
+title(falhas ? 'Resultado: ' + falhas + ' item(ns) a corrigir' + (avisos ? ' e ' + avisos + ' aviso(s)' : '') + '. Corrija e rode de novo.' : 'Resultado: tudo pronto' + (avisos ? ' (' + avisos + ' aviso(s))' : '') + '. Rode iniciar.bat (ou abra index.html pelo Live Server); three-smoke.html faz o diagnostico visual.');
 process.exit(falhas ? 1 : 0);

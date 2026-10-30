@@ -1,5 +1,5 @@
 // MOTOR DO JOGO: Three.js (r160) + GLB. main.js o carrega por padrão; se faltar Three.js, o modelo ou o WebGL, start() REJEITA sem efeito colateral
-// e main.js mostra o motivo (com a opção de abrir o motor antigo, ?engine=2d). Toda a animação vem de frame.js/rig.js; aqui só se desenha.
+// e main.js mostra o motivo (com a opção de tentar de novo). Toda a animação vem de frame.js/rig.js; aqui só se desenha.
 import * as THREE from 'three';
 import { Renderer } from '../renderer.js';
 import { Events } from '../events.js';

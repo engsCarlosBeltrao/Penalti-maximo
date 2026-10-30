@@ -1,13 +1,13 @@
 // TORCIDA: ~900 pessoas únicas (corpo, cabeça, cabelo, braços, roupa, acessórios) em degraus 3D. Poses: sentado, em pé, aplaudindo,
-// braços para o alto (pulando), mãos na cabeça (decepção), bandeira. Cada pessoa reage com atraso e energia próprios. Desenho em lote, 2 níveis de detalhe.
+// braços para o alto (pulando), mãos na cabeça (decepção), bandeira. Cada pessoa reage com atraso e energia próprios. Cada torcedor vira um sprite (3 níveis de detalhe por fileira) no estádio 3D.
 import { shade } from './vec.js';
 export const ROWS = 13, AISLES = [-7.5, 0, 7.5];
 const SK = ['#f6d0a8', '#e8b88a', '#c68642', '#a0693a', '#7a4a2a', '#53341f'], HC = ['#15110e', '#2b1d12', '#4a3020', '#7a5230', '#c9a45c', '#a6401e', '#9aa0a6', '#e8d9b0'], NEUTRAL = ['#e9e9e9', '#1a1a1a', '#6b7280', '#2f5aa8', '#3b7a4a', '#8a2f2f'];
 let csd = 12345; const crnd = () => (csd = csd*16807 % 2147483647)/2147483647;
-export const fans = [], byRow = Array.from({ length: ROWS }, () => []);
+export const fans = [];
 for (let r = 0; r < ROWS; r++) { const half = 13 + r*.9; for (let x = -half; x <= half; x += .6 + crnd()*.12) { if (AISLES.some(a => Math.abs(x - a) < .5)) continue;
   const f = { x: x + (crnd() - .5)*.2, y: .15 + r*.6, z: -4.6 - r*.85 + (crnd() - .5)*.2, r, side: x < 0 ? 0 : 1, skin: SK[crnd()*6 | 0], hs: crnd()*6 | 0, hc: HC[crnd()*8 | 0], b: .88 + crnd()*.3, h: .94 + crnd()*.14, head: .92 + crnd()*.16, pick: crnd(), base: crnd() < .55 ? 0 : crnd() < .75 ? 1 : 2, acc: crnd(), e: crnd(), p: crnd()*6.28, shirt: '#888', trim: '#fff', pants: '#222' };
-  f.lod = r <= 3 ? 2 : r <= 6 ? 1 : 0; f.d = Math.abs(f.x)*.05 + r*.04 + crnd()*.25; fans.push(f); byRow[r].push(f); } }
+  f.lod = r <= 3 ? 2 : r <= 6 ? 1 : 0; f.d = Math.abs(f.x)*.05 + r*.04 + crnd()*.25; fans.push(f); } }
 export function colorize(teams) {                      // roupas na cor do clube (mosaico em losango) + neutras; calças escuras
   fans.forEach(f => { const t = teams[f.side]; if (!t.c1) return; const p = f.pick; f.shirt = p < .5 ? t.c1 : p < .62 ? t.c2 : p < .72 ? t.c3 : NEUTRAL[(p*100 | 0) % 6]; f.trim = t.c2; f.pants = ['#1b2233', '#2a2f3a', '#3a3f4b', '#232323'][f.hs % 4]; f.team = t; const fac = 1 - f.r*.022; f.cs = shade(f.shirt, fac); f.ck = shade(f.skin, fac); f.ch = shade(f.hc, fac); f.c1 = shade(t.c1, fac); f.c2 = shade(t.c2, fac); f.ct = shade(f.trim, fac);
     const dx = Math.abs(f.x - (f.side ? 6.5 : -6.5))/4.5, dy = Math.abs(f.r - 5)/3; if (dx + dy < .45) f.shirt = t.c2; else if (dx + dy < .9) f.shirt = t.c3; else if (f.mosaic) f.mosaic = 0; f.mos = dx + dy < .9; });
@@ -36,21 +36,12 @@ function paint(c, X, Y, k, f, pose, now) {
     c.fillStyle = f.c1; c.beginPath(); c.moveTo(x0, y0 - .85*k); c.lineTo(x0 + .8*k + w, y0 - .8*k + w*.3); c.lineTo(x0 + .8*k + w, y0 - .4*k + w*.3); c.lineTo(x0, y0 - .4*k); c.closePath(); c.fill(); c.fillStyle = f.c2; c.fillRect(x0, y0 - .62*k, .8*k + w, .1*k); }
 }
 
-// --- sprites: torcedor em repouso é pintado uma vez num canvas e depois desenhado com 1 drawImage ---
-let made = 0;
-export const frameStart = () => { made = 0; };
+// --- sprites: cada torcedor é pintado uma vez num canvas, que vira a textura do sprite no motor 3D ---
 const KREF = [45, 70, 110];
 function sprite(f) {
   const K = KREF[f.lod], w = Math.ceil(1.1*K), h = Math.ceil(1.3*K), cv = document.createElement('canvas'); cv.width = w; cv.height = h; const c = cv.getContext('2d');
   paint(c, w/2, 1.05*K, K, f, f.base, 0); return { cv, w, h, ax: w/2, ay: 1.05*K, K };
 }
 export function clearSprites() { fans.forEach(f => { f.sp = null; }); }
-export function drawFan(c, E, f, now, exS, sad) {
-  const m = Math.max(0, exS[f.side]*(.5 + .5*f.e) - f.d*.1), sdn = sad[f.side]*(.4 + .6*f.e), pose = m > .5 ? 3 : m > .18 ? 2 : sdn > .3 ? 4 : f.base;
-  const hop = pose === 3 ? Math.abs(Math.sin(now*8 + f.p))*.22*m : 0, seated = f.base === 0 && pose < 3, q = E.proj([f.x, f.y + (seated ? .45 : .8) + hop, f.z]); if (!q) return;
-  const k = q[3], X = q[0], Y = q[1]; if (X < -40 || X > 1000 || Y < -120 || Y > 600) return;
-  if (pose === f.base && pose < 2 && typeof document !== 'undefined') { let sp = f.sp; if (!sp && made < 140) { sp = f.sp = sprite(f); made++; } if (sp) { const sc = k/sp.K; c.drawImage(sp.cv, X - sp.ax*sc, Y - sp.ay*sc, sp.w*sc, sp.h*sc); return; } }
-  paint(c, X, Y, k, f, pose, now);
-}
 
-export function ensureSprite(f) { if (!f.sp && typeof document !== 'undefined') f.sp = sprite(f); return f.sp; }   // usado pelo motor Three.js (sprites 3D)
+export function ensureSprite(f) { if (!f.sp && typeof document !== 'undefined') f.sp = sprite(f); return f.sp; }   // usado por js/three/stadium.js

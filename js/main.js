@@ -1,7 +1,6 @@
 // Interface: menu, seleção de times/jogadores, playlist, configurações, campeonato e telas de resultado.
 import { Game, cfg } from './game.js';
 import { DBG } from './debug.js';
-import './scene3d.js';   // motor antigo (2D): só desenha com ?engine=2d ou no jogar.html
 import { GS } from './gameState.js';
 import { Events } from './events.js';
 import { Arduino } from './arduino.js';
@@ -67,16 +66,13 @@ function settings() { show(`<h2>Configurações</h2><div class="box"><label>Mira
   bind('hs', 'hs', e => +e.value); bind('vs', 'vs', e => +e.value); bind('df', 'diff', e => e.value); bind('sn', 'sound', e => e.checked); bind('vl', 'vol', e => +e.value); bind('vc', 'volCrowd', e => +e.value); document.getElementById('vm').oninput = e => Music.setVol(+e.target.value); on('rc', () => { cup = null; alert('Campeonato reiniciado.'); }); on('b', menu); }
 document.addEventListener('click', e => { if (e.target.closest('button,.card')) sfx('click'); });
 window.addEventListener('keydown', e => { if (e.key === 'm' || e.key === 'M') { cfg.sound = !cfg.sound; ambient(cfg.sound && !!Game.m && !Game.fin); } });   // M = silenciar/ativar
-// Motor 3D (Three.js + GLB) é o motor do jogo. O procedural (scene3d.js) só é usado com ?engine=2d (ou no jogar.html, que define window.ENGINE = '2d').
-// Se o 3D falhar, o jogo NÃO troca de motor em silêncio: mostra o motivo e deixa o jogador escolher tentar de novo ou abrir o motor antigo.
+// Motor do jogo: Three.js + GLB (js/three/engine.js). Se não abrir (sem WebGL, sem servidor, arquivo faltando), mostra o motivo e a opção de tentar de novo.
 function engineError(err) {
   const m = String(err && err.message || err), why = /dynamically imported|resolve module|Failed to fetch/.test(m) ? 'Three.js ou o modelo não foram encontrados (abra o jogo por um servidor local; rode: node tools/check-3d-setup.mjs).' : /WebGL/i.test(m) ? 'Este navegador/computador não liberou o WebGL.' : m.split('\n')[0].slice(0, 160);
-  const d = document.createElement('div'); d.id = 'engine-error'; d.innerHTML = `<div class="box"><h2>Não foi possível abrir o jogo em 3D</h2><p>${why}</p><button id="ee-retry">TENTAR DE NOVO</button><button id="ee-2d" class="sec">USAR O MOTOR ANTIGO (2D)</button></div>`;
+  const d = document.createElement('div'); d.id = 'engine-error'; d.innerHTML = `<div class="box"><h2>Não foi possível abrir o jogo em 3D</h2><p>${why}</p><button id="ee-retry">TENTAR DE NOVO</button></div>`;
   Object.assign(d.style, { position: 'absolute', inset: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(5,10,20,.88)', zIndex: 50, textAlign: 'center' }); app.appendChild(d);
-  d.querySelector('#ee-retry').onclick = () => location.reload(); d.querySelector('#ee-2d').onclick = () => { const u = new URL(location.href); u.searchParams.set('engine', '2d'); location.href = u.href; };
+  d.querySelector('#ee-retry').onclick = () => location.reload();
 }
-if ((new URLSearchParams(location.search).get('engine') || window.ENGINE) !== '2d') {
-  import('./three/engine.js').then(m => m.start({ cv })).then(() => console.info('Motor 3D (Three.js/GLB) ativo.')).catch(err => { console.error('Motor 3D indisponível:', err); engineError(err); });
-}
+import('./three/engine.js').then(m => m.start({ cv })).then(() => console.info('Motor 3D (Three.js/GLB) ativo.')).catch(err => { console.error('Motor 3D indisponível:', err); engineError(err); });
 menu();
 window.JOGO = { GS, Events, Game, DBG };   // depuração/integração: JOGO.GS.placar, JOGO.Events.on('gol', ...)
