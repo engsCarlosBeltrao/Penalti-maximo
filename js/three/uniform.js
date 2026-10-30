@@ -72,6 +72,21 @@ export function wrapShirt(kit, look, crestImg = null) {
   const spons = kit.sponsor || look.sponsor; if (spons && !kit.keeper) { plate(256 - 120, 196, 240, 64); fitText(c, String(spons).toUpperCase().slice(0, 16), 256 - 108, 204, 216, 48, '800', ink, null); }
   return relayout(cv);
 }
+// Costuras laterais da camisa do pack: as imagens trazem, junto das bordas da frente e das costas, o contorno do molde do atlas de origem, e frente e costas
+// nem sempre se encontram na mesma altura (faixas "quebradas" na lateral). Numa faixa de SEAM px de cada lado da costura, o tecido vira um degradê entre a cor
+// da frente e a das costas tiradas logo depois da faixa. A cor de referência é a MEDIANA (por luminância) de uma janela de 16 colunas × 13 linhas: uma
+// coluna só pegava o traço fino do contorno e espalhava riscos escuros pelo degradê. Só as laterais mudam: escudo, patrocinadores, nome e número ficam como estão.
+const SEAM = 60;
+function seamBlend(c) {
+  const { W, body: B } = WRAP, im = c.getImageData(0, 0, W, B), d = im.data, px = (x, y) => (y*W + x)*4;
+  const ref = (x0, dir) => { const r = []; for (let y = 0; y < B; y++) { const s = [];   // dir: +1 = janela à direita de x0, -1 = à esquerda
+      for (let k = Math.max(0, y - 6); k <= Math.min(B - 1, y + 6); k++) for (let j = 0; j < 16; j++) { const i = px(((x0 + dir*j) % W + W) % W, k); s.push([d[i]*.3 + d[i+1]*.59 + d[i+2]*.11, d[i], d[i+1], d[i+2]]); }
+      s.sort((a, b) => a[0] - b[0]); r.push(s[s.length >> 1].slice(1)); } return r; };
+  for (const [xa, xb] of [[512 - SEAM, 512 + SEAM], [W - SEAM, W + SEAM]]) {   // costura direita (frente → costas em x=512) e esquerda (costas → frente em x=0); x dá a volta (mod W)
+    const A = ref(xa - 1, -1), Z = ref(xb, 1);
+    for (let y = 0; y < B; y++) for (let x = xa; x < xb; x++) { const t = (x - xa + .5)/(xb - xa), s = t*t*(3 - 2*t), i = px(x % W, y); for (let k = 0; k < 3; k++) d[i + k] = A[y][k] + (Z[y][k] - A[y][k])*s; } }
+  c.putImageData(im, 0, 0);
+}
 // Camisa do pack (frente/costas já prontas, com escudo e patrocinadores): só acrescenta NOME e NÚMERO nas costas, na cor que contrasta com o tecido atrás.
 export function packShirt(pack, look) {
   if (typeof document === 'undefined') return null;
@@ -86,6 +101,7 @@ export function packShirt(pack, look) {
     let striped = false; try { const sds = []; for (const ry of [150, 180, 210, 240, 270, 300]) { const rw = body.getContext('2d').getImageData(512 + 80, ry, 352, 1).data; let m = 0, q = 0; for (let i = 0; i < rw.length; i += 4) { const l = rw[i]*.3 + rw[i+1]*.59 + rw[i+2]*.11; m += l; q += l*l; } const n = rw.length/4; m /= n; sds.push(Math.sqrt(Math.max(0, q/n - m*m))); } sds.sort((a, b) => a - b); striped = (sds[2] + sds[3])/2 > 28; } catch (e) { /* canvas tainted */ }   // listras verticais? então a faixa que sobra no topo continua as listras (em vez de uma cor lisa)
     backOff = y0 + (uv ? bd : 0);
     [[0, y0], [512, backOff]].forEach(([x, yy]) => { c.fillStyle = pack.main || '#222'; c.fillRect(x, 0, 512, yy + 1); if (x === 512 && striped && yy > 0) c.drawImage(body, x, 150, 512, yy + 1, x, 0, 512, yy + 1); c.drawImage(body, x, 0, 512, WRAP.body, x, yy, 512, WRAP.body - yy); }); }
+  try { seamBlend(c); } catch (e) { /* canvas tainted: mantém as laterais como vieram */ }
   const num = look.noNum ? '' : String(look.num ?? ''); let L = .5; try { const d = c.getImageData(768 - 100, 200, 200, 220).data; let t = 0; for (let i = 0; i < d.length; i += 4) t += (d[i]*.3 + d[i+1]*.59 + d[i+2]*.11)/255; L = t/(d.length/4); } catch (e) { /* canvas tainted */ }
   const ink = L > .55 ? '#101820' : '#ffffff', alt = L > .55 ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.55)';
   // posição de nome e número se adapta aos patrocinadores desta camisa: acha as linhas "ocupadas" na faixa central das costas e fica no espaço livre
