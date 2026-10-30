@@ -57,7 +57,7 @@ function cyl(E, o) {
 // ---- cabeça: elipsoide + orelhas + cabelo com volume + rosto 3D (só aparece quando virado para a câmera) ----
 function head(E, J, F, mood, keeper) {
   const hc = J.head, q = E.proj(hc); if (!q) return; const qu = E.proj(add(hc, mul(J.hup, .1))); if (!qu) return; const k = q[3], ang = Math.atan2(qu[0] - q[0], -(qu[1] - q[1])), a = .092*F.head*k, b = .118*F.head*k;
-  const cv = norm(sub(E.pos, hc)), facing = dot(J.hfwd, cv), side = dot(J.hfwd, E.r) > 0 ? 1 : -1, hr = F.hairC, st = F.style;
+  const cv = norm(sub(E.pos, hc)), facing = dot(J.hfwd, cv), side = dot(J.hfwd, E.r) > 0 ? 1 : -1, hr = F.hairC, st = F.style2d || F.style;
   const lm = (r, u, f2) => { const p = E.proj(add(hc, add(add(mul(J.hright, r), mul(J.hup, u)), mul(J.hfwd, f2)))); return p ? [p[0] - q[0], p[1] - q[1]] : [0, 0]; };
   const eyeL = lm(-F.eyeW, .02, .085), eyeR = lm(F.eyeW, .02, .085), noseT = lm(0, -.012, .108*F.nose), mouthP = lm(0, -.047, .09), earL = lm(-.092, 0, 0), earR = lm(.092, 0, 0);
   E.push(q[2] - .02, c => {
@@ -68,8 +68,8 @@ function head(E, J, F, mood, keeper) {
     c.fillStyle = shade(F.skin, .8); [earL, earR].forEach(e => { c.beginPath(); c.ellipse(Math.cos(-ang)*e[0] - Math.sin(-ang)*e[1], Math.sin(-ang)*e[0] + Math.cos(-ang)*e[1], a*.2*F.ear, b*.24*F.ear, 0, 0, 7); c.fill(); });   // orelhas
     const g = c.createRadialGradient(-a*.35, -b*.4, a*.1, 0, 0, b*1.05); g.addColorStop(0, shade(F.skin, 1.12)); g.addColorStop(1, shade(F.skin, .74)); c.fillStyle = g; c.beginPath(); c.ellipse(0, 0, a, b, 0, 0, 7); c.fill();               // cabeça
     c.fillStyle = shade(F.skin, .85); c.beginPath(); c.ellipse(0, b*.62, a*.78, b*.42, 0, 0, Math.PI); c.fill();                                                                                                        // maxilar
-    if (F.beard && F.beard !== 'none' && facing > -.1) {                                 // barba/bigode (só de frente ou 3/4): contorno do maxilar na cor do cabelo, deixando a boca livre
-      const bk = F.beard, cw = Math.max(.35, Math.min(1, facing + .35)); c.save(); c.fillStyle = shade(hr, .85); c.globalAlpha = bk === 'stubble' ? .34 : .92;
+    if ((F.beard2d || F.beard) && (F.beard2d || F.beard) !== 'none' && facing > -.1) {                                 // barba/bigode (só de frente ou 3/4): contorno do maxilar na cor do cabelo, deixando a boca livre
+      const bk = F.beard2d || F.beard, cw = Math.max(.35, Math.min(1, facing + .35)); c.save(); c.fillStyle = shade(hr, .85); c.globalAlpha = bk === 'stubble' ? .34 : .92;
       if (bk !== 'mustache') { c.beginPath(); c.moveTo(-a*.84*cw, b*.08); c.quadraticCurveTo(-a*.8*cw, b*.98, 0, b*(bk === 'full' ? 1.12 : 1.02)); c.quadraticCurveTo(a*.8*cw, b*.98, a*.84*cw, b*.08); c.lineTo(a*.5*cw, b*.36); c.quadraticCurveTo(0, b*.56, -a*.5*cw, b*.36); c.closePath(); c.fill(); }
       if (bk === 'mustache' || bk === 'full' || bk === 'short') { c.globalAlpha = .95; c.beginPath(); c.ellipse(0, b*.27, a*.3*cw, b*.065, 0, 0, 7); c.fill(); } c.restore(); }
     const hairG = (x0, y0, r0) => { const gg = c.createRadialGradient(x0 - a*.3, y0 - b*.4, 1, x0, y0, r0); gg.addColorStop(0, shade(hr, 1.35)); gg.addColorStop(1, shade(hr, .7)); return gg; };

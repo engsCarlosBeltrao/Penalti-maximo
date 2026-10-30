@@ -20,6 +20,9 @@
 - **Materiais (um por peça, nomes contendo):** `Shirt` (camisa), `Shorts`, `Socks`, `Skin`, `Hair`, `Boots`; opcionais `Gloves`, `Eyes`.
   As texturas-base desses materiais devem ser **neutras (brancas/cinza)** — o jogo aplica a cor por multiplicação. A camisa pode ter textura qualquer: o jogo a substitui.
 - **UV da camisa (TEXCOORD_0), formato "wrap" (padrão):** textura 512×192; `u` dá a volta no tronco (frente centrada em u=0,25; costas em u=0,75; costura na lateral), `v=0` no topo. Para outro mapa de UV use `uniform-layout.json` (atlas).
-- **Cabelo variado (opcional):** malhas separadas `Hair_short`, `Hair_long`, `Hair_afro`, `Hair_curly`, `Hair_bun`, `Hair_buzz` (o jogo mostra uma por atleta). Com um só `Hair`, muda apenas a cor.
+- **Cabelo variado (opcional):** malhas separadas `Hair_<penteado>` (o jogo mostra uma por atleta). Com um só `Hair`, muda apenas a cor.
+- **Biblioteca de cabelo do `athlete.glb`:** 23 penteados `Hair_*`, 7 barbas `Beard_*`, 3 bigodes `Must_*`, 2 costeletas `Side_*` e a faixa `Acc_band`, geradas por `node tools/add-hair.mjs <base.glb> assets/models/athlete.glb --troca` (geometria em `tools/hair-geometry.mjs`).
+  Usam os materiais `HairCap`, `Beard` e `Band` e o atributo `_HAIR` (cobertura, tom, u, v), lidos pelo shader de `js/three/hairMaterial.js` (degradê que mistura com a pele, textura de fios, duas cores, mechas, grisalho).
+  A aparência de cada titular (penteado, cores, barba, bigode, costeleta, tom de pele) está em `js/lineups/appearance.js`. A textura de pele é neutralizada ao carregar (`loader.js → neutralizeSkin`) para o tom de cada jogador aparecer certo.
 - **Peso:** ≤ 25 000 triângulos; texturas ≤ 2048 px; todas as malhas com pesos de osso (JOINTS_0/WEIGHTS_0).
 - **Animações embutidas:** nenhuma é obrigatória. Opcional: `Idle`, `Walk`, `Run` (laços). Chute, defesas e comemorações são feitos pelo jogo (ver `INTEGRACAO_3D.md`).

@@ -145,17 +145,26 @@ export function composeShirt(layout, kit, look, crestImg = null, pack = null) {
 }
 // Regras de cor por material (nomes lógicos). Texturas-base dos materiais do modelo devem ser neutras (branco/cinza) para a cor multiplicar corretamente.
 export function uniformColors(kit, look, face, pack = null) {
-  return { shirt: '#ffffff' /* a cor vem da textura composta */, shorts: pack ? pack.shorts : kit.sh, socks: pack ? pack.socks : kit.c1, skin: face.skin, hair: face.hairC, boots: face.boot, gloves: kit.keeper ? '#f3f3f3' : face.skin, eyes: '#ffffff', trim: pack ? pack.trim : (kit.c2 || kit.c1), sole: lum(face.boot) > .5 ? '#15171b' : '#f2f2f2' };
+  return { shirt: '#ffffff' /* a cor vem da textura composta */, shorts: pack ? pack.shorts : kit.sh, socks: pack ? pack.socks : kit.c1, skin: face.skin, hair: face.browC || face.hairC2 || face.hairC /* sobrancelhas: cor natural (raiz), não a do descolorido */, boots: face.boot, gloves: kit.keeper ? '#f3f3f3' : face.skin, eyes: '#ffffff', trim: pack ? pack.trim : (kit.c2 || kit.c1), sole: lum(face.boot) > .5 ? '#15171b' : '#f2f2f2' };
 }
-// Escolhe qual malha de cabelo mostrar (Hair_short, Hair_long, …); sem variantes: mantém a única.
+// Nomes antigos (sorteio de appearance.js e renderizador 2D) → peças da biblioteca de tools/hair-geometry.mjs.
+export const HAIR_LEGACY = { bald: 'careca', buzz: 'rente', short: 'degrade_medio', curly: 'cacheado_degrade', long: 'longo_ombros', afro: 'black_power', bun: 'coque_alto' };
+export const BEARD_LEGACY = { none: ['nenhuma', null], stubble: ['por_fazer', null], short: ['cheia_curta', 'bigode'], full: ['densa', 'bigode'], mustache: ['nenhuma', 'bigode'] };   // [barba, bigode]
+// Escolhe qual malha de cabelo mostrar (Hair_<penteado>); sem variantes: mantém a única.
 export function hairVisibility(names, style) {
   const hair = names.filter(n => /^hair/i.test(n)); if (hair.length <= 1) return Object.fromEntries(hair.map(n => [n, true]));
-  if (style === 'bald') return Object.fromEntries(hair.map(n => [n, false]));                            // careca: nenhuma malha de cabelo
-  const pick = hair.find(n => new RegExp(`^hair_${style}$`, 'i').test(n)) || hair.find(n => new RegExp(`${style}`, 'i').test(n)) || hair.find(n => /short/i.test(n)) || hair[0]; return Object.fromEntries(hair.map(n => [n, n === pick]));
+  const id = HAIR_LEGACY[style] || style; if (id === 'careca') return Object.fromEntries(hair.map(n => [n, false]));   // careca: nenhuma malha de cabelo
+  const pick = hair.find(n => n.toLowerCase() === `hair_${id}`.toLowerCase()) || hair.find(n => new RegExp(`${id}`, 'i').test(n)) || hair.find(n => /degrade_medio|short/i.test(n)) || hair[0]; return Object.fromEntries(hair.map(n => [n, n === pick]));
 }
-// Barbas: malhas Beard_stubble | Beard_short | Beard_full | Beard_mustache ('none' esconde todas). A "full" também mostra o bigode embutido.
-export function beardVisibility(names, kind) {
-  const b = names.filter(n => /^beard/i.test(n)); if (!kind || kind === 'none') return Object.fromEntries(b.map(n => [n, false]));
-  const want = new Set([`beard_${kind}`.toLowerCase()]); if (kind === 'short' || kind === 'full') want.add('beard_mustache'); return Object.fromEntries(b.map(n => [n, want.has(n.toLowerCase())]));
+// Barba, bigode e costeleta: malhas Beard_<barba>, Must_<bigode>, Side_<costeleta>. Aceita os nomes antigos (stubble/short/full/mustache): short/full trazem o bigode junto.
+// sideburn: 'raspada' | 'coberta' (sem malha) | 'curta' | 'ligada' (longa, até a barba); sem valor, barbas cheias ligam a costeleta automaticamente.
+export function beardVisibility(names, kind, mustache, sideburn) {
+  const [bk, legM] = BEARD_LEGACY[kind] || [kind || 'nenhuma', null], mu = mustache === undefined ? legM : mustache, full = /cheia|densa|longa/.test(bk);
+  const sb = sideburn || (full ? 'ligada' : null), side = sb === 'curta' ? 'costeleta_curta' : sb === 'ligada' ? 'costeleta_longa' : null;
+  const want = new Set([bk !== 'nenhuma' && `beard_${bk}`, mu && mu !== 'nenhum' && `must_${mu}`, side && `side_${side}`].filter(Boolean));
+  return Object.fromEntries(names.filter(n => /^(beard|must|side)_/i.test(n)).map(n => [n, want.has(n.toLowerCase())]));
 }
+// Cores do cabelo/barba para o shader (js/three/hairMaterial.js). Campos opcionais do rosto: hairC2 (lateral/raiz), beardC, hl + hlAmt (mechas), tips (pontas descoloridas, usa hl), grey (grisalho salpicado).
+export const hairColors = face => ({ top: face.hairC, side: face.hairC2 || shadeHex(face.hairC, .78), beard: face.beardC || shadeHex(face.hairC2 || face.hairC, .9) /* descolorido: barba na cor natural */, skin: face.skin, hl: face.hl || '#e8d9b0', hlAmt: face.hlAmt || 0, tipAmt: face.tips || 0, grey: face.grey || 0, band: face.band || null });
+function shadeHex(h, k) { const n = parseInt(String(h || '#2b1d12').slice(1), 16), c = [n >> 16, n >> 8 & 255, n & 255].map(v => Math.round(Math.min(255, v*k))); return '#' + c.map(v => v.toString(16).padStart(2, '0')).join(''); }
 export const crestImageFor = key => { if (!CRESTS.includes(key) || typeof Image === 'undefined') return null; const i = new Image(); i.src = `assets/crests/${key}.png`; return i.complete && i.naturalWidth ? i : null; };

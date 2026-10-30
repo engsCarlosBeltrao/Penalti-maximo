@@ -57,7 +57,7 @@ function cyl(E, o) {
 // ---- cabeça: elipsoide + orelhas + cabelo com volume + rosto 3D (só aparece quando virado para a câmera) ----
 function head(E, J, F, mood, keeper) {
   const hc = J.head, q = E.proj(hc); if (!q) return; const qu = E.proj(add(hc, mul(J.hup, .1))); if (!qu) return; const k = q[3], ang = Math.atan2(qu[0] - q[0], -(qu[1] - q[1])), a = .092*F.head*k, b = .118*F.head*k;
-  const cv = norm(sub(E.pos, hc)), facing = dot(J.hfwd, cv), side = dot(J.hfwd, E.r) > 0 ? 1 : -1, hr = F.hairC, st = F.style;
+  const cv = norm(sub(E.pos, hc)), facing = dot(J.hfwd, cv), side = dot(J.hfwd, E.r) > 0 ? 1 : -1, hr = F.hairC, st = F.style2d || F.style;
   const lm = (r, u, f2) => { const p = E.proj(add(hc, add(add(mul(J.hright, r), mul(J.hup, u)), mul(J.hfwd, f2)))); return p ? [p[0] - q[0], p[1] - q[1]] : [0, 0]; };
   const eyeL = lm(-F.eyeW, .02, .085), eyeR = lm(F.eyeW, .02, .085), noseT = lm(0, -.012, .108*F.nose), mouthP = lm(0, -.047, .09), earL = lm(-.092, 0, 0), earR = lm(.092, 0, 0);
   E.push(q[2] - .02, c => {

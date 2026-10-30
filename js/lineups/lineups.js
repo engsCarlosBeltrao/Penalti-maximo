@@ -29,7 +29,7 @@ export function makePlayer(lu, row, starter) {
   return { id, name: row.name, nickname: row.nick, clubId: lu.club, jerseyNumber: row.n ?? null, numberStatus: row.n == null ? 'não confirmado' : 'confirmado', position: row.pos ? POS_PT[row.pos] : null, posCode: row.pos || null, posVerified: !lu.posUnverified && !!row.pos,
     starter, isStar: !!row.star, rating: row.r ?? (gk ? 80 : 78), preferredFoot: row.foot ?? null, celebration: row.cel ?? 'normal', personality: row.star ? ['star', row.cel === 'arms' ? 'celebrator' : 'confident'] : ['normal'],
     model: 'assets/models/athlete.glb', kit: { variant: 'home', keeper: gk }, animation: { rig: gk ? 'keeper' : 'field', celebration: row.cel ?? 'normal' },
-    appearance: { ...ap, skinTone: Math.min(3, ap.skinI), hairStyle: HS_LEGACY.includes(ap.hair) ? ap.hair : 'short' }, source: lu.source, verifiedAt: lu.verifiedAt, confidence: lu.confidence };
+    appearance: { ...ap, skinTone: Math.min(3, ap.skinI), hairStyle: HS_LEGACY.includes(ap.hair2d) ? ap.hair2d : 'short' }, source: lu.source, verifiedAt: lu.verifiedAt, confidence: lu.confidence };
 }
 export function buildLineupPlayers() { return LINEUPS.flatMap(lu => [...lu.xi.map(r => makePlayer(lu, r, true)), ...(lu.reserves || []).map(r => makePlayer(lu, r, false))]); }
 // valida as regras do projeto: 11 titulares, 1 goleiro, números sem repetição, nomes únicos. Devolve a lista de problemas (vazia = ok).

@@ -25,7 +25,8 @@ export function camTarget(game, b, bw, res, d) {
 }
 // Aparência individual: o atleta (js/lineups) define pele, cabelo, barba, largura e altura; o resto do rosto vem de faceOf (determinístico). Cache por jogador: o quadro é montado a cada frame.
 const faceCache = new Map();
-const faceFor = L => { let f = faceCache.get(L.id); if (!f) { const a = L.ap; f = { ...faceOf(L.id), skinI: a.skinI, skin: SKINS[a.skinI], hairC: HAIRC[a.hairI], style: a.hair, beard: a.beard, build: a.build, height: a.height }; faceCache.set(L.id, f); } return f; };
+const faceFor = L => { let f = faceCache.get(L.id); if (!f) { const a = L.ap; f = { ...faceOf(L.id), skinI: a.skinI, skin: a.skinHex || SKINS[a.skinI], hairC: a.hairHex || HAIRC[a.hairI], style: a.hair, beard: a.beard, style2d: a.hair2d, beard2d: a.beard2d, build: a.build, height: a.height,
+    mustache: a.mustache, sideburn: a.sideburn, hairC2: a.hairC2, beardC: a.beardC, hl: a.hl, hlAmt: a.hlAmt, tips: a.tips, grey: a.grey, band: a.band };   /* estilo/barba novos (3D) e a versão 2D */ faceCache.set(L.id, f); } return f; };
 const withFace = L => L.ap ? { ...L, face: faceFor(L) } : L;
 const keeperLook = (t, mood) => { const g = keeperOf(t); return g ? { ...withFace(g), mood } : { skin: t.id % 4, hair: HS[t.id % 4], nome: 'GOL', num: 1, face: faceOf('gk' + t.id), mood }; };   // goleiro do clube (nome/número/aparência próprios) ou genérico se o clube não tiver dados
 const gkKit = t => ({ c1: kcol(t), c2: '#141414', c3: '#fff', pat: 'p', sh: '#1b1b1b', keeper: true, long: true, glove: true, key: 'gk' + t.id });
