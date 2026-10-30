@@ -77,7 +77,7 @@ export function wrapShirt(kit, look, crestImg = null) {
 // nem sempre se encontram na mesma altura (faixas "quebradas" na lateral). Numa faixa de SEAM px de cada lado da costura, o tecido vira um degradê entre a cor
 // da frente e a das costas tiradas logo depois da faixa. A cor de referência é a MEDIANA (por luminância) de uma janela de 16 colunas × 13 linhas: uma
 // coluna só pegava o traço fino do contorno e espalhava riscos escuros pelo degradê. Só as laterais mudam: escudo, patrocinadores, nome e número ficam como estão.
-const SEAM = 60, NUM_H = 198;   // NUM_H: altura padrão do número nas costas (a do Flamengo titular)
+const SEAM = 60, NUM_H = 198, SB_ROW = 105;   // padrão do Flamengo titular: número com NUM_H de altura; patrocinador das costas termina em SB_ROW, nome logo abaixo, número em seguida
 function seamBlend(c) {
   const { W, body: B } = WRAP, im = c.getImageData(0, 0, W, B), d = im.data, px = (x, y) => (y*W + x)*4;
   const ref = (x0, dir) => { const r = []; for (let y = 0; y < B; y++) { const s = [];   // dir: +1 = janela à direita de x0, -1 = à esquerda
@@ -100,11 +100,16 @@ export function packShirt(pack, look) {
     let bd = BACK_DROP; try { const bw = 220, dd = body.getContext('2d').getImageData(512 + 146, 0, bw, 34).data, m = new Array(3).fill(0); const mc = (pack.main || '#222222').replace('#', ''), mr = parseInt(mc.slice(0, 2), 16), mg = parseInt(mc.slice(2, 4), 16), mb = parseInt(mc.slice(4, 6), 16);
       for (let y = 0; y < 34; y++) { let n = 0; for (let x = 0; x < bw; x++) { const i = (y*bw + x)*4; if (Math.abs(dd[i] - mr) + Math.abs(dd[i+1] - mg) + Math.abs(dd[i+2] - mb) > 90) n++; } if (n > 14) { bd = BACK_DROP + 10; break; } } } catch (e) { /* canvas tainted */ }   // patrocinador colado no topo das costas: desce mais para sair de baixo da gola
     let striped = false; try { const sds = []; for (const ry of [150, 180, 210, 240, 270, 300]) { const rw = body.getContext('2d').getImageData(512 + 80, ry, 352, 1).data; let m = 0, q = 0; for (let i = 0; i < rw.length; i += 4) { const l = rw[i]*.3 + rw[i+1]*.59 + rw[i+2]*.11; m += l; q += l*l; } const n = rw.length/4; m /= n; sds.push(Math.sqrt(Math.max(0, q/n - m*m))); } sds.sort((a, b) => a - b); striped = (sds[2] + sds[3])/2 > 28; } catch (e) { /* canvas tainted */ }   // listras verticais? então a faixa que sobra no topo continua as listras (em vez de uma cor lisa)
-    backOff = y0 + (uv ? bd : 0);
-    [[0, y0], [512, backOff]].forEach(([x, yy]) => { c.fillStyle = pack.main || '#222'; c.fillRect(x, 0, 512, yy + 1); if (x === 512 && striped && yy > 0) c.drawImage(body, x, 150, 512, yy + 1, x, 0, 512, yy + 1); c.drawImage(body, x, 0, 512, WRAP.body, x, yy, 512, WRAP.body - yy); }); }
+    // costas no alto (padrão do Flamengo titular): com sb (fim do patrocinador das costas, kits.json) o painel é posto para o patrocinador terminar em SB_ROW,
+    // com a mesma escala vertical da frente; sem patrocinador no alto, mantém o deslocamento antigo
+    const k2 = (WRAP.body - y0)/WRAP.body; backOff = pack.sb != null ? Math.max(-30, Math.min(y0 + bd, Math.round(SB_ROW - pack.sb*k2))) : y0 + (uv ? bd : 0);
+    [[0, y0], [512, backOff]].forEach(([x, yy]) => { c.fillStyle = pack.main || '#222'; if (yy > 0) c.fillRect(x, 0, 512, yy + 1); if (x === 512 && striped && yy > 0) c.drawImage(body, x, 150, 512, yy + 1, x, 0, 512, yy + 1);
+      const h = WRAP.body*k2; c.drawImage(body, x, 0, 512, WRAP.body, x, yy, 512, h); if (yy + h < WRAP.body) c.drawImage(body, x, WRAP.body - 1, 512, 1, x, yy + h - 1, 512, WRAP.body - yy - h + 1); }); }
   try { seamBlend(c); } catch (e) { /* canvas tainted: mantém as laterais como vieram */ }
   const ci = pack.numCrestImg;   // escudo do clube (assets/kits/crests/<clube>.png, de tools/build-crests.mjs) ou o do kits.json (numCrest)
-  if (ci && !pack.final) { const ch = 24, cw = ch*ci.width/ci.height*1.21; c.drawImage(ci, 768 - cw/2, 40 - ch/2, cw, ch); }   // escudinho sob a gola, centralizado nas costas (1,21: o mapa estica ~21% na vertical); camisas "final" já trazem o seu
+  if (ci && !pack.final) { let top = 70; try { const d = c.getImageData(768 - 50, 0, 100, 70).data;   // escudinho sob a gola, centralizado nas costas; encolhe/sobe para caber entre a gola (~linha 16) e o patrocinador (ou some, se não couber)
+      for (let y = 18; y < 70; y++) { let m = 0, q = 0; for (let x = 0; x < 100; x++) { const i = (y*100 + x)*4, l = d[i]*.3 + d[i+1]*.59 + d[i+2]*.11; m += l; q += l*l; } m /= 100; if (Math.sqrt(Math.max(0, q/100 - m*m)) > 22) { top = y; break; } } } catch (e) { /* canvas tainted */ }
+    const ch = Math.min(24, top - 22); if (ch >= 12) { const cw = ch*ci.width/ci.height*1.21; c.drawImage(ci, 768 - cw/2, Math.min(40, (16 + top)/2) - ch/2, cw, ch); } }   // 1,21: o mapa estica ~21% na vertical; camisas "final" já trazem o seu
   const num = look.noNum ? '' : String(look.num ?? ''); let L = .5; try { const d = c.getImageData(768 - 100, 200, 200, 220).data; let t = 0; for (let i = 0; i < d.length; i += 4) t += (d[i]*.3 + d[i+1]*.59 + d[i+2]*.11)/255; L = t/(d.length/4); } catch (e) { /* canvas tainted */ }
   const ink = L > .55 ? '#101820' : '#ffffff', alt = L > .55 ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.55)';
   // posição de nome e número se adapta aos patrocinadores desta camisa: acha as linhas "ocupadas" na faixa central das costas e fica no espaço livre
@@ -115,8 +120,8 @@ export function packShirt(pack, look) {
     const ref = sd.slice(230, 400).sort((a, b) => a - b)[85], busy = y => sd[y] > ref*1.6 + 9 || (y > 60 && y < 230 && Math.abs(ml[y] - ml[y + 5]) > 40);   // faixa/borda de cor forte também conta como ocupada
     let r1 = -1; for (let y = 70; y < 215; y++) if (busy(y)) r1 = y;                                  // último patrocinador no alto das costas
     let r2 = 470; for (let y = 470; y >= 340; y--) if (busy(y)) r2 = y;                                // primeiro patrocinador de baixo
-    if (r1 >= 0) nameY = Math.min(Math.max(104, r1 + 4), 224); if (pack.sb) nameY = Math.min(Math.max(nameY, pack.sb + backOff + 7), 224);   // sb = linha (no atlas) onde termina o patrocinador das costas (assets/kits/kits.json) — o nome fica logo abaixo dele
-    numTop = nameY + 36; numBot = Math.min(numTop + NUM_H, Math.max(r2 - 8, numTop + 150), 470);   // mesma altura de número em todas as camisas; só encolhe se houver patrocinador embaixo
+    if (r1 >= 0) nameY = Math.min(Math.max(104, r1 + 4), 224); if (pack.sb != null) nameY = SB_ROW + 17;   // sb = linha (no atlas) onde termina o patrocinador das costas (kits.json): o painel já foi posto para ele terminar em SB_ROW, o nome vem logo abaixo
+    numTop = nameY + 42; numBot = Math.min(numTop + NUM_H, Math.max(r2 - 8, numTop + 150), 470);   // mesma altura de número em todas as camisas; só encolhe se houver patrocinador embaixo
   } catch (e) { /* canvas tainted: mantém a posição padrão */ }
   if (pack.nameY) { nameY = pack.nameY; numTop = pack.numTop ?? nameY + 36; numBot = pack.numBot ?? numBot; }   // posições fixas do uniforme (kits.json), quando a arte das costas foi desenhada para elas
   if (num) { const ns = pack.numStroke || (ink === '#ffffff' ? '#000000' : '#ffffff'), fs = fitText(c, num, 768 - 140, numTop, 280, numBot - numTop, '900', pack.numStroke ? '#ffffff' : ink, ns, .09);   // contorno sólido em todas (numStroke força número branco)

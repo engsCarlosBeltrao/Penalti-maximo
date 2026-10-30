@@ -26,7 +26,8 @@
    "trim": "#e30a06",
    "packId": "322",
    "file": "assets/kits/flamengo_away.jpg",
-   "sb": 46
+   "sb": 46,
+   "socksFile": "assets/kits/flamengo_away_socks.png"
   },
   "third": {
    "main": "#e20001",
@@ -36,7 +37,8 @@
    "trim": "#e15454",
    "packId": "322",
    "file": "assets/kits/flamengo_third.jpg",
-   "sb": 46
+   "sb": 46,
+   "socksFile": "assets/kits/flamengo_third_socks.png"
   }
  },
  "corinthians": {
@@ -48,7 +50,8 @@
    "trim": "#b3b3b3",
    "packId": "319",
    "file": "assets/kits/corinthians_home.jpg",
-   "sb": 90
+   "sb": 90,
+   "socksFile": "assets/kits/corinthians_home_socks.png"
   },
   "away": {
    "main": "#1e1e1e",
@@ -58,7 +61,8 @@
    "trim": "#b7b6b7",
    "packId": "319",
    "file": "assets/kits/corinthians_away.jpg",
-   "sb": 90
+   "sb": 90,
+   "socksFile": "assets/kits/corinthians_away_socks.png"
   },
   "third": {
    "main": "#242424",
@@ -68,7 +72,8 @@
    "trim": "#6b6a6b",
    "packId": "319",
    "file": "assets/kits/corinthians_third.jpg",
-   "sb": 90
+   "sb": 90,
+   "socksFile": "assets/kits/corinthians_third_socks.png"
   }
  },
  "palmeiras": {
@@ -80,7 +85,8 @@
    "trim": "#3c6b52",
    "packId": "329",
    "file": "assets/kits/palmeiras_home.jpg",
-   "sb": 46
+   "sb": 46,
+   "socksFile": "assets/kits/palmeiras_home_socks.png"
   },
   "away": {
    "main": "#e7e3e7",
@@ -90,7 +96,8 @@
    "trim": "#cccfcf",
    "packId": "329",
    "file": "assets/kits/palmeiras_away.jpg",
-   "sb": 46
+   "sb": 46,
+   "socksFile": "assets/kits/palmeiras_away_socks.png"
   },
   "third": {
    "main": "#003f81",
@@ -100,7 +107,8 @@
    "trim": "#3a5b79",
    "packId": "329",
    "file": "assets/kits/palmeiras_third.jpg",
-   "sb": 46
+   "sb": 46,
+   "socksFile": "assets/kits/palmeiras_third_socks.png"
   }
  },
  "saopaulo": {
@@ -111,7 +119,8 @@
    "socks": "#d2d2d2",
    "trim": "#cc0b07",
    "packId": "337",
-   "file": "assets/kits/saopaulo_home.jpg"
+   "file": "assets/kits/saopaulo_home.jpg",
+   "socksFile": "assets/kits/saopaulo_home_socks.png"
   },
   "away": {
    "main": "#ca110e",
@@ -120,7 +129,8 @@
    "socks": "#232323",
    "trim": "#222222",
    "packId": "337",
-   "file": "assets/kits/saopaulo_away.jpg"
+   "file": "assets/kits/saopaulo_away.jpg",
+   "socksFile": "assets/kits/saopaulo_away_socks.png"
   },
   "third": {
    "main": "#e4e2d3",
@@ -129,7 +139,8 @@
    "socks": "#dcdcc9",
    "trim": "#cdc8bb",
    "packId": "337",
-   "file": "assets/kits/saopaulo_third.jpg"
+   "file": "assets/kits/saopaulo_third.jpg",
+   "socksFile": "assets/kits/saopaulo_third_socks.png"
   }
  },
  "santos": {
@@ -141,7 +152,8 @@
    "trim": "#caccca",
    "packId": "335",
    "file": "assets/kits/santos_home.jpg",
-   "sb": 84
+   "sb": 84,
+   "socksFile": "assets/kits/santos_home_socks.png"
   },
   "away": {
    "main": "#1c1c1c",
@@ -151,7 +163,8 @@
    "trim": "#e8e8e8",
    "packId": "335",
    "file": "assets/kits/santos_away.jpg",
-   "sb": 100
+   "sb": 100,
+   "socksFile": "assets/kits/santos_away_socks.png"
   },
   "third": {
    "main": "#0c0c0c",
@@ -161,7 +174,8 @@
    "trim": "#3c3b3b",
    "packId": "335",
    "file": "assets/kits/santos_third.jpg",
-   "sb": 84
+   "sb": 84,
+   "socksFile": "assets/kits/santos_third_socks.png"
   }
  },
  "gremio": {
@@ -173,7 +187,8 @@
    "trim": "#008cde",
    "packId": "324",
    "file": "assets/kits/gremio_home.jpg",
-   "sb": 68
+   "sb": 68,
+   "socksFile": "assets/kits/gremio_home_socks.png"
   },
   "away": {
    "main": "#72bee7",
@@ -183,7 +198,8 @@
    "trim": "#e8ebe7",
    "packId": "324",
    "file": "assets/kits/gremio_away.jpg",
-   "sb": 68
+   "sb": 68,
+   "socksFile": "assets/kits/gremio_away_socks.png"
   },
   "third": {
    "main": "#0062d1",
@@ -193,7 +209,8 @@
    "trim": "#3d6e9d",
    "packId": "324",
    "file": "assets/kits/gremio_third.jpg",
-   "sb": 80
+   "sb": 80,
+   "socksFile": "assets/kits/gremio_third_socks.png"
   }
  },
  "internacional": {
@@ -205,7 +222,8 @@
    "trim": "#e1e1e2",
    "packId": "326",
    "file": "assets/kits/internacional_home.jpg",
-   "sb": 62
+   "sb": 62,
+   "socksFile": "assets/kits/internacional_home_socks.png"
   },
   "away": {
    "main": "#e5e3e5",
@@ -215,7 +233,8 @@
    "trim": "#df9a9c",
    "packId": "326",
    "file": "assets/kits/internacional_away.jpg",
-   "sb": 62
+   "sb": 62,
+   "socksFile": "assets/kits/internacional_away_socks.png"
   },
   "third": {
    "main": "#831b1b",
@@ -224,7 +243,8 @@
    "socks": "#551d1e",
    "trim": "#c82120",
    "packId": "326",
-   "file": "assets/kits/internacional_third.jpg"
+   "file": "assets/kits/internacional_third.jpg",
+   "socksFile": "assets/kits/internacional_third_socks.png"
   }
  },
  "atletico-mg": {
@@ -236,7 +256,8 @@
    "trim": "#e2e3e3",
    "packId": "314",
    "file": "assets/kits/atletico-mg_home.jpg",
-   "sb": 90
+   "sb": 90,
+   "socksFile": "assets/kits/atletico-mg_home_socks.png"
   },
   "away": {
    "main": "#e0e0e0",
@@ -246,7 +267,8 @@
    "trim": "#1e1e1e",
    "packId": "314",
    "file": "assets/kits/atletico-mg_away.jpg",
-   "sb": 90
+   "sb": 90,
+   "socksFile": "assets/kits/atletico-mg_away_socks.png"
   },
   "third": {
    "main": "#ff6700",
@@ -256,7 +278,8 @@
    "trim": "#212121",
    "packId": "314",
    "file": "assets/kits/atletico-mg_third.jpg",
-   "sb": 90
+   "sb": 90,
+   "socksFile": "assets/kits/atletico-mg_third_socks.png"
   }
  },
  "cruzeiro": {
@@ -268,7 +291,8 @@
    "trim": "#5380c5",
    "packId": "321",
    "file": "assets/kits/cruzeiro_home.jpg",
-   "sb": 82
+   "sb": 82,
+   "socksFile": "assets/kits/cruzeiro_home_socks.png"
   },
   "away": {
    "main": "#e6e5e6",
@@ -278,7 +302,8 @@
    "trim": "#b9c6db",
    "packId": "321",
    "file": "assets/kits/cruzeiro_away.jpg",
-   "sb": 82
+   "sb": 82,
+   "socksFile": "assets/kits/cruzeiro_away_socks.png"
   },
   "third": {
    "main": "#f4f4f4",
@@ -288,7 +313,8 @@
    "trim": "#84afe0",
    "packId": "321",
    "file": "assets/kits/cruzeiro_third.jpg",
-   "sb": 82
+   "sb": 82,
+   "socksFile": "assets/kits/cruzeiro_third_socks.png"
   }
  },
  "botafogo": {
@@ -299,7 +325,8 @@
    "socks": "#1e1e1e",
    "trim": "#1c1c1c",
    "packId": "316",
-   "file": "assets/kits/botafogo_home.jpg"
+   "file": "assets/kits/botafogo_home.jpg",
+   "socksFile": "assets/kits/botafogo_home_socks.png"
   },
   "away": {
    "main": "#e8e5e8",
@@ -308,7 +335,8 @@
    "socks": "#c8c8c8",
    "trim": "#cdcbcc",
    "packId": "316",
-   "file": "assets/kits/botafogo_away.jpg"
+   "file": "assets/kits/botafogo_away.jpg",
+   "socksFile": "assets/kits/botafogo_away_socks.png"
   },
   "third": {
    "main": "#cac8ca",
@@ -317,7 +345,8 @@
    "socks": "#9a9a9a",
    "trim": "#9d9a9d",
    "packId": "316",
-   "file": "assets/kits/botafogo_third.jpg"
+   "file": "assets/kits/botafogo_third.jpg",
+   "socksFile": "assets/kits/botafogo_third_socks.png"
   }
  },
  "fluminense": {
@@ -329,7 +358,8 @@
    "trim": "#0b4236",
    "packId": "323",
    "file": "assets/kits/fluminense_home.jpg",
-   "sb": 46
+   "sb": 46,
+   "socksFile": "assets/kits/fluminense_home_socks.png"
   },
   "away": {
    "main": "#dedfde",
@@ -339,7 +369,8 @@
    "trim": "#c8b2b5",
    "packId": "323",
    "file": "assets/kits/fluminense_away.jpg",
-   "sb": 46
+   "sb": 46,
+   "socksFile": "assets/kits/fluminense_away_socks.png"
   },
   "third": {
    "main": "#275258",
@@ -349,7 +380,8 @@
    "trim": "#6a867e",
    "packId": "323",
    "file": "assets/kits/fluminense_third.jpg",
-   "sb": 46
+   "sb": 46,
+   "socksFile": "assets/kits/fluminense_third_socks.png"
   }
  },
  "vasco": {
@@ -361,7 +393,8 @@
    "trim": "#d2d2d2",
    "packId": "339",
    "file": "assets/kits/vasco_home.jpg",
-   "sb": 90
+   "sb": 90,
+   "socksFile": "assets/kits/vasco_home_socks.png"
   },
   "away": {
    "main": "#f8f6f8",
@@ -371,7 +404,8 @@
    "trim": "#272727",
    "packId": "339",
    "file": "assets/kits/vasco_away.jpg",
-   "sb": 90
+   "sb": 90,
+   "socksFile": "assets/kits/vasco_away_socks.png"
   },
   "third": {
    "main": "#f4e89c",
@@ -381,7 +415,8 @@
    "trim": "#1f1f1f",
    "packId": "339",
    "file": "assets/kits/vasco_third.jpg",
-   "sb": 100
+   "sb": 100,
+   "socksFile": "assets/kits/vasco_third_socks.png"
   }
  },
  "bahia": {
@@ -393,7 +428,8 @@
    "trim": "#c8020b",
    "packId": "315",
    "file": "assets/kits/bahia_home.jpg",
-   "sb": 110
+   "sb": 110,
+   "socksFile": "assets/kits/bahia_home_socks.png"
   },
   "away": {
    "main": "#0540b9",
@@ -403,7 +439,8 @@
    "trim": "#2169c8",
    "packId": "315",
    "file": "assets/kits/bahia_away.jpg",
-   "sb": 110
+   "sb": 110,
+   "socksFile": "assets/kits/bahia_away_socks.png"
   },
   "third": {
    "main": "#10233b",
@@ -413,7 +450,8 @@
    "trim": "#cda35b",
    "packId": "315",
    "file": "assets/kits/bahia_third.jpg",
-   "sb": 110
+   "sb": 110,
+   "socksFile": "assets/kits/bahia_third_socks.png"
   }
  },
  "sport": {
@@ -425,7 +463,8 @@
    "trim": "#191919",
    "packId": "338",
    "file": "assets/kits/sport_home.jpg",
-   "sb": 60
+   "sb": 60,
+   "socksFile": "assets/kits/sport_home_socks.png"
   },
   "away": {
    "main": "#dec78c",
@@ -435,7 +474,8 @@
    "trim": "#1c1c1c",
    "packId": "338",
    "file": "assets/kits/sport_away.jpg",
-   "sb": 60
+   "sb": 60,
+   "socksFile": "assets/kits/sport_away_socks.png"
   },
   "third": {
    "main": "#086d94",
@@ -445,7 +485,8 @@
    "trim": "#00496b",
    "packId": "338",
    "file": "assets/kits/sport_third.jpg",
-   "sb": 60
+   "sb": 60,
+   "socksFile": "assets/kits/sport_third_socks.png"
   }
  },
  "fortaleza": {
@@ -457,7 +498,8 @@
    "trim": "#ac1e35",
    "packId": "104750",
    "file": "assets/kits/fortaleza_home.jpg",
-   "sb": 90
+   "sb": 90,
+   "socksFile": "assets/kits/fortaleza_home_socks.png"
   },
   "away": {
    "main": "#f2f2eb",
@@ -467,7 +509,8 @@
    "trim": "#e9dcb7",
    "packId": "104750",
    "file": "assets/kits/fortaleza_away.jpg",
-   "sb": 66
+   "sb": 66,
+   "socksFile": "assets/kits/fortaleza_away_socks.png"
   },
   "third": {
    "main": "#6ba5cc",
@@ -476,7 +519,8 @@
    "socks": "#6396ba",
    "trim": "#3a506d",
    "packId": "104750",
-   "file": "assets/kits/fortaleza_third.jpg"
+   "file": "assets/kits/fortaleza_third.jpg",
+   "socksFile": "assets/kits/fortaleza_third_socks.png"
   }
  },
  "ceara": {
@@ -488,7 +532,8 @@
    "trim": "#cfcfd0",
    "packId": "104749",
    "file": "assets/kits/ceara_home.jpg",
-   "sb": 126
+   "sb": 126,
+   "socksFile": "assets/kits/ceara_home_socks.png"
   },
   "away": {
    "main": "#b7b8bc",
@@ -498,7 +543,8 @@
    "trim": "#0f0f0f",
    "packId": "104749",
    "file": "assets/kits/ceara_away.jpg",
-   "sb": 96
+   "sb": 96,
+   "socksFile": "assets/kits/ceara_away_socks.png"
   },
   "third": {
    "main": "#161616",
@@ -508,7 +554,8 @@
    "trim": "#9a9a9a",
    "packId": "104749",
    "file": "assets/kits/ceara_third.jpg",
-   "sb": 56
+   "sb": 56,
+   "socksFile": "assets/kits/ceara_third_socks.png"
   }
  },
  "athletico-pr": {
@@ -520,7 +567,8 @@
    "trim": "#ac1b18",
    "packId": "107206",
    "file": "assets/kits/athletico-pr_home.jpg",
-   "sb": 62
+   "sb": 62,
+   "socksFile": "assets/kits/athletico-pr_home_socks.png"
   },
   "away": {
    "main": "#e5e2e5",
@@ -530,7 +578,8 @@
    "trim": "#cecacc",
    "packId": "107206",
    "file": "assets/kits/athletico-pr_away.jpg",
-   "sb": 62
+   "sb": 62,
+   "socksFile": "assets/kits/athletico-pr_away_socks.png"
   },
   "third": {
    "main": "#0b0b0b",
@@ -540,7 +589,8 @@
    "trim": "#530e10",
    "packId": "107206",
    "file": "assets/kits/athletico-pr_third.jpg",
-   "sb": 62
+   "sb": 62,
+   "socksFile": "assets/kits/athletico-pr_third_socks.png"
   }
  },
  "coritiba": {
@@ -552,7 +602,8 @@
    "trim": "#245359",
    "packId": "104776",
    "file": "assets/kits/coritiba_home.jpg",
-   "sb": 66
+   "sb": 66,
+   "socksFile": "assets/kits/coritiba_home_socks.png"
   },
   "away": {
    "main": "#1f1f1f",
@@ -562,7 +613,8 @@
    "trim": "#728583",
    "packId": "104776",
    "file": "assets/kits/coritiba_away.jpg",
-   "sb": 58
+   "sb": 58,
+   "socksFile": "assets/kits/coritiba_away_socks.png"
   },
   "third": {
    "main": "#e0e0e0",
@@ -572,7 +624,8 @@
    "trim": "#25304b",
    "packId": "104776",
    "file": "assets/kits/coritiba_third.jpg",
-   "sb": 66
+   "sb": 66,
+   "socksFile": "assets/kits/coritiba_third_socks.png"
   }
  },
  "bragantino": {
@@ -584,7 +637,8 @@
    "trim": "#dfb4b6",
    "packId": "317",
    "file": "assets/kits/bragantino_home.jpg",
-   "sb": 86
+   "sb": 86,
+   "socksFile": "assets/kits/bragantino_home_socks.png"
   },
   "away": {
    "main": "#131313",
@@ -594,7 +648,8 @@
    "trim": "#3c3b3c",
    "packId": "317",
    "file": "assets/kits/bragantino_away.jpg",
-   "sb": 112
+   "sb": 112,
+   "socksFile": "assets/kits/bragantino_away_socks.png"
   },
   "third": {
    "main": "#d60417",
@@ -604,7 +659,8 @@
    "trim": "#040404",
    "packId": "317",
    "file": "assets/kits/bragantino_third.jpg",
-   "sb": 86
+   "sb": 86,
+   "socksFile": "assets/kits/bragantino_third_socks.png"
   }
  },
  "vitoria": {
@@ -616,7 +672,8 @@
    "trim": "#bb2522",
    "packId": "340",
    "file": "assets/kits/vitoria_home.jpg",
-   "sb": 44
+   "sb": 44,
+   "socksFile": "assets/kits/vitoria_home_socks.png"
   },
   "away": {
    "main": "#f1f1f1",
@@ -626,7 +683,8 @@
    "trim": "#d0cfcf",
    "packId": "340",
    "file": "assets/kits/vitoria_away.jpg",
-   "sb": 44
+   "sb": 44,
+   "socksFile": "assets/kits/vitoria_away_socks.png"
   },
   "third": {
    "main": "#f1e8db",
@@ -636,7 +694,8 @@
    "trim": "#3f2d33",
    "packId": "340",
    "file": "assets/kits/vitoria_third.jpg",
-   "sb": 44
+   "sb": 44,
+   "socksFile": "assets/kits/vitoria_third_socks.png"
   }
  }
 }
