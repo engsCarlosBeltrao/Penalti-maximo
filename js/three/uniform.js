@@ -19,9 +19,10 @@ function paintPattern(c, kit, x, y, w, h) {                            // listra
   else if (kit.pat === 'd') { c.translate(x + w/2, y + h/2); c.rotate(-.9); c.fillRect(-w, -h*.11, 2*w, h*.22); } else if (kit.pat === 'f') c.fillRect(x + w/2, y, w/2, h);
   c.restore();
 }
-function fitText(c, text, rx, ry, rw, rh, weight, ink, stroke) {      // escreve o texto no maior tamanho que cabe no retângulo
+function fitText(c, text, rx, ry, rw, rh, weight, ink, stroke, lw = .06) {      // escreve o texto no maior tamanho que cabe no retângulo; devolve o tamanho da fonte
   let fs = rh; c.font = `${weight} ${fs}px Arial`; while (c.measureText(text).width > rw && fs > 6) c.font = `${weight} ${--fs}px Arial`;
-  c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = ink; if (stroke) { c.strokeStyle = stroke; c.lineWidth = Math.max(2, fs*.06); c.strokeText(text, rx + rw/2, ry + rh/2); } c.fillText(text, rx + rw/2, ry + rh/2);
+  c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = ink; if (stroke) { c.strokeStyle = stroke; c.lineWidth = Math.max(2, fs*lw); c.lineJoin = 'round'; c.strokeText(text, rx + rw/2, ry + rh/2); } c.fillText(text, rx + rw/2, ry + rh/2);
+  return fs;
 }
 function crest(c, kit, rx, ry, rw, rh, img) {
   if (img) { c.drawImage(img, rx, ry, rw, rh); return; }                                              // escudo oficial (assets/crests/<key>.png), se existir
@@ -76,7 +77,7 @@ export function wrapShirt(kit, look, crestImg = null) {
 // nem sempre se encontram na mesma altura (faixas "quebradas" na lateral). Numa faixa de SEAM px de cada lado da costura, o tecido vira um degradê entre a cor
 // da frente e a das costas tiradas logo depois da faixa. A cor de referência é a MEDIANA (por luminância) de uma janela de 16 colunas × 13 linhas: uma
 // coluna só pegava o traço fino do contorno e espalhava riscos escuros pelo degradê. Só as laterais mudam: escudo, patrocinadores, nome e número ficam como estão.
-const SEAM = 60;
+const SEAM = 60, NUM_H = 198;   // NUM_H: altura padrão do número nas costas (a do Flamengo titular)
 function seamBlend(c) {
   const { W, body: B } = WRAP, im = c.getImageData(0, 0, W, B), d = im.data, px = (x, y) => (y*W + x)*4;
   const ref = (x0, dir) => { const r = []; for (let y = 0; y < B; y++) { const s = [];   // dir: +1 = janela à direita de x0, -1 = à esquerda
@@ -92,7 +93,7 @@ export function packShirt(pack, look) {
   if (typeof document === 'undefined') return null;
   let backOff = 0;
   const { W, H } = WRAP, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const c = cv.getContext('2d'); c.drawImage(pack.img, 0, 0, W, H);
-  { const uv = pack.uv && pack.uv.top ? pack.uv : null;   // sem info no GLB (GLB antigo): o atlas já foi desenhado para esse mapa, não reposiciona
+  if (!pack.final) { const uv = pack.uv && pack.uv.top ? pack.uv : null;   // sem info no GLB (GLB antigo): o atlas já foi desenhado para esse mapa, não reposiciona. "final" (kits.json): textura já feita para o mapa do athlete.glb (ex.: tools/build-flamengo-home.mjs)
     const top = uv ? uv.top : UVY.packTop, bot = uv ? uv.bot : UVY.bot, k = (UVY.packTop - bot)/(top - bot), y0 = Math.round(Math.max(0, (top - UVY.packTop)/(top - bot))*WRAP.body*k);
     const body = document.createElement('canvas'); body.width = W; body.height = WRAP.body; body.getContext('2d').drawImage(cv, 0, 0, W, WRAP.body, 0, 0, W, WRAP.body);
     // frente (x<512) usa y0; costas (x>=512) descem um pouco mais (a gola de trás é mais alta e cortava o patrocinador do topo)
@@ -102,6 +103,8 @@ export function packShirt(pack, look) {
     backOff = y0 + (uv ? bd : 0);
     [[0, y0], [512, backOff]].forEach(([x, yy]) => { c.fillStyle = pack.main || '#222'; c.fillRect(x, 0, 512, yy + 1); if (x === 512 && striped && yy > 0) c.drawImage(body, x, 150, 512, yy + 1, x, 0, 512, yy + 1); c.drawImage(body, x, 0, 512, WRAP.body, x, yy, 512, WRAP.body - yy); }); }
   try { seamBlend(c); } catch (e) { /* canvas tainted: mantém as laterais como vieram */ }
+  const ci = pack.numCrestImg;   // escudo do clube (assets/kits/crests/<clube>.png, de tools/build-crests.mjs) ou o do kits.json (numCrest)
+  if (ci && !pack.final) { const ch = 24, cw = ch*ci.width/ci.height*1.21; c.drawImage(ci, 768 - cw/2, 40 - ch/2, cw, ch); }   // escudinho sob a gola, centralizado nas costas (1,21: o mapa estica ~21% na vertical); camisas "final" já trazem o seu
   const num = look.noNum ? '' : String(look.num ?? ''); let L = .5; try { const d = c.getImageData(768 - 100, 200, 200, 220).data; let t = 0; for (let i = 0; i < d.length; i += 4) t += (d[i]*.3 + d[i+1]*.59 + d[i+2]*.11)/255; L = t/(d.length/4); } catch (e) { /* canvas tainted */ }
   const ink = L > .55 ? '#101820' : '#ffffff', alt = L > .55 ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.55)';
   // posição de nome e número se adapta aos patrocinadores desta camisa: acha as linhas "ocupadas" na faixa central das costas e fica no espaço livre
@@ -113,9 +116,12 @@ export function packShirt(pack, look) {
     let r1 = -1; for (let y = 70; y < 215; y++) if (busy(y)) r1 = y;                                  // último patrocinador no alto das costas
     let r2 = 470; for (let y = 470; y >= 340; y--) if (busy(y)) r2 = y;                                // primeiro patrocinador de baixo
     if (r1 >= 0) nameY = Math.min(Math.max(104, r1 + 4), 224); if (pack.sb) nameY = Math.min(Math.max(nameY, pack.sb + backOff + 7), 224);   // sb = linha (no atlas) onde termina o patrocinador das costas (assets/kits/kits.json) — o nome fica logo abaixo dele
-    numTop = nameY + 36; numBot = Math.min(Math.max(r2 - 8, numTop + 150), 440);
+    numTop = nameY + 36; numBot = Math.min(numTop + NUM_H, Math.max(r2 - 8, numTop + 150), 470);   // mesma altura de número em todas as camisas; só encolhe se houver patrocinador embaixo
   } catch (e) { /* canvas tainted: mantém a posição padrão */ }
-  if (num) fitText(c, num, 768 - 140, numTop, 280, numBot - numTop, '900', ink, alt);
+  if (pack.nameY) { nameY = pack.nameY; numTop = pack.numTop ?? nameY + 36; numBot = pack.numBot ?? numBot; }   // posições fixas do uniforme (kits.json), quando a arte das costas foi desenhada para elas
+  if (num) { const ns = pack.numStroke || (ink === '#ffffff' ? '#000000' : '#ffffff'), fs = fitText(c, num, 768 - 140, numTop, 280, numBot - numTop, '900', pack.numStroke ? '#ffffff' : ink, ns, .09);   // contorno sólido em todas (numStroke força número branco)
+    if (ci) { const w = c.measureText(num).width, ch = fs*.15, cw = ch*ci.width/ci.height, cy = numTop + (numBot - numTop)/2 + fs*.22; let x = 768 - w/2;   // escudinho (numCrest) na base de cada algarismo
+      for (const d of num) { const dw = c.measureText(d).width; c.drawImage(ci, x + dw/2 - cw/2, cy - ch/2, cw, ch); x += dw; } } }
   if (look.nome) { let ni = ink, na = alt; try { const dn = c.getImageData(768 - 120, nameY, 240, 38).data; let t = 0; for (let i = 0; i < dn.length; i += 4) t += (dn[i]*.3 + dn[i+1]*.59 + dn[i+2]*.11)/255; const Ln = t/(dn.length/4); ni = Ln > .55 ? '#101820' : '#ffffff'; na = Ln > .55 ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.55)'; } catch (e) { /* canvas tainted */ }   // cor do nome pela luminância sob o nome (não pela média das costas)
     fitText(c, look.nome.slice(0, 14).toUpperCase(), 768 - 120, nameY, 240, 38, '800', ni, na); }
   return cv;

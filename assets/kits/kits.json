@@ -7,8 +7,16 @@
    "socks": "#cd0405",
    "trim": "#cf0504",
    "packId": "322",
-   "file": "assets/kits/flamengo_home.jpg",
-   "sb": 40
+   "file": "assets/kits/flamengo_home.png",
+   "sb": 40,
+   "final": true,
+   "shortsFile": "assets/kits/flamengo_home_shorts.png",
+   "socksFile": "assets/kits/flamengo_home_socks.png",
+   "nameY": 122,
+   "numTop": 164,
+   "numBot": 362,
+   "numStroke": "#000000",
+   "numCrest": "assets/kits/flamengo_home_crf.png"
   },
   "away": {
    "main": "#dfdcde",
