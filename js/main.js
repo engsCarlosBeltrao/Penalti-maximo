@@ -1,6 +1,7 @@
 // Interface: menu, seleção de times/jogadores, playlist, configurações, campeonato e telas de resultado.
 import { Game, cfg } from './game.js';
-import { DBG } from './scene3d.js';
+import { DBG } from './debug.js';
+import './scene3d.js';   // motor antigo (2D): só desenha com ?engine=2d ou no jogar.html
 import { GS } from './gameState.js';
 import { Events } from './events.js';
 import { Arduino } from './arduino.js';

@@ -15,7 +15,7 @@ import { drawAthlete } from './athlete.js';
 import { faceOf } from './face.js';
 import { TF, HS, KC, kcol, ballWorld, camTarget, characters } from './frame.js';
 import { ROWS, AISLES, byRow, colorize, drawFan, frameStart, clearSprites } from './crowd.js';
-export const DBG = { cam: null, t: { s: 0, f: 0, n: 0 } };   // câmera de depuração (testes visuais)
+import { DBG } from './debug.js';   // câmera de depuração (testes visuais)
 const E = new Engine(), SKIN = ['#f1c27d', '#c68642', '#8d5524', '#ffdbac'], HAIR = ['#1b1b1b', '#3b2a1a', '#6b4423', '#111'], BOOT = ['#14161a', '#f4f4f4', '#ff5a1f', '#2bd96b'], FANC = ['#e63946', '#f1faee', '#ffb703', '#4361ee', '#2ec4b6', '#ff6b9d', '#8d99ae', '#06d6a0'];
 const lum = h => { const n = parseInt(h.slice(1), 16); return (.3*(n >> 16) + .59*(n >> 8 & 255) + .11*(n & 255))/255; };
 let seed = 7; const rnd = () => (seed = seed*16807 % 2147483647)/2147483647;

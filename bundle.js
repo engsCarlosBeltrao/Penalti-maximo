@@ -960,6 +960,9 @@ const AM = {
 };
 return {AM};})();
 const {drawScene,setTeams,DBG}=(function(){
+// Depuração/integração: câmera fixa (DBG.cam = { pos, tgt, fov }) e contadores de tempo. Exposto em window.JOGO.DBG.
+const DBG = { cam: null, t: { s: 0, f: 0, n: 0 } };
+
 // VETORES 3D ([x, y, z]) e cor: funções puras usadas pelo motor 3D, pelo rig, pela física da bola e pelas ferramentas.
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]], mul = (a, s) => [a[0]*s, a[1]*s, a[2]*s];
 const dot = (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2], cross = (a, b) => [a[1]*b[2] - a[2]*b[1], a[2]*b[0] - a[0]*b[2], a[0]*b[1] - a[1]*b[0]];
@@ -1366,7 +1369,6 @@ function characters(game, now, b, k, res, d, bw) {
 
 // Cena 3D da partida: estádio com arquibancada TRIDIMENSIONAL logo atrás do gol, gol com rede deformável, bola com física,
 // cobrador e goleiro com esqueleto articulado (FK/IK), uniformes com nome/número mapeados no tecido, câmera cinematográfica.
-const DBG = { cam: null, t: { s: 0, f: 0, n: 0 } };   // câmera de depuração (testes visuais)
 const E = new Engine(), SKIN = ['#f1c27d', '#c68642', '#8d5524', '#ffdbac'], HAIR = ['#1b1b1b', '#3b2a1a', '#6b4423', '#111'], BOOT = ['#14161a', '#f4f4f4', '#ff5a1f', '#2bd96b'], FANC = ['#e63946', '#f1faee', '#ffb703', '#4361ee', '#2ec4b6', '#ff6b9d', '#8d99ae', '#06d6a0'];
 const lum = h => { const n = parseInt(h.slice(1), 16); return (.3*(n >> 16) + .59*(n >> 8 & 255) + .11*(n & 255))/255; };
 let seed = 7; const rnd = () => (seed = seed*16807 % 2147483647)/2147483647;

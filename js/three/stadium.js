@@ -1,5 +1,5 @@
-// Estádio mínimo em Three.js (gramado, gol com rede deformável, bola, placas de publicidade, arquibancada, torcida em sprites). Provisório: serve para
-// testar os modelos GLB; o estádio completo (bandeiras, faixas, fumaça) continua no motor procedural. NÃO TESTADO com Three.js real.
+// Estádio do motor 3D: gramado, gol com rede deformável, bola, placas de publicidade, arquibancada e torcida em sprites.
+// Faixas, bandeiras, sinalizadores, fumaça e refletores ficam em stadiumFx.js.
 import * as THREE from 'three';
 import { Ads } from '../advertising.js';
 import { fans, ROWS, ensureSprite } from '../crowd.js';
