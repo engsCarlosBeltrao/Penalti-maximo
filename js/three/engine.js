@@ -22,7 +22,8 @@ export async function start({ cv, base = 'assets/models/' }) {
   const tpl = await loadTemplate(base + 'athlete.glb', { skeletonMap, layout }); let tplG = tpl;
   try { tplG = await loadTemplate(base + 'goalkeeper.glb', { skeletonMap, layout }); } catch (e) { if (e.status !== 404) throw e; console.info('goalkeeper.glb ausente: o goleiro usará athlete.glb com o uniforme de goleiro.'); }
   // 2) WebGL por baixo da tela 2D (que continua desenhando o placar/HUD, transparente)
-  const gl = document.createElement('canvas'); gl.id = 'gl'; Object.assign(gl.style, { position: 'absolute', left: '0', top: '0', width: '100%', height: '100%' }); cv.parentNode.insertBefore(gl, cv);
+  const gl = document.createElement('canvas'); gl.id = 'gl'; Object.assign(gl.style, { position: 'absolute', left: '0', top: '0', width: '100%', height: '100%', pointerEvents: 'none' }); cv.parentNode.insertBefore(gl, cv);
+  cv.style.position = 'relative';   // a tela 2D (placar, mira) fica POR CIMA do WebGL e continua recebendo o clique do chute; o menu (#ui) segue acima de ambas
   let renderer; try { renderer = new THREE.WebGLRenderer({ canvas: gl, antialias: true }); } catch (e) { gl.remove(); throw e; }
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; const app = cv.parentNode, resize = () => { renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.setSize(app.clientWidth, app.clientHeight, false); }; window.addEventListener('resize', resize); resize();
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, W/H, .2, 220), st = buildStadium(scene);
