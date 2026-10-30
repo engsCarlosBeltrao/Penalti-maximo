@@ -966,7 +966,7 @@ const BACK = [-.2, .55, 11.8], CONT = [0, .18, 11.29], FOL = [.1, .85, 10], LAND
 function kickerPose(m) {
   const P = base();
   if (m.mode === 'walkin') { const u = Math.min(1, m.t/.9), s = Math.sin(u*Math.PI*2*2.2); P.root = lerp(PS, P0, sm(u)); P.lean = .1; P.hipL = [.5*s, .05, Math.max(0, -s)*.9 + .1]; P.hipR = [-.5*s, .05, Math.max(0, s)*.9 + .1]; P.armL = [-.5*s, .15, .5]; P.armR = [.5*s, .15, .5]; }
-  else if (m.mode === 'idle') { const t = m.t, s = Math.sin(t*2); P.root = [P0[0] + Math.sin(t*.9)*.04, 0, P0[2]]; P.lean = .06 + s*.02; P.head = [.3 + Math.sin(t*.7)*.12]; P.armL = [.5, .35, 1 + s*.05]; P.armR = [.5, .35, 1 - s*.05]; P.hipL = [.04*Math.sin(t*.9), .1, .1]; P.hipR = [-.04*Math.sin(t*.9), .1, .1]; }
+  else if (m.mode === 'idle') { const t = m.t, s = Math.sin(t*2); P.root = [P0[0] + Math.sin(t*.9)*.04, 0, P0[2]]; P.lean = .03 + s*.015; P.head = [.14 + Math.sin(t*.7)*.07]; P.armL = [.5, .35, 1 + s*.05]; P.armR = [.5, .35, 1 - s*.05]; P.hipL = [.04*Math.sin(t*.9), .1, .1]; P.hipR = [-.04*Math.sin(t*.9), .1, .1]; }
   else if (m.mode === 'kick') {
     const t = m.tc;
     if (t < -.3) { const u = (t - KICK_T0)/.25, s = Math.sin(u*Math.PI*2); P.root = lerp(P0, P1, sm(u)); P.lean = .12; P.hipL = [.5*s, .05, Math.max(0, -s)*.9 + .1]; P.hipR = [-.5*s, .05, Math.max(0, s)*.9 + .1]; P.armL = [-.5*s, .15, .5]; P.armR = [.5*s, .15, .5]; }   // 2 passos de aproximação
