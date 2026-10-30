@@ -2,7 +2,7 @@
 
 > **Onde ficam os scripts:** eles funcionam em qualquer pasta — na raiz do projeto ou numa pasta `tools/`. Nos comandos abaixo o prefixo `tools/` foi omitido; use o caminho onde SEUS arquivos estão (ex.: `node .\check-3d-setup.mjs` no Windows, ou `node tools/check-3d-setup.mjs`). Cada script acha a raiz do projeto sozinho e diz exatamente o que falta se algum arquivo não existir.
 
-Pré-requisitos: **Node 18+** e a extensão **Live Server** do VS Code. O motor atual continua sendo o padrão; nada abaixo o remove.
+Pré-requisitos: **Node 18+**. Para jogar: `iniciar.bat` (ou a extensão **Live Server** do VS Code). O jogo é só 3D.
 
 ## 1) Instalar o Three.js r160 (4 arquivos em `vendor/three/`)
 Na pasta do projeto:
@@ -47,11 +47,11 @@ No VS Code: botão direito em `three-smoke.html` → **Open with Live Server**. 
 Depois: ligue **malha (wireframe)** e **esqueleto**, gire o modelo, troque o **uniforme** (20 clubes) e as **poses** (chute em 3 instantes, 4 defesas do goleiro, central alta, comemoração). Clique em **Baixar captura**.
 
 ## 6) Jogar com o motor novo
-Live Server → `index.html?engine=three`. Deve aparecer "Motor Three.js/GLB ativo". Se algo falhar, o jogo volta ao motor atual e diz o motivo.
+`iniciar.bat` (ou Live Server → `index.html`). O jogo abre direto no 3D; se algo faltar, aparece na tela o motivo e um botão "tentar de novo".
 
 ## O que me devolver (para eu continuar a partir daí)
 Se algo falhar, me envie **o texto do painel de etapas** (copie/cole) e a saída dos comandos 1, 3 e 4. Se tudo passar, me envie:
-1. **A captura** da página de diagnóstico (com wireframe e esqueleto ligados) e uma do jogo em `?engine=three`.
+1. **A captura** da página de diagnóstico (com wireframe e esqueleto ligados) e uma do jogo (`index.html`).
 2. Os 4 arquivos `vendor/three/**` (MIT) — preciso deles para rodar o motor aqui.
 3. `assets/models/athlete.glb` **somente se a licença do modelo permitir redistribuição** (CC0 permite). Sem ele eu não consigo testar o movimento aqui; nesse caso, me mande as capturas e os logs.
 Com isso eu valido: (4) cobrança completa, (5) as quatro defesas, (3) escudos e uniformes no jogo, e só depois (6) a torcida em 3D.

@@ -1,11 +1,11 @@
 # Integração de modelos 3D reais (Three.js + GLB) — Pênalti Máximo
 
-**Estado:** a integração está *preparada*. O motor atual (procedural) continua sendo o padrão e o fallback. O motor Three.js só assume com `index.html?engine=three`, depois de validar Three.js e modelos; se algo faltar, o jogo avisa na tela e segue no motor atual.
+**Estado:** o motor Three.js/GLB é o **único motor do jogo** (o motor procedural 2D foi removido em 2026-10). O `index.html` abre direto nele; se faltar WebGL, servidor ou arquivo, o jogo mostra o motivo e a opção de tentar de novo.
 
 ## 1. Versão do Three.js
 **Three.js r160 (`three@0.160.0`).** Motivos:
 - `build/three.module.js` é um **arquivo único** (a divisão em `three.core.js` começa em r17x), então bastam 4 arquivos locais.
-- O projeto não tem bundler (concatenação simples). O Three.js é carregado como **módulo ES via `importmap`** (já adicionado ao `index.html`), o que exige abrir por **Live Server (http)**. `jogar.html` (clique duplo/`file://`) nunca carrega o Three.js e continua no motor atual.
+- O projeto não tem bundler. O Three.js é carregado como **módulo ES via `importmap`** (no `index.html`), o que exige abrir por **http**: `iniciar.bat` (servidor `tools/servidor.mjs`) ou Live Server. Não há mais versão para abrir com clique duplo (`file://`).
 - Faixa tolerada: r150–r169 com os mesmos arquivos; r170+ exige também `vendor/three/three.core.js`.
 - ⚠ Esta compatibilidade vem do meu conhecimento da biblioteca; **não foi confirmada por download** (o ambiente não tem internet). `node tools/check-3d-setup.mjs` lê a revisão do arquivo e confirma na sua máquina.
 
@@ -37,11 +37,11 @@ Um único GLB é instanciado (`SkeletonUtils.clone`) e cada instância recebe:
 - **escudo:** `assets/crests/<key>.png` (e `CRESTS` em `teams.js`); sem o arquivo, escudo genérico com a sigla (provisório).
 Pré-visualização: abra `tools/uniform-preview.html` pelo Live Server.
 
-## 6. Arquitetura (motor atual preservado)
-`js/frame.js` (puro) descreve cada quadro: poses, bola, câmera. `js/renderer.js` escolhe o motor. `js/scene3d.js` = procedural (padrão). `js/three/engine.js` = Three.js/GLB (opcional). Ambos desenham o **mesmo** quadro, então física, placar, mira e animação não mudam.
+## 6. Arquitetura
+`js/frame.js` (puro) descreve cada quadro: poses, bola, câmera. `js/three/engine.js` desenha esse quadro (estádio em `three/stadium.js` + `three/stadiumFx.js`, atletas via `three/loader.js`) e se registra em `js/renderer.js`, que `game.js` chama a cada quadro. Física, placar, mira e animações vêm da lógica pura; o motor só desenha. Módulos compartilhados: `vec.js` (vetores), `face.js` (paletas/rosto), `shirtTex.js` (camisa procedural do goleiro e de clubes sem textura), `crowd.js` (dados e sprites da torcida).
 
 ## 7. Como testar quando os arquivos chegarem
-1. Copie os 4 arquivos do Three.js e `athlete.glb`. 2. `node tools/inspect-glb.mjs assets/models/athlete.glb`. 3. `node tools/check-3d-setup.mjs`. 4. Live Server → `index.html?engine=three` (aparece "Motor Three.js/GLB ativo").
+1. Copie os 4 arquivos do Three.js e `athlete.glb`. 2. `node tools/inspect-glb.mjs assets/models/athlete.glb`. 3. `node tools/check-3d-setup.mjs`. 4. `iniciar.bat` (ou Live Server → `index.html`).
 *Teste de encanamento sem modelo real:* copie `assets/models/_test/minimal-humanoid.glb` para `assets/models/athlete.glb` (só valida o carregamento; a aparência será de triângulos).
 
 ## 8. O QUE EU PRECISO RECEBER (exato)
@@ -59,11 +59,11 @@ Com isso eu rodo o inspetor, carrego no navegador, ajusto o retargeting (torçã
 | Retargeting + nomes de ossos, 28 testes (T/A-pose, escala, ossos opcionais, lados) | **testado** (Node, esqueleto sintético) |
 | Inspetor/gerador de GLB, 13 testes (aprova correto; recusa -Z, lados, materiais, Draco…) | **testado** |
 | Compositor de uniformes (8 equipes, atlas e wrap) | **testado** no navegador (inspeção visual) |
-| Fallback sem Three.js/modelos (`?engine=three`) | **testado** no navegador |
-| Motor procedural após a refatoração (jogo, músicas, regras) | **testado** (regressão completa) |
+| Sem Three.js/modelos: tela com o motivo e "tentar de novo" | **testado** no navegador (Three.js ausente simulado) |
+| Jogo completo no 3D: 20 clubes, partida até o fim, revanche, 2 jogadores, campeonato, clique do chute, placar e mira | **testado** no navegador (2026-10) |
 | Preparação de atleta a partir de humanoide rigado (`prepare-athlete.mjs`, 18 testes, modelo sintético) | **testado** em Node; **não testado com um modelo real** (ex.: Quaternius) |
 | Instalador do Three.js (`setup-3d.mjs`, 6 testes offline: cópia local, HTTP local, erros) | **testado** sem internet; o download real de unpkg/jsdelivr **não foi testado** |
 | `tools/three-smoke.html` (diagnóstico visual) | só sintaxe; precisa de Three.js |
-| `loader.js`, `stadium.js`, `engine.js` (usam Three.js) | **NÃO testados**: só sintaxe; escritos para a API do r160 |
-| Aparência com atletas GLB, sombras, desempenho WebGL, estádio em Three.js | **não testados** |
-**Riscos conhecidos:** nomes/versões de API do Three.js podem exigir ajuste; torção de braços/pernas pode precisar de calibração conforme o rig do modelo; no modo Three.js a torcida usa sprites estáticos (sem braços levantados, bandeiras, faixas e fumaça); porte/altura individuais dos atletas ainda não são aplicados ao GLB.
+| `loader.js`, `stadium.js`, `stadiumFx.js`, `engine.js` | **testados** no navegador com Three.js r160 e o `athlete.glb` real |
+| Aparência dos 220 titulares (cabelo, barba, bigode, costeleta, faixa) | **testado**: as peças visíveis batem com a tabela para os 220; desempenho medido (≈11 ms/quadro na partida) |
+**Limitações conhecidas:** a torcida em sprites só balança (sem os braços levantados do antigo motor 2D); o cabelo comprido é rígido (preso à cabeça); `goalkeeper.glb`, `skeleton-map.json` e `uniform-layout.json` são opcionais e geram um 404 no console quando ausentes.
