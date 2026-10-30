@@ -5,7 +5,7 @@
 //   cor: preto|cesc (castanho-escuro)|cast|cclaro|loiro|ruivo|grisalho|plat (as 8 cores de HAIRC);  pele: 0 (muito clara) … 5 (negra)
 //   barba: nenhuma|por_fazer|cavanhaque|queixo|cheia_curta|cheia_media|densa|longa;  bigode: nenhum|bigode_fino|bigode|bigode_marcado;  costeleta: raspada|curta|ligada|coberta
 //   extras (opcional, separados por ;): c2=cor (lateral/raiz), bc=cor (barba), hl=cor e ha=0..1 (mechas), tp=0..1 (pontas descoloridas, cor hl), gr=0..1 (grisalho), bd=#cor (faixa),
-//   conf=pendente (sem foto: visual neutro) | duvida (foto achada em outro clube / identidade incerta).
+//   conf=pendente (sem foto: visual neutro) | duvida (foto achada em outro clube / identidade incerta); nome=nome completo / como a identidade foi confirmada.
 // Para corrigir um jogador, edite a linha dele; para um jogador fora da tabela, acrescente em APPEARANCE_OVERRIDES no formato antigo ({ skinI, hairI, hair, beard, … }).
 const REAL = {
   flamengo: { 'agustin-rossi': 'social_risca|cesc|1|cheia_curta|bigode|ligada|2021-10', 'guillermo-varela': 'crop_franja|plat|0|por_fazer|nenhum|curta|2026-02|c2=cclaro', 'leo-pereira': 'ondulado_medio|cast|1|cheia_media|bigode|ligada|2025-07',
@@ -44,9 +44,9 @@ const REAL = {
     'lucas-villalba': 'topete_degrade|preto|1|por_fazer|nenhum|raspada|2021-11', 'gabriel-rojas': 'crop_franja|preto|2|nenhuma|nenhum|raspada|2024-08', 'lucas-silva': 'penteado_tras|cast|1|cheia_curta|bigode|ligada|2019-01',
     'lucas-romero': 'franja_media|preto|2|nenhuma|nenhum|curta|2021-11', 'matheus-pereira': 'crespo_degrade|plat|3|nenhuma|bigode_fino|raspada|2023-10|c2=preto', 'gabriel-pec': 'degrade_medio|cesc|1|cavanhaque|bigode_fino|raspada|2026-02',
     'kaio-jorge': 'franja_media|cesc|2|nenhuma|nenhum|curta|2023-08', 'luis-sinisterra': 'crespo_curto|preto|5|nenhuma|nenhum|curta|2023-01' },
-  botafogo: { raul: 'degrade_medio|preto|2|nenhuma|nenhum|raspada|-|conf=pendente', vitinho: 'crespo_degrade|preto|4|cheia_curta|bigode|ligada|2021-07', 'mateo-ponte': 'franja_media|preto|2|nenhuma|nenhum|curta|2023-02',
+  botafogo: { raul: 'crop_franja|loiro|0|por_fazer|nenhum|curta|2022-08|nome=Raul Jonas Steffens', vitinho: 'crespo_degrade|preto|4|cheia_curta|bigode|ligada|2021-07', 'mateo-ponte': 'franja_media|preto|2|nenhuma|nenhum|curta|2023-02',
     bastos: 'crespo_curto|preto|5|nenhuma|nenhum|curta|2021-10', 'alex-telles': 'topete|preto|1|cheia_curta|bigode|ligada|2022-08', allan: 'social_risca|preto|2|cavanhaque|bigode|curta|2015-11',
-    danilo: 'dreads_degrade|preto|5|nenhuma|nenhum|raspada|2026-06', 'alvaro-montoro': 'crop_franja|cesc|1|nenhuma|nenhum|curta|2024-07', artur: 'degrade_medio|preto|2|nenhuma|nenhum|raspada|-|conf=pendente',
+    danilo: 'dreads_degrade|preto|5|nenhuma|nenhum|raspada|2026-06', 'alvaro-montoro': 'crop_franja|cesc|1|nenhuma|nenhum|curta|2024-07', artur: 'ondulado_medio|cesc|1|cavanhaque|bigode|curta|2025-10|nome=Artur Victor Guimarães',
     'arthur-cabral': 'raspado_entradas|cesc|1|cheia_curta|bigode|ligada|2023-11', 'matheus-martins': 'crop_franja|loiro|2|nenhuma|nenhum|raspada|2022-12|c2=preto' },
   fluminense: { fabio: 'social_risca|preto|2|cheia_curta|bigode|ligada|2025-07|gr=.45', 'samuel-xavier': 'crespo_degrade|preto|4|longa|bigode|ligada|2025-07', ignacio: 'topete_degrade|cesc|1|cheia_curta|bigode|ligada|2024-07',
     freytes: 'crop_franja|preto|1|cheia_curta|bigode|ligada|2025-07', 'guilherme-arana': 'degrade_medio|preto|2|nenhuma|nenhum|raspada|2024-06', 'facundo-bernal': 'crop_franja|cesc|1|nenhuma|nenhum|curta|2026-09',
@@ -56,26 +56,26 @@ const REAL = {
     'lucas-freitas': 'degrade_medio|preto|2|cavanhaque|bigode_fino|raspada|2024-01', 'lucas-piton': 'topete_degrade|cclaro|1|nenhuma|nenhum|raspada|2025-01', 'santiago-sosa': 'ondulado_medio|cesc|1|por_fazer|nenhum|curta|2023-03',
     'tche-tche': 'trancas_nago|preto|5|nenhuma|nenhum|raspada|2025-05', 'johan-rojas': 'cacheado_degrade|preto|2|nenhuma|nenhum|raspada|2024-04', 'nuno-moreira': 'cacheado_medio|cesc|1|por_fazer|nenhum|coberta|2025-10',
     brenner: 'crespo_degrade|preto|4|cavanhaque|bigode_fino|raspada|2025-09', 'andres-gomez': 'crespo_curto|preto|5|nenhuma|bigode_fino|curta|2026-06' },
-  bahia: { ronaldo: 'ondulado_medio|preto|2|cheia_curta|bigode|ligada|2018-12', gilberto: 'degrade_medio|preto|3|cavanhaque|bigode|raspada|2020-10|conf=duvida', 'gabriel-xavier': 'degrade_medio|preto|2|nenhuma|nenhum|raspada|2022-08|conf=duvida',
+  bahia: { ronaldo: 'ondulado_medio|preto|2|cheia_curta|bigode|ligada|2018-12', gilberto: 'degrade_medio|preto|3|cavanhaque|bigode|raspada|2020-10|nome=Gilberto Moraes Júnior', 'gabriel-xavier': 'degrade_medio|preto|2|nenhuma|nenhum|raspada|2022-08|nome=Gabriel Lheman Xavier',
     kanu: 'crespo_curto|preto|4|cavanhaque|nenhum|curta|2026-02', 'luciano-juba': 'degrade_medio|preto|2|nenhuma|bigode_fino|raspada|2023-09', 'nicolas-acevedo': 'degrade_medio|preto|1|por_fazer|nenhum|raspada|2025-06',
     'jean-lucas': 'crespo_degrade|preto|4|nenhuma|nenhum|raspada|2022-10', 'everton-ribeiro': 'penteado_tras|cclaro|1|cheia_curta|bigode|ligada|2021-01', ademir: 'crespo_degrade|preto|4|nenhuma|nenhum|raspada|2020-12',
     'willian-jose': 'topete_degrade|preto|2|densa|bigode|ligada|2024-07|gr=.25', 'erick-pulga': 'degrade_medio|preto|2|nenhuma|nenhum|raspada|2024-02' },
-  sport: { halls: 'degrade_medio|preto|2|nenhuma|nenhum|raspada|-|conf=pendente', madson: 'crespo_curto|preto|4|nenhuma|nenhum|curta|2018-01|conf=duvida', 'marcelo-benevenuto': 'crespo_curto|preto|5|nenhuma|nenhum|curta|2020-05',
-    'ze-marcos': 'crop_franja|cesc|1|cavanhaque|bigode_fino|curta|2023-10', 'marcelo-ajul': 'degrade_medio|preto|2|nenhuma|nenhum|raspada|-|conf=pendente', 'max-alves': 'crespo_degrade|preto|4|nenhuma|nenhum|raspada|2023-03|conf=duvida',
-    'yago-felipe': 'social_risca|preto|2|cheia_curta|bigode|ligada|2026-05', 'carlos-de-pena': 'social_risca|cesc|1|por_fazer|nenhum|curta|2021-02', micael: 'crespo_degrade|preto|4|cheia_media|bigode|ligada|2026-02|conf=duvida',
+  sport: { halls: 'degrade_alto|preto|3|nenhuma|nenhum|raspada|2022-08|nome=Hedhe Halls Rocha da Silva', madson: 'crespo_degrade|preto|4|nenhuma|nenhum|raspada|2022-07|nome=Madson Ferreira dos Santos', 'marcelo-benevenuto': 'crespo_curto|preto|5|nenhuma|nenhum|curta|2020-05',
+    'ze-marcos': 'crop_franja|cesc|1|cavanhaque|bigode_fino|curta|2023-10', 'marcelo-ajul': 'degrade_medio|preto|2|nenhuma|nenhum|raspada|-|conf=pendente;nome=Marcelo Alixandre Ajul (sem foto pública encontrada)', 'max-alves': 'crespo_degrade|preto|4|nenhuma|nenhum|raspada|2023-03|nome=Max Alves da Silva',
+    'yago-felipe': 'social_risca|preto|2|cheia_curta|bigode|ligada|2026-05', 'carlos-de-pena': 'social_risca|cesc|1|por_fazer|nenhum|curta|2021-02', micael: 'degrade_medio|preto|2|nenhuma|nenhum|raspada|-|conf=pendente;nome=Micael de Barros Viturino (sem foto pública encontrada)',
     'pedro-perotti': 'crop_franja|cesc|2|nenhuma|nenhum|raspada|2025-10', 'gustavo-maia': 'crop_franja|preto|2|nenhuma|nenhum|raspada|2025-10' },
   fortaleza: { 'joao-ricardo': 'penteado_tras|cast|1|cavanhaque|bigode|curta|2022-09', mailton: 'degrade_medio|preto|3|cavanhaque|nenhum|raspada|2021-08', 'lucas-gazal': 'rente|cast|1|cavanhaque|bigode|raspada|2022-09',
     bastos: 'crespo_curto|preto|5|nenhuma|nenhum|curta|2021-10', neris: 'social_risca|preto|1|cavanhaque|nenhum|curta|2020-01', mucuri: 'crespo_degrade|preto|4|nenhuma|bigode_fino|raspada|2024-05',
     pierre: 'degrade_medio|preto|3|cavanhaque|nenhum|raspada|2022-09', 'eduardo-sasha': 'crop_franja|cclaro|1|cheia_curta|bigode|ligada|2022-11', rodriguinho: 'crespo_degrade|loiro|4|nenhuma|nenhum|raspada|2023-04|c2=preto',
     'luiz-fernando': 'degrade_medio|preto|2|cavanhaque|nenhum|raspada|2022-09', cantillo: 'crespo_curto|preto|5|nenhuma|nenhum|curta|2025-10' },
-  ceara: { richard: 'cacheado_medio|cesc|1|por_fazer|nenhum|curta|2024-02|conf=duvida', 'bryan-borges': 'crop_franja|preto|1|cheia_curta|bigode|ligada|2022-01', 'julio-cesar': 'raspado_entradas|preto|3|cheia_curta|bigode|ligada|2023-04',
+  ceara: { richard: 'cacheado_medio|cesc|1|por_fazer|nenhum|curta|2024-02|nome=Richard Costa', 'bryan-borges': 'crop_franja|preto|1|cheia_curta|bigode|ligada|2022-01', 'julio-cesar': 'raspado_entradas|preto|3|cheia_curta|bigode|ligada|2023-04',
     luizao: 'crespo_degrade|preto|4|cavanhaque|nenhum|raspada|2022-08', sanchez: 'social_risca|cast|1|cavanhaque|bigode|curta|2022-09', richardson: 'social_risca|preto|1|cheia_curta|bigode|ligada|2024-02',
     'joao-gabriel': 'ondulado_medio|cclaro|1|por_fazer|bigode_fino|curta|2026-06', melk: 'degrade_medio|preto|2|nenhuma|nenhum|raspada|2026-06', 'matheus-araujo': 'crop_franja|preto|1|nenhuma|nenhum|raspada|2025-05',
-    enzo: 'degrade_medio|preto|2|nenhuma|nenhum|raspada|-|conf=pendente', 'saulo-mineiro': 'crespo_degrade|preto|4|cavanhaque|bigode|raspada|2023-09' },
-  'athletico-pr': { mycael: 'degrade_medio|preto|2|nenhuma|nenhum|raspada|2022-08', gilberto: 'degrade_medio|preto|3|cavanhaque|bigode|raspada|2020-10', teran: 'crespo_curto|preto|5|por_fazer|nenhum|curta|2025-02',
+    enzo: 'degrade_medio|preto|2|nenhuma|nenhum|raspada|-|conf=pendente;nome=identidade não confirmada (o único Enzo do Ceará no Transfermarkt é lateral)', 'saulo-mineiro': 'crespo_degrade|preto|4|cavanhaque|bigode|raspada|2023-09' },
+  'athletico-pr': { mycael: 'degrade_medio|preto|2|nenhuma|nenhum|raspada|2022-08', gilberto: 'degrade_alto|preto|4|cavanhaque|bigode_fino|raspada|2023-04|nome=Gilberto Junior (camisa 2; o Gilberto de 1993 só chegou em jul/2026)', teran: 'crespo_curto|preto|5|por_fazer|nenhum|curta|2025-02',
     jadson: 'penteado_tras|preto|1|densa|bigode|ligada|2022-08', leo: 'crespo_degrade|preto|5|nenhuma|nenhum|raspada|2025-01', felipinho: 'cacheado_degrade|preto|2|nenhuma|nenhum|raspada|2024-09',
-    giuliano: 'penteado_tras|cesc|1|cheia_curta|bigode|ligada|2024-01|conf=duvida', 'bruno-zapelli': 'crop_franja|preto|1|nenhuma|nenhum|raspada|2024-06', mendoza: 'crespo_curto|preto|5|cheia_curta|bigode|ligada|2024-02',
-    'kevin-viveros': 'crespo_degrade|preto|5|nenhuma|nenhum|raspada|2024-10|hl=loiro;tp=.9', isaac: 'degrade_medio|preto|2|nenhuma|nenhum|raspada|-|conf=pendente' },
+    giuliano: 'penteado_tras|cesc|1|cheia_curta|bigode|ligada|2024-01|nome=Giuliano Victor de Paula', 'bruno-zapelli': 'crop_franja|preto|1|nenhuma|nenhum|raspada|2024-06', mendoza: 'crespo_curto|preto|5|cheia_curta|bigode|ligada|2024-02',
+    'kevin-viveros': 'crespo_degrade|preto|5|nenhuma|nenhum|raspada|2024-10|hl=loiro;tp=.9', isaac: 'crespo_degrade|preto|3|nenhuma|nenhum|raspada|2026-01|nome=Isaac (n. 2004, ponta-esquerda)' },
   coritiba: { 'pedro-morisco': 'social_risca|cesc|1|nenhuma|nenhum|curta|2024-01', tinga: 'raspado_entradas|preto|4|cheia_curta|bigode|ligada|2026-05', maicon: 'rente|cast|1|cavanhaque|bigode|raspada|2017-10',
     'tiago-coser': 'social_risca|cast|1|nenhuma|nenhum|curta|2024-01', 'bruno-melo': 'social_risca|preto|2|cheia_curta|bigode|ligada|2020-08', 'willian-oliveira': 'crespo_degrade|preto|4|cavanhaque|nenhum|raspada|2022-08',
     'vini-paulista': 'topete_degrade|preto|2|cheia_curta|bigode|ligada|2023-01', 'thiago-santos': 'penteado_tras|preto|3|cheia_curta|bigode|ligada|2020-03', 'pedro-rocha': 'crespo_degrade|preto|4|nenhuma|nenhum|raspada|2019-03',
@@ -84,8 +84,8 @@ const REAL = {
     'alix-vinicius': 'cacheado_degrade|preto|4|por_fazer|nenhum|raspada|2024-07', 'juninho-capixaba': 'ondulado_medio|cclaro|1|cheia_media|bigode|ligada|2024-06', fabinho: 'crop_franja|preto|1|nenhuma|nenhum|curta|2022-08',
     'eric-ramires': 'crespo_degrade|preto|5|nenhuma|nenhum|raspada|2022-09', 'bruno-praxedes': 'social_risca|preto|2|nenhuma|nenhum|curta|2022-09', 'eduardo-sasha': 'crop_franja|cclaro|1|cheia_curta|bigode|ligada|2022-11',
     'isidro-pitta': 'social_risca|ruivo|1|cheia_media|bigode|ligada|2025-04', 'henry-mosquera': 'crespo_curto|preto|5|nenhuma|nenhum|curta|2026-02' },
-  vitoria: { 'lucas-arcanjo': 'crop_franja|preto|3|cheia_media|bigode|ligada|2025-09', claudinho: 'penteado_tras|cesc|1|cavanhaque|bigode_fino|curta|2022-09|conf=duvida', camutanga: 'degrade_medio|preto|1|nenhuma|nenhum|raspada|2023-03',
-    riccieli: 'topete|cesc|1|cheia_curta|bigode|ligada|2021-10', edenilson: 'crespo_curto|preto|4|nenhuma|nenhum|curta|2026-03', ronald: 'degrade_medio|preto|2|nenhuma|nenhum|raspada|-|conf=pendente',
+  vitoria: { 'lucas-arcanjo': 'crop_franja|preto|3|cheia_media|bigode|ligada|2025-09', claudinho: 'penteado_tras|cesc|1|cavanhaque|bigode_fino|curta|2022-09|nome=Claudio Coelho Salvático', camutanga: 'degrade_medio|preto|1|nenhuma|nenhum|raspada|2023-03',
+    riccieli: 'topete|cesc|1|cheia_curta|bigode|ligada|2021-10', edenilson: 'crespo_curto|preto|4|nenhuma|nenhum|curta|2026-03', ronald: 'degrade_medio|preto|2|cheia_media|bigode|ligada|2024-05|nome=Ronald dos Santos Lopes',
     'gabriel-baralhas': 'crop_franja|preto|2|cavanhaque|bigode|raspada|2025-09', matheuzinho: 'cacheado_degrade|preto|2|nenhuma|bigode_fino|raspada|2026-08', osvaldo: 'social_risca|preto|2|nenhuma|nenhum|curta|2023-04',
     'renato-kayzer': 'degrade_medio|cclaro|1|nenhuma|nenhum|raspada|2020-09', fabri: 'cacheado_medio|preto|4|cavanhaque|bigode|curta|2023-12' },
 };
@@ -102,7 +102,7 @@ function expand(club, slug, row) {
   const [hair, cor, pele, beard, mustache, sideburn, foto, extra = ''] = row.split('|'), X = Object.fromEntries(extra.split(';').filter(Boolean).map(kv => kv.split('='))), id = `${club}-${slug}`;
   const skinT = Math.max(0, Math.min(5, +pele + (hash('pele|' + id) % 1000/1000 - .5)*.5));   // cada jogador com o seu tom (±0,25 em volta do índice observado)
   const o = { skinI: Math.round(skinT), skinT: +skinT.toFixed(2), skinHex: skinHex(skinT), hairI: Math.max(0, HAIR_KEYS.indexOf(cor)), hairHex: colorOf(cor), hair, beard, mustache, sideburn, foto: foto === '-' ? null : foto, basis: X.conf === 'pendente' ? 'pendente' : 'foto', conf: X.conf || 'ok' };
-  if (X.c2) o.hairC2 = colorOf(X.c2); if (X.bc) o.beardC = colorOf(X.bc); if (X.hl) { o.hl = colorOf(X.hl); o.hlAmt = +(X.ha || 0); } if (X.tp) o.tips = +X.tp; if (X.gr) o.grey = +X.gr; if (X.bd) o.band = X.bd;
+  if (X.c2) o.hairC2 = colorOf(X.c2); if (X.bc) o.beardC = colorOf(X.bc); if (X.hl) { o.hl = colorOf(X.hl); o.hlAmt = +(X.ha || 0); } if (X.tp) o.tips = +X.tp; if (X.gr) o.grey = +X.gr; if (X.bd) o.band = X.bd; if (X.nome) o.nomeCompleto = X.nome;
   return [id, o];
 }
 const hash = s => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };

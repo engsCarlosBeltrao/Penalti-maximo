@@ -48,7 +48,7 @@ GS.equipes = [A, B]; game.fin = { t: 2 }; fr = characters(game, 5, null, K, unde
   t('penteados da tabela existem na biblioteca', all.every(p => HAIR_STYLES.includes(p.appearance.hair)));
   t('barbas da tabela existem na biblioteca', all.every(p => BEARDS.includes(p.appearance.beard)));
   t('pele individual: tom contínuo e cor hex', all.every(p => p.appearance.skinT >= 0 && p.appearance.skinT <= 5 && /^#[0-9a-f]{6}$/.test(p.appearance.skinHex)));
-  t('sem foto ficam marcados como pendentes (7; o Gilberto do Bahia usa o visual do Gilberto do Athletico, marcado como dúvida)', all.filter(p => p.appearance.conf === 'pendente').length === 7);
+  t('sem foto ou sem identidade confirmada ficam pendentes (Ajul, Micael, Enzo) e não há mais dúvidas', JSON.stringify(all.filter(p => p.appearance.conf === 'pendente').map(p => p.id)) === '["sport-marcelo-ajul","sport-micael","ceara-enzo"]' && !all.some(p => p.appearance.conf === 'duvida'));
   t('Gabigol: platinado com lateral e barba pretas', (p => p.appearance.hairHex === '#e8d9b0' && p.appearance.hairC2 === '#15110e' && p.appearance.beardC === '#15110e')(all.find(p => p.id === 'santos-gabriel-barbosa'))); }
 // ---- geometria de cabelos/barbas (pura) ----
 const m = readModel('assets/models/athlete.glb'), j = m.json, sj = j.skins[0], names = sj.joints.map(n => j.nodes[n].name), headJ = names.findIndex(n => /^head$/i.test(n));
