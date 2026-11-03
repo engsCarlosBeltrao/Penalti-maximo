@@ -155,6 +155,21 @@
    ],
    "base_pes_m": 0.306
   },
+  "torcao_max_graus": {
+   "antebraco_l": 0.1,
+   "punho_l": 0.0,
+   "antebraco_r": 0.1,
+   "punho_r": 0.0
+  },
+  "anticolisao": {
+   "empurrao_cm": {
+    "l": 2.6,
+    "r": 2.0
+   },
+   "ciclos": 2,
+   "pior_mm": 16.3
+  },
+  "dedos_pele_min_mm": 16.3,
   "pe_mais_baixo_z_m": 0.008,
   "pe_mais_baixo_tc": 0.0,
   "pe_mais_baixo_qual": "toe_r",
@@ -168,11 +183,11 @@
     -0.1
    ],
    "hand_l": [
-    304.6,
+    303.2,
     -0.1
    ],
    "hand_r": [
-    208.8,
+    208.6,
     -0.017
    ],
    "calf_l": [

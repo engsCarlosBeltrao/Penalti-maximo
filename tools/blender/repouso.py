@@ -12,6 +12,7 @@
 # Uso: blender -b --factory-startup --python-exit-code 1 -P tools/blender/repouso.py -- assets/models/athlete.glb assets/models/anim .claude/skills
 import bpy, sys, os, json, math
 from mathutils import Vector, Matrix, Quaternion
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import bracos as BR   # braço com cotovelo-dobradiça, punho sem torção, dedos pelos eixos reais
 
 args = sys.argv[sys.argv.index("--") + 1:]
 SRC, OUT_DIR, SKILLS = args[0], args[1], args[2]
@@ -23,6 +24,7 @@ def build(mirror):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     assert bpy.ops.import_scene.gltf(filepath=SRC) == {"FINISHED"}
     arm = next(o for o in bpy.data.objects if o.type == "ARMATURE")
+    CORPO = BR.Corpo(list(bpy.data.objects), arm)   # pele por osso: dedos não entram no quadril nem na coxa
     for o in [o for o in bpy.data.objects if o != arm]: bpy.data.objects.remove(o, do_unlink=True)
     sc = bpy.context.scene; sc.render.fps = FPS; vl = bpy.context.view_layer
     for pb in arm.pose.bones: pb.rotation_mode = "QUATERNION"
@@ -66,18 +68,18 @@ def build(mirror):
     FEET = {"r": (R0, -3.0), "l": (L0, 3.1)}
     FINGERS = [f"{d}_0{i}_{s}" for s in "lr" for d in ("index", "middle", "ring", "pinky") for i in (1, 2, 3)]
     THUMB = [f"thumb_0{i}_{s}" for s in "lr" for i in (1, 2, 3)]
-    def curl(f, k=1.0):                                              # dedos relaxados: cada falange flexiona para o lado da palma (palma = -Z no T-pose)
-        for nm in FINGERS + THUMB:
-            pb = arm.pose.bones[nm]; d = REST[nm].to_3x3().col[1].normalized(); ax = d.cross(Vector((0, 0, -1)))
-            if ax.length < 1e-4: continue
-            base = (16 if nm[:-2].endswith("01") else 24 if nm[:-2].endswith("02") else 18)*(.55 if nm.startswith("thumb") else 1)*k
-            pb.rotation_quaternion = Quaternion(REST[nm].to_3x3().inverted() @ ax.normalized(), D(base)); key(nm, f)
+    READY = [False]
+    def curl(f, k=1.0):                                              # dedos relaxados (bracos.py: cada falange no seu eixo; polegar atravessa a palma)
+        for s in "lr":
+            hw_ = hip_w(f/FPS) if s == hand_side and not READY[0] else 0       # mão no quadril: polegar contorna a cintura (pose "cintura" de bracos.py)
+            for nm, q in BR.finger_quats(REST, s, "cintura" if hw_ > 0 else "relaxada", hw_ if hw_ > 0 else 1).items(): arm.pose.bones[nm].rotation_quaternion = q; key(nm, f)
     RELAX = lambda s: ((s*.2, 0, -1), (s*.15, -.35, -.9))            # = braço do 1º quadro das cobranças
     HANG = lambda s: ((s*.13, -.04, -1), (s*.10, -.30, -.95))        # solto, cotovelo ~17°
     sm = lambda u: (lambda v: v*v*(3 - 2*v))(min(1, max(0, u)))
     hand_side = "r"                                                  # destro: mão direita na cintura (o canhoto sai espelhado)
     def hip_w(t):                                                    # peso da mão na cintura ao longo do laço (0 no início/fim: emenda com a pose Pronto)
         return sm((t - 1.4)/.9) * (1 - sm((t - 4.0)/.9))
+    PUSHR = {s: [Vector()]*(NL + 1) for s in "lr"}                 # empurrão anticolisão do punho, por quadro (medido, suavizado no laço e aplicado)
     def pose(t, f, ready=False):
         w, br, ph = TAU*t/LOOP, math.sin(TAU*2*t/LOOP), lambda k, p: math.sin(TAU*k*t/LOOP + p)
         if ready: px, py, pz, (pyw, pln, ptl), (cyw, cln, ctl), hp, hy = 0, 0, .93, (0, 4, 0), (0, 6, 0), 20, 0
@@ -103,9 +105,14 @@ def build(mirror):
             hw = 0 if ready or s != hand_side else hip_w(t)
             if hw > 0:                                               # mão na cintura: punho na linha do cinto sobre a crista ilíaca; cotovelo para FORA e um pouco para trás
                 vl.update(); Sv = arm.pose.bones[f"upperarm_{s}"].head.copy()
-                W_ = Vector((px, py, pz)) + Rp @ Vector((sg*.17, .03, .14)); E_, W2 = arm_ik(Sv, W_, Vector((px, py, pz)) + Rp @ Vector((sg*.8, .25, .30)))
+                W_ = Vector((px, py, pz)) + Rp @ Vector((sg*.20, -.01, .14)); E_, W2 = arm_ik(Sv, W_, Vector((px, py, pz)) + Rp @ Vector((sg*.8, .25, .30)))   # cintura: meia-largura 0,16 m
                 ua = ua.normalized().lerp((E_ - Sv).normalized(), hw); fa = fa.normalized().lerp((W2 - E_).normalized(), hw)
-            aim(f"upperarm_{s}", ua); key(f"upperarm_{s}", f); aim(f"lowerarm_{s}", fa); key(f"lowerarm_{s}", f)
+            psh = PUSHR[s][f] if not ready and f < len(PUSHR[s]) else Vector()
+            if psh.length > 1e-6:                                    # encostando no corpo: o punho final é empurrado para fora (cotovelo no mesmo plano)
+                vl.update(); Sv = arm.pose.bones[f"upperarm_{s}"].head.copy(); E0 = Sv + ua.normalized()*LU; W0 = E0 + fa.normalized()*LF
+                E_, W2 = arm_ik(Sv, W0 + psh, E0 + (E0 - (Sv + W0)/2)*2); ua, fa = E_ - Sv, W2 - E_
+            Ru, Rf = BR.arm_world(REST, s, ua, fa, Rc @ BR.FWD0)        # cotovelo-dobradiça: nenhuma torção arbitrária entre braço e antebraço
+            set_rot(f"upperarm_{s}", Ru); key(f"upperarm_{s}", f); set_rot(f"lowerarm_{s}", Rf); key(f"lowerarm_{s}", f)
         for s in "lr":
             an, yw = FEET[s]; IKT[s].matrix_world = Matrix.Translation(Vector((an.x, an.y, AN))) @ foot_m(s, yw).to_4x4()
             IKT[s].keyframe_insert("location", frame=f); IKT[s].keyframe_insert("rotation_quaternion", frame=f)
@@ -117,13 +124,11 @@ def build(mirror):
             sg = 1 if s == "l" else -1; hw = 0 if ready or s != hand_side else hip_w(t)
             pb = arm.pose.bones[f"hand_{s}"]; pb.rotation_quaternion = Quaternion((1, 0, 0, 0))
             if not ready: pb.rotation_quaternion = Quaternion(Vector((1, 0, 0)), D(4*math.sin(TAU*3*t/LOOP + sg))) @ Quaternion(Vector((0, 0, 1)), D(3*math.sin(TAU*2*t/LOOP + 1.7*sg)))
-            if hw > 0:                                               # orientação da mão na cintura: dedos para a frente e para baixo, palma para o corpo
-                R0_ = REST[f"hand_{s}"].to_3x3(); f0 = R0_.col[1].normalized(); n0 = Vector((0, 0, -1))
-                rp = arm.pose.bones["pelvis"].matrix.to_3x3(); f1 = (rp @ Vector((-sg*.25, -.55, -.8))).normalized(); n1 = (rp @ Vector((-sg, 0, 0))); n1 = (n1 - f1*n1.dot(f1)).normalized()
-                B0 = Matrix((f0, n0 - f0*n0.dot(f0), f0.cross(n0))).transposed(); B0.col[1] = B0.col[1].normalized(); B0.col[2] = B0.col[2].normalized()
-                B1 = Matrix((f1, n1, f1.cross(n1))).transposed(); Rw = B1 @ B0.inverted()
-                vl.update(); par = pb.parent.matrix.to_3x3(); restrel = REST[pb.parent.name].to_3x3().inverted() @ REST[f"hand_{s}"].to_3x3()
-                target_local = (restrel.inverted() @ par.inverted() @ Rw @ R0_).to_quaternion()
+            if hw > 0:                                               # mão na cintura: o punho só DOBRA para os dedos irem para baixo/à frente sobre o quadril (sem girar)
+                vl.update(); Rf = pb.parent.matrix.to_3x3() @ REST[f"lowerarm_{s}"].to_3x3().inverted()
+                Rp_ = arm.pose.bones["pelvis"].matrix.to_3x3() @ REST["pelvis"].to_3x3().inverted(); f1 = Rp_ @ Vector((-sg*.25, -.85, -.45))   # dedos à frente e para baixo, contornando o quadril
+                Hw = BR.hand_world(REST, s, Rf, f1); restrel = REST[f"lowerarm_{s}"].to_3x3().inverted() @ REST[f"hand_{s}"].to_3x3()
+                target_local = (restrel.inverted() @ (Rf @ REST[f"lowerarm_{s}"].to_3x3()).inverted() @ Hw @ REST[f"hand_{s}"].to_3x3()).to_quaternion()
                 pb.rotation_quaternion = pb.rotation_quaternion.slerp(target_local, hw)
             key(f"hand_{s}", f)
         curl(f, .75 if ready else 1.0)
@@ -131,10 +136,33 @@ def build(mirror):
     sc.frame_start, sc.frame_end = 0, NL
     for f in range(NL + 1): sc.frame_set(f); pose(f/FPS, f)
     for f in range(NL + 1): hands(f/FPS, f)
+    # COLISÃO (bracos.py → Corpo): se uma junta de dedo fica a menos de 1 cm da pele, o punho é empurrado para fora pela normal. O empurrão é medido
+    # em todos os quadros, suavizado no tempo (o maior numa janela de ±2 quadros, depois média circular de ±5: sem salto e o laço continua sem emenda)
+    # e o laço é refeito; repete até nenhum ponto ficar dentro do corpo.
+    for ciclo in range(0 if os.environ.get("REP_NOCOL") else 6):
+        R_ = {s: [Vector()]*NL for s in "lr"}; pior = 1.0
+        for f in range(NL):
+            sc.frame_set(f); vl.update()
+            for s in "lr":
+                d_, n_, _ = BR.colisao_mao(arm, CORPO, s); pior = min(pior, d_)
+                if d_ < BR.MARGEM: R_[s][f] = n_*(BR.MARGEM - d_ + .004)
+        if pior >= BR.MARGEM - .002: break
+        for s in "lr":
+            D_ = [max((R_[s][(i + k) % NL] for k in range(-2, 3)), key=lambda v: v.length) for i in range(NL)]
+            A_ = [sum((D_[(i + k) % NL] for k in range(-5, 6)), Vector())/11 for i in range(NL)]
+            P_ = [PUSHR[s][i] + A_[i] for i in range(NL)]; PUSHR[s] = [v if v.length <= .15 else v*(.15/v.length) for v in P_] + [None]; PUSHR[s][NL] = PUSHR[s][0]
+        for f in range(NL + 1): sc.frame_set(f); pose(f/FPS, f)
+        for f in range(NL + 1): hands(f/FPS, f)
+    CICLOS = ciclo if not os.environ.get("REP_NOCOL") else 0
+    if os.environ.get("REP_PERFIL"):
+        print("@@PERFIL@@", " ".join(f"{f/FPS:.1f}:{BR.colisao_mao(arm, CORPO, 'r')[0]*1000:.0f}{BR.colisao_mao(arm, CORPO, 'r')[2][:3] if BR.colisao_mao(arm, CORPO, 'r')[2] else ''}" for f in range(0, NL + 1, 6) if not sc.frame_set(f) and not vl.update()))
+    PELE, PELE_ONDE = min(((lambda r: (r[0], f"mão {s}→{r[2]}@{f/FPS:.2f}s"))(BR.colisao_mao(arm, CORPO, s)) for f in range(NL + 1) for s in "lr" if not sc.frame_set(f) and not vl.update()), key=lambda r: r[0])
+    EMP = {s: round(max(v.length for v in PUSHR[s])*100, 1) for s in "lr"}
     act = arm.animation_data.action; act.name = "Repouso"; act.use_fake_user = True
     # ---- bake (skill blender-animation) das duas ações: IK/Copy Rotation → chaves FK ----
     sys.path.insert(0, os.path.join(SKILLS, "blender-animation", "scripts")); import bake_action
     out = bake_action.run(source=arm.name, target=arm.name, actions=["Repouso"], clean=False)
+    out["torcao_max_graus"] = BR.max_twist(arm, REST, range(0, NL + 1, 3), sc, vl); out["dedos_pele_min_mm"] = round(PELE*1000, 1); out["dedos_pele_onde"] = PELE_ONDE; out["ciclos_colisao"] = CICLOS; out["empurrao_cm"] = EMP
     for o in [o for o in bpy.data.objects if o != arm]: bpy.data.objects.remove(o, do_unlink=True)
     for pb in arm.pose.bones:
         for c in list(pb.constraints): pb.constraints.remove(c)
@@ -170,10 +198,10 @@ for side in ("r", "l"):
     fr = frames_of(acts["Repouso"], NL); hs = "r" if side == "r" else "l"; os_ = "l" if hs == "r" else "r"
     drift = {s: round(max((fr[i][f"ball_{s}"].translation - fr[0][f"ball_{s}"].translation).length for i in range(NL + 1))*1000, 2) for s in "lr"}
     seam = round(max(((fr[0][b].translation - fr[NL][b].translation).length) for b in ("pelvis", "hand_l", "hand_r", "Head"))*1000, 2)
-    mid = round(2.8*FPS); hand_hip = round((fr[mid][f"hand_{hs}"].translation - (fr[mid]["pelvis"].translation + fr[mid]["pelvis"].to_3x3() @ Vector(((1 if hs == "l" else -1)*.175, .035, .045)))).length*1000, 1)
+    mid = round(2.8*FPS); hand_hip = round((fr[mid][f"hand_{hs}"].translation - (fr[mid]["pelvis"].translation + (fr[mid]["pelvis"].to_3x3() @ REST["pelvis"].to_3x3().inverted()) @ Vector(((1 if hs == "l" else -1)*.20, -.01, .14)))).length*1000, 1)
     elbow_out = round(abs(fr[mid][f"lowerarm_{hs}"].translation.x - fr[mid]["pelvis"].translation.x), 3)
     hand_free = round(abs(fr[0][f"hand_{hs}"].translation.x - fr[0]["pelvis"].translation.x), 3)
-    report[side] = {"polo": baked.get("polo_cotovelo_graus"), "pes_deriva_mm": drift, "emenda_laco_mm": seam, "mao_cintura_dist_alvo_mm": hand_hip, "cotovelo_afastado_m": elbow_out, "mao_solta_x_m": hand_free,
+    report[side] = {"torcao": baked.get("torcao_max_graus"), "dedos_pele_min_mm_antes_do_bake": baked.get("dedos_pele_min_mm"), "dedos_pele_onde": baked.get("dedos_pele_onde"), "ciclos_colisao": baked.get("ciclos_colisao"), "empurrao_cm": baked.get("empurrao_cm"), "pes_deriva_mm": drift, "emenda_laco_mm": seam, "mao_cintura_dist_alvo_mm": hand_hip, "cotovelo_afastado_m": elbow_out, "mao_solta_x_m": hand_free,
                     "pe_mais_baixo_z": round(min(min(m["ball_l"].translation.z, m["ball_r"].translation.z) for m in fr), 3)}
     if os.environ.get("REP_DIAG"):
         m = fr[mid]; P_ = m["pelvis"].translation

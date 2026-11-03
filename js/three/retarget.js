@@ -2,6 +2,7 @@
 // Funciona por DIREÇÕES (não por comprimentos): proporções diferentes do modelo são aceitas; a altura do quadril é corrigida para os pés tocarem o chão.
 // Convenção (coincide com glTF): modelo olha para +Z, +Y para cima, +X = lado ESQUERDO do personagem. No rig.js, lado 'L' = lado ANATÔMICO DIREITO.
 import { sub, add, mul, norm, qmul, qconj, qrot, qslerp, matCols, matT, matMul, qfromMat, orth, frameXZ } from './math.js';
+import { dot, cross, len } from '../vec.js';
 import { CANON, PARENT } from './skeletonMap.js';
 export const SHOULDER_DROOP = 0;   // rad: queda extra da clavícula com o braço pendurado. O athlete.glb corrigido (tools/fix-neck-shoulders.mjs) já tem o caimento do trapézio na malha: com .5 o ombro caía ~48° parado (pescoço parecia comprido); com 0 fica ~25° parado, ~22° no chute
 const UP = [0, 1, 0], FWD = [0, 0, 1], RIGSIDE = { Right: 'L', Left: 'R' }, RIG_ANKLE_REST = .075;
@@ -9,6 +10,21 @@ const present = (rest, b) => !!rest.bones[b];
 // (osso, filho que define a direção, joint do rig de origem, joint do rig de destino, referência "para frente")
 const chains = side => { const r = RIGSIDE[side], j = n => n + r; return [[side + 'UpLeg', side + 'Leg', j('hip'), j('kn'), 'fwd'], [side + 'Leg', side + 'Foot', j('kn'), j('an'), 'fwd'], [side + 'Foot', side + 'ToeBase', j('an'), j('toe'), 'up'], [side + 'Arm', side + 'ForeArm', j('sh'), j('el'), 'tfwd'], [side + 'ForeArm', side + 'Hand', j('el'), j('ha'), 'tfwd']]; };
 const aim = (restDir, restRef, tDir, tRef) => { const R = orth(restDir, restRef, UP), T = orth(tDir, tRef, UP); return qfromMat(matMul(matCols(...T), matT(matCols(...R)))); };
+// BRAÇO COM COTOVELO-DOBRADIÇA (a mesma regra de tools/blender/bracos.py). Orientar braço e antebraço cada um SOZINHO (aim com o "para frente" do tronco)
+// deixava a torção do antebraço em relação ao braço arbitrária (até 179° nas poses do goleiro e de comemoração) e, sem ossos de torção no modelo, o punho
+// torcia como papel de bala. Aqui o braço é orientado para que a flexão do cotovelo caia no seu plano, o antebraço é o braço girado em torno do eixo da
+// dobradiça e a mão segue o antebraço (o punho não gira em torno do próprio eixo). Com o braço quase reto, a face anterior vai para a frente do tronco.
+const qaxis = (ax, a) => { const s = Math.sin(a/2); return [ax[0]*s, ax[1]*s, ax[2]*s, Math.cos(a/2)]; };
+export function armHinge(rest, J, side) {
+  const r = RIGSIDE[side], d0 = norm(sub(rest.bones[side + 'ForeArm'].pos, rest.bones[side + 'Arm'].pos));
+  const ua = norm(sub(J['el' + r], J['sh' + r])), fa = norm(sub(J['ha' + r], J['el' + r])), proj = v => sub(v, mul(ua, dot(ua, v)));
+  const bend = Math.acos(Math.min(1, Math.max(-1, dot(ua, fa)))); let afb = proj(J.tfwd); if (len(afb) < 1e-3) afb = proj(UP); afb = norm(afb);
+  let ause = afb; const act = proj(fa);
+  if (len(act) > 1e-4) { const an = norm(act), w0 = Math.min(1, bend/(25*Math.PI/180)), w = w0*w0*(3 - 2*w0); ause = qrot(qaxis(ua, Math.atan2(dot(ua, cross(afb, an)), dot(afb, an))*w), afb); }
+  const Ru = aim(d0, FWD, ua, ause);                     // na T-pose do modelo o cotovelo flexiona para a frente (+Z): face anterior do braço = FWD
+  const h = cross(ua, fa), hinge = len(h) > 1e-4 ? norm(h) : norm(cross(ua, ause));   // giro de ua até fa em torno de um eixo ⟂ ao antebraço: direção exata, torção zero
+  return [Ru, qmul(qaxis(hinge, bend), Ru)];
+}
 export function fk(rest, world, hips) {                // posições de todos os ossos canônicos a partir dos quaternions de mundo
   const pos = {}, dq = {}; CANON.forEach(b => { if (!present(rest, b)) return; dq[b] = qmul(world[b], qconj(rest.bones[b].quat)); const p = PARENT[b]; let pp = p; while (pp && !present(rest, pp)) pp = PARENT[pp];
     pos[b] = pp ? add(pos[pp], qrot(dq[pp], sub(rest.bones[b].pos, rest.bones[pp].pos))) : hips; }); return pos;
@@ -25,7 +41,8 @@ export function solvePose(rest, J) {
     if (!present(rest, c)) { set(b, d[PARENT[b]] || fT); return; }
     const restDir = norm(sub(rest.bones[c].pos, rest.bones[b].pos)), tDir = norm(sub(J[z], J[a])), tRef = ref === 'fwd' ? J.fwd : ref === 'up' ? J.up : J.tfwd;
     set(b, aim(restDir, ref === 'up' ? UP : FWD, tDir, tRef)); }));
-  ['Left', 'Right'].forEach(side => { set(side + 'Hand', d[side + 'ForeArm']); set(side + 'ToeBase', d[side + 'Foot']); });
+  ['Left', 'Right'].forEach(side => { if (present(rest, side + 'Arm') && present(rest, side + 'ForeArm') && present(rest, side + 'Hand')) { const [Ru, Rf] = armHinge(rest, J, side); set(side + 'Arm', Ru); set(side + 'ForeArm', Rf); }
+    set(side + 'Hand', d[side + 'ForeArm']); set(side + 'ToeBase', d[side + 'Foot']); });
   let hips = [J.pelvis[0], J.pelvis[1]*scale, J.pelvis[2]]; let pos = fk(rest, world, hips);
   // correção de altura: o tornozelo mais baixo do modelo deve ficar na mesma altura relativa do tornozelo mais baixo do rig
   const aM = Math.min(pos.LeftFoot[1], pos.RightFoot[1]), aR = Math.min(J.anL[1], J.anR[1]), aRest = Math.min(rest.bones.LeftFoot.pos[1], rest.bones.RightFoot.pos[1]);

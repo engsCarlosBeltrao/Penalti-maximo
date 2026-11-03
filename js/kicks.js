@@ -35,8 +35,24 @@ export function kickSpec(playerId, tipoPedido = 'medio') {
 }
 // Todos os tipos de um estilo partem do MESMO ponto e da mesma pose (o tipo só é conhecido ao soltar a barra): a espera usa o médio do estilo.
 export const waitSpec = playerId => kickSpec(playerId, 'medio');
-// Clipes de reação do cobrador (tools/blender/reacoes.py): duração da ENTRADA (caminhada até o ponto de partida), da comemoração e da frustração.
-export const ENTRY_S = 2.7, GOAL_S = 3.4, MISS_S = 3.0;
+// Clipes de reação do cobrador (tools/blender/reacoes.py): ENTRADA (caminhada até o ponto de partida), 5 comemorações de gol e 5 reações de cobrança perdida
+// (duração em s, igual ao clipe — conferida em test_kicks.mjs). Arquivos: assets/models/anim/<nome>_<r|l>.glb.
+export const ENTRY_S = 2.7;
+export const GOAL_REACTIONS = { gol_bracos_abertos: 3.2, gol_punhos: 2.8, gol_salto: 3.0, gol_aponta: 3.0, gol_corrida: 3.4 };
+export const MISS_REACTIONS = { perdeu_cabeca_baixa: 2.8, perdeu_maos_cintura: 3.0, perdeu_mao_rosto: 2.8, perdeu_maos_cabeca: 3.0, perdeu_olha_chao: 3.0 };
+export const REACTION_NAMES = { gol_bracos_abertos: 'Braços abertos', gol_punhos: 'Punhos cerrados', gol_salto: 'Pequeno salto', gol_aponta: 'Apontando para cima', gol_corrida: 'Corrida comemorativa',
+  perdeu_cabeca_baixa: 'Cabeça baixa', perdeu_maos_cintura: 'Mãos na cintura', perdeu_mao_rosto: 'Mão no rosto', perdeu_maos_cabeca: 'Mãos na cabeça', perdeu_olha_chao: 'Olhar para o chão' };
+export const GOAL_S = Math.max(...Object.values(GOAL_REACTIONS)), MISS_S = Math.max(...Object.values(MISS_REACTIONS));
+// SACOLA embaralhada: cada reação sai uma vez antes de qualquer uma repetir, e a primeira de uma sacola nova nunca é a última da anterior (sem repetição
+// imediata). Sorteada UMA vez por cobrança, quando o resultado é confirmado (game.js), e guardada na bola: o mesmo chute nunca troca de reação.
+export function reactionBag(names, rnd = Math.random) {
+  let bag = [], last = null;
+  return () => {
+    if (!bag.length) { bag = names.slice(); for (let i = bag.length - 1; i > 0; i--) { const j = Math.floor(rnd()*(i + 1)); [bag[i], bag[j]] = [bag[j], bag[i]]; }
+      if (bag.length > 1 && bag[0] === last) [bag[0], bag[1]] = [bag[1], bag[0]]; }
+    return last = bag.shift();
+  };
+}
 // Pose de início e fim do clipe no mundo do jogo (Blender → mundo: x = −x_b, z = y_b + 11; yaw = π + AP). Espaço do destro: o canhoto espelha (rig.js).
 // wd = largura do atleta (build × altura, a escala x/z do modelo: loader.js → apply). O clipe da cobrança é escalado em torno da BOLA e deslocado para o
 // ponto de toque da chuteira continuar na bola (loader.js → apply); a espera e a reação precisam usar o MESMO ponto, senão o pé desliza na transição.

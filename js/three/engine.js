@@ -6,7 +6,7 @@ import { Events } from '../events.js';
 import { GS } from '../gameState.js';
 import { flightTime, ballWorld, camTarget, characters } from '../frame.js';
 import { KICK_CLIPS } from '../kickClips.js';
-import { FORCE_BANDS } from '../kicks.js';
+import { FORCE_BANDS, GOAL_REACTIONS, MISS_REACTIONS } from '../kicks.js';
 import { humanJoints, goalToWorld, GOAL_W, GOAL_H, BALL0 } from '../rig.js';
 import { hud } from '../hud.js';
 import { AIM_LIM } from '../aim.js';
@@ -33,8 +33,8 @@ export async function start({ cv, base = 'assets/models/' }) {
   await Promise.all(['comum_medio', 'comum_chapada', 'comum_bomba'].map(id => (want(id), loading[id])));   // os comuns já prontos; os dos craques chegam em segundo plano
   Object.keys(KICK_CLIPS).forEach(want);
   const idle = { r: await loadClip(base + 'anim/repouso_r.glb').catch(fail), l: await loadClip(base + 'anim/repouso_l.glb').catch(fail) };   // repouso do cobrador (tools/blender/repouso.py)
-  const reac = {};                                                                                  // entrada, comemoração e frustração (tools/blender/reacoes.py)
-  for (const n of ['entrada', 'gol', 'perdeu']) for (const pe of ['r', 'l']) reac[n + '_' + pe] = await loadClip(base + `anim/${n}_${pe}.glb`).catch(fail);
+  const reac = {};                                                                                  // entrada + 5 comemorações + 5 frustrações, destro e canhoto (tools/blender/reacoes.py)
+  await Promise.all(['entrada', ...Object.keys(GOAL_REACTIONS), ...Object.keys(MISS_REACTIONS)].flatMap(n => ['r', 'l'].map(async pe => { reac[n + '_' + pe] = await loadClip(base + `anim/${n}_${pe}.glb`).catch(fail); })));
   try { tplG = await loadTemplate(base + 'goalkeeper.glb', { skeletonMap, layout }); } catch (e) { if (e.status !== 404) throw e; console.info('goalkeeper.glb ausente: o goleiro usará athlete.glb com o uniforme de goleiro.'); }
   // 2) WebGL por baixo da tela 2D (que continua desenhando o placar/HUD, transparente)
   const gl = document.createElement('canvas'); gl.id = 'gl'; Object.assign(gl.style, { position: 'absolute', left: '0', top: '0', width: '100%', height: '100%', pointerEvents: 'none' }); cv.parentNode.insertBefore(gl, cv);
@@ -42,7 +42,7 @@ export async function start({ cv, base = 'assets/models/' }) {
   let renderer; try { renderer = new THREE.WebGLRenderer({ canvas: gl, antialias: true }); } catch (e) { gl.remove(); throw e; }
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; const app = cv.parentNode, resize = () => { renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.setSize(app.clientWidth, app.clientHeight, false); }; window.addEventListener('resize', resize); resize();
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, W/H, .2, 220), st = buildStadium(scene), fx = createStadiumFx(scene); DBG.fx = fx; DBG.scene = scene;
-  const field = [0, 1, 2, 3, 4].map(() => { const i = instantiate(tpl); i.root.visible = false; scene.add(i.root); return i; }), keeper = instantiate(tplG); keeper.root.visible = false; scene.add(keeper.root);
+  const field = [0, 1, 2, 3, 4].map(() => { const i = instantiate(tpl); i.root.visible = false; scene.add(i.root); return i; }), keeper = instantiate(tplG, { maos: 'luva' }); keeper.root.visible = false; scene.add(keeper.root);
   DBG.field = field;                                                                                // só para depuração (testes no navegador)
   // 3) estado visual (câmera suavizada, tremor e reação da torcida) — igual ao motor procedural
   let cam = { pos: [0, 3.3, 25], tgt: [0, 1, 1], fov: 27 }, shake = 0, last = 0, exS = [0, 0], sad = [0, 0];

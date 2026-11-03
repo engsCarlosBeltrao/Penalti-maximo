@@ -5,7 +5,7 @@ import { Aim } from './aim.js';
 import { sfx, crowd, ambient, level } from './audio.js';
 import { Renderer } from './renderer.js';
 import { pickKicker } from './players.js';
-import { kickSpec, waitSpec, forceFromAim, typeFromForce, ENTRY_S } from './kicks.js';
+import { kickSpec, waitSpec, forceFromAim, typeFromForce, ENTRY_S, GOAL_REACTIONS, MISS_REACTIONS, reactionBag } from './kicks.js';
 export const cfg = { hs: 0.9, vs: 0.6, diff: 'normal', sound: true, vol: 0.5, volCrowd: 0.5 };
 // Dificuldade: tempo de reação, alcance do braço, erro de leitura, deslocamento máximo do mergulho
 const DIFF = { easy:{react:.45,reach:.09,err:.22,dive:.3,vr:.3}, normal:{react:.3,reach:.12,err:.13,dive:.36,vr:.36}, hard:{react:.2,reach:.15,err:.07,dive:.42,vr:.42} };
@@ -14,6 +14,7 @@ const G = { l:300, r:660, t:150, b:290 }, START = { x:480, y:470 };
 const gpt = (gx, gy) => ({ x: G.l + gx*(G.r-G.l), y: G.b - gy*(G.b-G.t) });  // coord. do gol → tela
 
 export const Game = {
+  bagGol: reactionBag(Object.keys(GOAL_REACTIONS)), bagMiss: reactionBag(Object.keys(MISS_REACTIONS)),
   aim: new Aim(), m: null, kick: null, aimT: 0, ball: null, t: 0, wait: 0, cb: null, keeperKey: null,
   init(canvas) {
     this.cv = canvas; this.c = canvas.getContext('2d');
@@ -86,10 +87,11 @@ export const Game = {
       r = Math.abs(kx - b.gx) < reach && Math.abs(ky - b.gy) < (this.hum() ? DIFF[cfg.diff].vr : .36) ? 'defesa' : 'gol';
     }
     b.res = r; GS.estado = 'RESOLVENDO_COBRANCA';
+    b.reacao = r === 'gol' ? this.bagGol() : this.bagMiss();             // reação do cobrador: sorteada UMA vez por cobrança (sacola sem repetição imediata)
     const q = GS.cobrador, m = this.m;
     m.taken[q]++; m.marks[q].push(r === 'gol' ? 'g' : r === 'defesa' ? 'd' : 'x'); GS.cobrancasRealizadas++;
     GS.ultimaCobranca = { equipe: q, resultado: r, gx: +b.gx.toFixed(3), gy: +b.gy.toFixed(3) };
-    Events.emit(r, { equipe: q, gx: b.gx, gy: b.gy });                      // evento único por cobrança
+    Events.emit(r, { equipe: q, gx: b.gx, gy: b.gy, reacao: b.reacao });                      // evento único por cobrança
     // sons ligados ao evento CONFIRMADO (um só resultado por cobrança)
     if (r === 'gol') { sfx('rede'); sfx('gol', .05); crowd('roar'); } else if (r === 'trave') { sfx(b.gy > .955 ? 'travessao' : 'trave'); crowd('groan'); } else if (r === 'defesa') { sfx('defesa'); crowd('groan'); } else { sfx('fora'); crowd('groan'); }
     level(r === 'gol' ? 1 : .6);

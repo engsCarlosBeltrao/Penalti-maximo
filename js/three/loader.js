@@ -6,6 +6,7 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { inspect, SLOTS, OPT_SLOTS } from './glbInspect.js';
 import { resolveBones, CANON } from './skeletonMap.js';
 import { solvePose } from './retarget.js';
+import { fingerRig, setFingers } from './hands.js';
 import { composeShirt, uniformColors, hairVisibility, beardVisibility, hairColors, LAYOUTS, crestImageFor } from './uniform.js';
 import { setupHairMaterial } from './hairMaterial.js';
 import { packMeta, packImage } from './kitPack.js';
@@ -51,13 +52,13 @@ function neutralizeSkin(scene, target = .86) {
   const k = sum.map(v => target*255/(v/n)); for (let i = 0; i < d.length; i += 4) { d[i] = Math.min(255, d[i]*k[0]); d[i + 1] = Math.min(255, d[i + 1]*k[1]); d[i + 2] = Math.min(255, d[i + 2]*k[2]); }
   c.putImageData(id, 0, 0); tex.image = cv; tex.userData.neutral = true; tex.needsUpdate = true;
 }
-export function instantiate(tpl) {
+export function instantiate(tpl, { maos = 'relaxada' } = {}) {   // maos: pose da mão nas poses procedurais (o goleiro usa 'luva')
   const root = SkeletonUtils.clone(tpl.scene), bones = {}, byName = {}, slots = Object.fromEntries(Object.keys(ALL_SLOTS).map(k => [k, []])), hair = [], beard = [], acc = [], hairU = { cap: [], beard: [] }, bandMats = [];
   root.traverse(o => { if (o.isBone) byName[o.name] = o; if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; o.material = Array.isArray(o.material) ? o.material.map(m => m.clone()) : o.material.clone();
     (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m.name === 'HairCap' || m.name === 'Beard') { hairU[m.name === 'HairCap' ? 'cap' : 'beard'].push(setupHairMaterial(m)); return; } if (m.name === 'Band') { bandMats.push(m); return; }   // shader próprio, fora dos slots
       for (const [s, re] of Object.entries(ALL_SLOTS)) if (re.test(m.name || '')) slots[s].push(m); }); if (/^hair/i.test(o.name)) hair.push(o); else if (/^(beard|must|side)_/i.test(o.name)) beard.push(o); else if (/^acc_/i.test(o.name)) acc.push(o); } });
   CANON.forEach(c => { if (tpl.map[c]) bones[c] = byName[tpl.map[c]]; });
-  const allBones = Object.values(byName), BLEND = .15, IDLE_BLEND = .35, mixers = new Map();                                              // transição entre poses procedurais e clipes (s)
+  const fingers = fingerRig(byName, root), allBones = Object.values(byName), BLEND = .15, IDLE_BLEND = .35, mixers = new Map();                                              // transição entre poses procedurais e clipes (s)
   const snapshot = () => { const hips = bones.Hips; hips.updateWorldMatrix(true, false); return { q: allBones.map(b => b.quaternion.clone()), p: allBones.map(b => b.position.clone()), hq: hips.getWorldQuaternion(new THREE.Quaternion()), hp: hips.getWorldPosition(new THREE.Vector3()) }; };
   const rebase = S => { const hips = bones.Hips, i = allBones.indexOf(hips); hips.parent.updateWorldMatrix(true, false); S.q[i] = hips.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(S.hq); S.p[i] = hips.parent.worldToLocal(S.hp.clone()); };   // o quadril no referencial novo (a raiz muda entre os modos)
   const blendFrom = (S, w) => { if (w >= 1) return; allBones.forEach((b, i) => { b.quaternion.slerpQuaternions(S.q[i], b.quaternion.clone(), w); b.position.lerpVectors(S.p[i], b.position.clone(), w); }); };
@@ -106,6 +107,7 @@ export function instantiate(tpl) {
       const sol = solvePose(tpl.rest, J);
       CANON.forEach(c => { const b = bones[c], W = sol.world[c]; if (!b || !W) return; b.parent.updateWorldMatrix(true, false); b.parent.getWorldQuaternion(pq); q.set(W[0], W[1], W[2], W[3]); b.quaternion.copy(pq.invert().multiply(q));
         if (c === 'Hips') { b.parent.updateWorldMatrix(true, false); p.set(sol.hips[0], sol.hips[1]*(api.hs || 1), sol.hips[2]); b.parent.worldToLocal(p); b.position.copy(p); } b.updateMatrix(); });
+      setFingers(fingers, maos);                                                                       // dedos pelos eixos reais (js/three/hands.js), não retos da T-pose
       if (api.blendOut) { const u = (performance.now() - api.blendOut.t0)/1000/BLEND; blendFrom(api.blendOut.S, sm(u)); if (u >= 1) api.blendOut = null; }
       api.posed = true;
     },

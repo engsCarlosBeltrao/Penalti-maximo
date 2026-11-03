@@ -17,6 +17,7 @@ from mathutils import Vector, Matrix, Quaternion
 args = sys.argv[sys.argv.index("--") + 1:]
 SRC, OUT_DIR, SKILLS, ESTILO, TIPO = args[0], args[1], args[2], args[3], args[4]
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import perfis_cobranca as PC
+import bracos as BR                                                  # braço com cotovelo-dobradiça, punho sem torção, dedos pelos eixos reais
 T, PE = PC.tipo(TIPO), PC.PE[ESTILO]
 E = PC.estilo(ESTILO, T)
 CLIP = f"{ESTILO}_{TIPO}"
@@ -38,6 +39,7 @@ for o in bpy.data.objects:
         g = gi.get(max(v.groups, key=lambda g: g.weight).group, "")
         for s in "lr":
             if g in (f"foot_{s}", f"ball_{s}", f"ball_leaf_{s}"): BOOT[s].append((o.matrix_world @ v.co, face_mat[v.index]))
+CORPO = BR.Corpo(list(bpy.data.objects), arm)                       # pele por osso (bracos.py): conferir que os dedos não entram no corpo durante a corrida e o chute
 for o in [o for o in bpy.data.objects if o != arm]: bpy.data.objects.remove(o, do_unlink=True)
 sc = bpy.context.scene; sc.render.fps = FPS
 vl = bpy.context.view_layer
@@ -352,7 +354,8 @@ for f in range(0, END + 1):
     hp_, hw = HEAD(tc); Rh = Matrix.Rotation(D(-ch[0]*.85*hw), 3, "Z") @ Rc @ Matrix.Rotation(D(hp_), 3, "X")   # olhar: a cabeça gira para o gol
     set_rot("neck_01", qc.slerp(Rh.to_quaternion(), .5).to_matrix()); key("neck_01", f); set_rot("Head", Rh); key("Head", f)
     for s in "lr":
-        v = ARMF[s](tc); aim(f"upperarm_{s}", Rc @ Vector(v[:3])); key(f"upperarm_{s}", f); aim(f"lowerarm_{s}", Rc @ Vector(v[3:])); key(f"lowerarm_{s}", f)
+        v = ARMF[s](tc); Ru, Rf = BR.arm_world(REST, s, Rc @ Vector(v[:3]), Rc @ Vector(v[3:]), Rc @ BR.FWD0)
+        set_rot(f"upperarm_{s}", Ru); key(f"upperarm_{s}", f); set_rot(f"lowerarm_{s}", Rf); key(f"lowerarm_{s}", f)
     for s in "lr":
         if s == "r" and KICK_OFF < tc < KICK_LAND:
             an, kn, pitch, fy = kick_leg(tc); w = min(1, (tc - KICK_OFF)/.05, (KICK_LAND - tc)/.06)
@@ -380,13 +383,9 @@ for f, tc, st in TOES:
             set_rot(f"ball_{s}", rot(yw_prev(s, tc + 1e-3) if not ground else fy)); q = pb.rotation_quaternion.copy()
             pb.rotation_quaternion = Quaternion((1, 0, 0, 0)).slerp(q, w)
         key(f"ball_{s}", f)
-FINGERS = [f"{d}_0{i}_{s}" for s in "lr" for d in ("index", "middle", "ring", "pinky", "thumb") for i in (1, 2, 3)]
-for f in (0, END):                                                   # mão relaxada: cada falange flexiona para o lado da palma (palma = -Z no T-pose), como no repouso
-    for nm in FINGERS:
-        pb = arm.pose.bones[nm]; d = REST[nm].to_3x3().col[1].normalized(); ax = d.cross(Vector((0, 0, -1)))
-        if ax.length < 1e-4: continue
-        ang = (16 if nm[-4:-2] == "01" else 24 if nm[-4:-2] == "02" else 18)*(.55 if nm.startswith("thumb") else 1)*.75
-        pb.rotation_quaternion = Quaternion(REST[nm].to_3x3().inverted() @ ax.normalized(), D(ang)); pb.keyframe_insert("rotation_quaternion", frame=f, group=nm)
+for f in (0, END):                                                   # mão relaxada (bracos.py: cada falange no seu eixo; polegar atravessa a palma)
+    for s in "lr":
+        for nm, q in BR.finger_quats(REST, s, "relaxada").items(): pb = arm.pose.bones[nm]; pb.rotation_quaternion = q; pb.keyframe_insert("rotation_quaternion", frame=f, group=nm)
 act = arm.animation_data.action; act.name = "Chute"; act.use_fake_user = True
 
 sys.path.insert(0, os.path.join(SKILLS, "blender-animation", "scripts")); import bake_action
@@ -394,6 +393,7 @@ baked = bake_action.run(source=arm.name, target=arm.name, actions=["Chute"], cle
 for o in [o for o in bpy.data.objects if o != arm]: bpy.data.objects.remove(o, do_unlink=True)
 for pb in arm.pose.bones:
     for c in list(pb.constraints): pb.constraints.remove(c)
+ANTICOL = BR.anticolisao(arm, REST, CORPO, range(0, END + 1), sc, vl)   # dedos fora do corpo (coxas na corrida e no chute): punho empurrado, suavizado
 
 # ================= VERIFICAÇÃO (antes do espelho; o canhoto é conferido de novo depois) =================
 JOINTS = ["pelvis", "Head", "hand_l", "hand_r", "foot_l", "foot_r", "ball_l", "ball_r", "calf_l", "calf_r", "thigh_r"]
@@ -438,7 +438,7 @@ report = {"clipe": CLIP, "pe": PE, "fps": FPS, "t0": T0, "t1": T1, "frames": END
           "vel_ponta_pe": {"pico_quadro_rel": peak - CONTACT, "pico_m_s": round(max(toe_v), 1), "no_contato_m_s": round(toe_v[CONTACT - 1], 1)},
           "joelho_chute_graus": {"max_recuo": max(knee_ang(i) for i in range(round(F(KICK_OFF)), CONTACT)), "contato": knee_ang(CONTACT)},
           "apoios_deriva_mm": apoios, "max_deriva_apoio_mm": max(a[3] for a in apoios), "erro_ik_apoio": IK_ERR, "fim": fim(),
-          "pe_mais_baixo_z_m": round(lowz(traj[lowf]), 3), "pe_mais_baixo_tc": round(TC(lowf), 3), "pe_mais_baixo_qual": min(("toe_l", "toe_r", "ball_l", "ball_r"), key=lambda j: traj[lowf][j].z), "aceleracao_max_m_s2": {j: accs(j) for j in ("pelvis", "Head", "hand_l", "hand_r", "calf_l", "calf_r")},
+          "torcao_max_graus": BR.max_twist(arm, REST, range(0, END + 1, 3), sc, vl), "anticolisao": ANTICOL, "dedos_pele_min_mm": round(min(BR.colisao_mao(arm, CORPO, s_)[0] for f_ in range(0, END + 1, 2) for s_ in "lr" if not sc.frame_set(f_) and not vl.update())*1000, 1), "pe_mais_baixo_z_m": round(lowz(traj[lowf]), 3), "pe_mais_baixo_tc": round(TC(lowf), 3), "pe_mais_baixo_qual": min(("toe_l", "toe_r", "ball_l", "ball_r"), key=lambda j: traj[lowf][j].z), "aceleracao_max_m_s2": {j: accs(j) for j in ("pelvis", "Head", "hand_l", "hand_r", "calf_l", "calf_r")},
           "passos_aproximacao": len(FF) + 1, "primeiro_passo_m": round(PRIMEIRO_PASSO, 3), "pelve_abaixada_alcance_cm": ALCANCE_MAX_CM, "distancia_inicio_bola_m": round(S.length, 2), "duracao_aproximacao_s": round(-T0, 3)}
 if HOP:
     zs_ = [traj[i]["pelvis"].z for i in range(round(F(tH)), round(F(PLANT)) + 1)]

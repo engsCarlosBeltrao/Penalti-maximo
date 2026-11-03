@@ -75,7 +75,7 @@ export function characters(game, now, b, k, res, d, bw) {
   if (c) Object.assign(m, { start: clipStart(c, wd), end: clipEnd(c, wd), mirror: ks.pe === 'l' });
   let anim = null; const mir = ks && ks.pe === 'l', fx = v => [mir ? -v[0] : v[0], 0, v[2]];
   if (c && state === 'entering') { const st = clipStart(c, wd); anim = { clip: 'entrada', state, pe: ks.pe, t: game.t, pos: fx(st.root), yaw: mir ? -st.yaw : st.yaw, blend: 0 }; }   // corte no início da vez
-  else if (c && (state === 'goalCelebration' || state === 'missReaction')) anim = { clip: state === 'goalCelebration' ? 'gol' : 'perdeu', state, pe: ks.pe, t: b.t - ks.t1, pos: fx(clipEnd(c, wd).root), yaw: Math.PI, blend: .3 };
+  else if (c && (state === 'goalCelebration' || state === 'missReaction')) anim = { clip: b.reacao || (state === 'goalCelebration' ? 'gol_bracos_abertos' : 'perdeu_cabeca_baixa'), state, pe: ks.pe, t: b.t - ks.t1, pos: fx(clipEnd(c, wd).root), yaw: Math.PI, blend: .3 };
   else if (c && (state === 'idle' || state === 'charging')) { const st = clipStart(c, wd), mir = ks.pe === 'l';   // repouso no ponto de partida (espelhado no canhoto) + mistura para a pose de partida
     anim = { idle: true, state, pe: ks.pe, t: game.t + phaseOf(p.id), pos: [mir ? -st.root[0] : st.root[0], 0, st.root[2]], yaw: mir ? -st.yaw : st.yaw, ready: { clip: ks.id, w: chargeOf(game) } }; }
   else if (b && b.t <= (ks ? ks.t1 : CLIP_END)) anim = { clip: ks ? ks.id : 'chute', tc: Math.max(t0, b.t), state };

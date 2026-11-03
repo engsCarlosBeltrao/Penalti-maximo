@@ -1,6 +1,6 @@
 // Testes do retargeting e do mapeamento de ossos (Node, sem Three.js): as poses do rig.js aplicadas a esqueletos T-pose/A-pose/escalados.
 import { solvePose, fk, syntheticModel } from './js/three/retarget.js'; import { resolveBones, normalizeName, CANON } from './js/three/skeletonMap.js';
-import { humanJoints, kickerPose, keeperPose, cheerPose, dejectedPose, goalToWorld, KICK_T0, BALL0 } from './js/rig.js'; import { sub, norm, len, dot } from './js/vec.js';
+import { humanJoints, kickerPose, keeperPose, cheerPose, dejectedPose, goalToWorld, KICK_T0, BALL0 } from './js/rig.js'; import { sub, norm, len, dot } from './js/vec.js'; import { qmul, qconj } from './js/three/math.js';
 let ok = 0, bad = 0; const t = (n, c) => { c ? ok++ : (bad++, console.log('FALHOU:', n)); };
 // ---- nomes de ossos ----
 const mixamo = CANON.map(c => 'mixamorig:' + c).map(n => n.replace('LeftToeBase', 'LeftToeBase')); let r = resolveBones(mixamo); t('Mixamo: todos os 22 ossos', r.ok && r.missing.length === 0);
@@ -31,4 +31,11 @@ for (const [mn, M] of models) {
 }
 // lado correto: no contato, o pé DIREITO anatômico (rig 'L') está na bola e o esquerdo longe
 { const M = syntheticModel(), J = humanJoints(kickerPose({ mode: 'kick', tc: 0 })), S = solvePose(M, J), p = fk(M, S.world, S.hips); t('contato: RightFoot do modelo está na bola', len(sub(p.RightFoot, J.anL)) < .04 && len(sub(p.RightFoot, BALL0)) < .35); t('contato: LeftFoot do modelo é o pé de apoio (longe da bola)', len(sub(p.LeftFoot, BALL0)) > .3); }
+// ---- mãos: o antebraço não gira em torno do próprio eixo em relação ao braço, nem a mão em relação ao antebraço (cotovelo-dobradiça, js/three/retarget.js) ----
+{ const twist = (M, S, c, p) => { const dq = b => qmul(S.world[b], qconj(M.bones[b].quat)), rel = qmul(qconj(dq(p)), dq(c)), ax = norm(sub(M.bones[c === 'LeftHand' || c === 'RightHand' ? c : c].pos, M.bones[p].pos));
+    const pr = rel[0]*ax[0] + rel[1]*ax[1] + rel[2]*ax[2], a = Math.abs(2*Math.atan2(pr, rel[3])*180/Math.PI); return a > 180 ? 360 - a : a; };
+  for (const [mn, M] of models) { let w = 0, wn = '';
+    for (const [pn, P] of poses) { const S = solvePose(M, humanJoints(P));
+      for (const side of ['Left', 'Right']) for (const [c, p] of [[side + 'ForeArm', side + 'Arm'], [side + 'Hand', side + 'ForeArm']]) { const v = twist(M, S, c, p); if (v > w) { w = v; wn = `${pn} ${c}`; } } }
+    t(`${mn}: torção do antebraço e do punho ≤ 1° em ${poses.length} poses (goleiro, comemoração, lamento, chute; pior ${w.toFixed(2)}° — ${wn})`, w <= 1); } }
 console.log(`RETARGET OK ${ok} | FALHAS ${bad}`); process.exit(bad ? 1 : 0);
