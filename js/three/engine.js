@@ -5,11 +5,11 @@ import { Renderer } from '../renderer.js';
 import { Events } from '../events.js';
 import { GS } from '../gameState.js';
 import { TF, ballWorld, camTarget, characters } from '../frame.js';
-import { humanJoints, goalToWorld, GOAL_W, GOAL_H } from '../rig.js';
+import { humanJoints, goalToWorld, GOAL_W, GOAL_H, BALL0 } from '../rig.js';
 import { hud } from '../hud.js';
 import { AIM_LIM } from '../aim.js';
 import { lerp } from '../vec.js';
-import { loadTemplate, instantiate, fetchJSON } from './loader.js';
+import { loadTemplate, instantiate, fetchJSON, loadClip } from './loader.js';
 import { loadKitPack } from './kitPack.js';
 import { LAYOUTS } from './uniform.js';
 import { buildStadium } from './stadium.js';
@@ -22,6 +22,7 @@ export async function start({ cv, base = 'assets/models/' }) {
   const skeletonMap = (await fetchJSON(base + 'skeleton-map.json')) || {}, lay = await fetchJSON(base + 'uniform-layout.json'), layout = lay && lay.type === 'atlas' ? lay : LAYOUTS.wrap;
   await loadKitPack();                                                                              // camisas do pack (assets/kits); sem o pack, usa o uniforme procedural
   const tpl = await loadTemplate(base + 'athlete.glb', { skeletonMap, layout }); let tplG = tpl;
+  const clips = { chute: await loadClip(base + 'anim/chute.glb').catch(e => { console.warn('Clipe do chute indisponível (usa as poses do rig.js):', e); return null; }) };   // animação do Blender (tools/blender/chute.py)
   try { tplG = await loadTemplate(base + 'goalkeeper.glb', { skeletonMap, layout }); } catch (e) { if (e.status !== 404) throw e; console.info('goalkeeper.glb ausente: o goleiro usará athlete.glb com o uniforme de goleiro.'); }
   // 2) WebGL por baixo da tela 2D (que continua desenhando o placar/HUD, transparente)
   const gl = document.createElement('canvas'); gl.id = 'gl'; Object.assign(gl.style, { position: 'absolute', left: '0', top: '0', width: '100%', height: '100%', pointerEvents: 'none' }); cv.parentNode.insertBefore(gl, cv);
@@ -47,7 +48,8 @@ export async function start({ cv, base = 'assets/models/' }) {
     camera.fov = cam.fov; camera.updateProjectionMatrix(); camera.position.set(cam.pos[0] + (shake ? rng()*shake*.12 : 0), cam.pos[1] + (shake ? rng()*shake*.12 : 0), cam.pos[2]); camera.lookAt(J(cam.tgt));
     // personagens: o rig.js define as poses; o GLB as recebe por retargeting
     const fr = characters(game, now, b, k, res, d, bw); let n = 0; field.forEach(i => { i.root.visible = false; }); keeper.root.visible = false;
-    if (fr) fr.list.forEach(ch => { const inst = ch.role === 'keeper' ? keeper : field[n++]; if (!inst) return; inst.root.visible = true; inst.apply(ch.kit, ch.look); inst.pose(humanJoints(ch.P)); });
+    if (fr) fr.list.forEach(ch => { const inst = ch.role === 'keeper' ? keeper : field[n++]; if (!inst) return; inst.root.visible = true; inst.apply(ch.kit, ch.look);
+      const ci = ch.anim && clips[ch.anim.clip]; if (ci) inst.playClip(ci, ci.contact + ch.anim.tc, [BALL0[0], 0, BALL0[2]], Math.PI); else inst.pose(humanJoints(ch.P)); });   // chute: clipe do Blender com o contato no instante em que a bola sai (tc = 0)
     st.ball.visible = !!fr && !fr.final; st.ball.position.set(bw[0], bw[1], bw[2]); if (b) st.ball.rotation.x -= dt*14*(b.t > 0 ? 1 : 0);
     st.updateNet(res === 'gol' && d > 0 ? Math.max(0, 1 - d/.8)*Math.cos(d*22) : 0, b ? goalToWorld(b.gx, b.gy) : [0, 1, 0]); st.updateBoards(now); st.updateCrowd(now, exS, sad); fx.update(now, dt, game);
     renderer.render(scene, camera);

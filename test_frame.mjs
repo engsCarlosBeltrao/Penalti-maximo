@@ -8,6 +8,8 @@ const game = { m: {}, fin: null, t: 2, escolha: [null, null], hum: () => true },
 let fr = characters(game, 5, null, K, undefined, 0, BALL0); t('em espera: kicker + keeper', fr.list.length === 2 && fr.list[0].role === 'kicker' && fr.list[1].role === 'keeper' && !fr.final);
 t('em espera: kicker em "idle"', eq(fr.list[0].P, kickerPose({ mode: 'idle', t: 5 })));
 game.t = .4; fr = characters(game, 5, null, K, undefined, 0, BALL0); t('início da vez: caminhada ("walkin")', eq(fr.list[0].P, kickerPose({ mode: 'walkin', t: .4 })));
+for (const tc of [-.55, 0, .69]) { const b = { gx: .5, gy: .5, t: tc, res: null }, a = characters(game, 5, b, K, undefined, tc - TF, ballWorld(b, K)).list[0].anim; t(`chute tc=${tc}: cobrador marcado para o clipe do Blender no mesmo instante`, a && a.clip === 'chute' && a.tc === Math.max(KICK_T0, tc)); }
+t('fora do chute (espera) não usa o clipe', !characters(game, 5, null, K, undefined, 0, BALL0).list[0].anim);
 for (const tc of [-.55, -.3, -.1, 0, .2, .69]) { const b = { gx: .8, gy: .85, t: tc, res: null }; fr = characters(game, 5, b, K, undefined, tc - TF, ballWorld(b, K)); t(`chute tc=${tc}: pose do cobrador`, eq(fr.list[0].P, kickerPose({ mode: 'kick', tc: Math.max(KICK_T0, tc) }))); }
 let b = { gx: .8, gy: .85, t: 1.1, res: 'gol' }; fr = characters(game, 5, b, K, 'gol', b.t - TF, ballWorld(b, K)); t('reação ao gol (cobrador)', eq(fr.list[0].P, kickerPose({ mode: 'react', d: b.t - TF, type: 'gol' })) && fr.list[1].look.mood === 'sad');
 b = { gx: .8, gy: .85, t: 1.1, res: 'defesa' }; fr = characters(game, 5, b, K, 'defesa', b.t - TF, [0, 1, 0]); t('defesa: goleiro feliz e cobrador em "falha"', fr.list[1].look.mood === 'happy' && fr.list[0].P.lean === .3);

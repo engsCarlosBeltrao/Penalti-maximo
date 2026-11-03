@@ -28,6 +28,15 @@ export async function loadTemplate(url, { skeletonMap = {}, layout = LAYOUTS.wra
   rest.scale = (leg('Left') + leg('Right'))/2/LEG_RIG;                                                                                         // proporção do modelo em relação ao rig.js
   return { url, scene: gltf.scene, animations: gltf.animations, rest, map: R.map, layout, report, shirtUV: (gltf.asset && gltf.asset.extras && gltf.asset.extras.shirtUV) || null, legUV: (gltf.asset && gltf.asset.extras && gltf.asset.extras.legUV) || null };   // shirtUV: mapa vertical gravado pelo prepare-athlete (null em GLB antigo)
 }
+// CLIPES feitos no Blender (tools/blender/*.py): arquivo só com esqueleto + animação, aplicado ao athlete.glb pelos NOMES dos ossos (o modelo não é reexportado).
+// Os extras do nó "Armature" trazem o instante do contato (chute_contato_s) e a posição da bola no espaço do clipe. Sem o arquivo, devolve null.
+export async function loadClip(url) {
+  const res = await fetch(url); if (!res.ok) return null;
+  const gltf = await new GLTFLoader().parseAsync(await res.arrayBuffer(), url.replace(/[^/]*$/, '')), clip = gltf.animations[0]; if (!clip) return null;
+  clip.tracks = clip.tracks.filter(t => !t.name.endsWith('.scale'));                                // escala dos ossos fica a do modelo
+  let ex = {}; gltf.scene.traverse(o => { if (o.userData && o.userData.chute_contato_s != null) ex = o.userData; });
+  return { clip, contact: ex.chute_contato_s ?? 0, ball: ex.bola || [0, .11, 0] };
+}
 // A textura de pele do modelo já é morena (média ~ 0,65/0,47/0,34): multiplicada pela cor do jogador, escurecia todo mundo. Aqui ela vira neutra (mesma média em
 // todos os canais, preservando os detalhes de rosto), para a cor de pele de cada jogador aparecer como na tabela. Uma vez por modelo; as instâncias compartilham a textura.
 function neutralizeSkin(scene, target = .86) {
@@ -44,6 +53,11 @@ export function instantiate(tpl) {
     (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m.name === 'HairCap' || m.name === 'Beard') { hairU[m.name === 'HairCap' ? 'cap' : 'beard'].push(setupHairMaterial(m)); return; } if (m.name === 'Band') { bandMats.push(m); return; }   // shader próprio, fora dos slots
       for (const [s, re] of Object.entries(ALL_SLOTS)) if (re.test(m.name || '')) slots[s].push(m); }); if (/^hair/i.test(o.name)) hair.push(o); else if (/^(beard|must|side)_/i.test(o.name)) beard.push(o); else if (/^acc_/i.test(o.name)) acc.push(o); } });
   CANON.forEach(c => { if (tpl.map[c]) bones[c] = byName[tpl.map[c]]; });
+  const allBones = Object.values(byName), BLEND = .15;                                              // transição entre poses procedurais e clipes (s)
+  const snapshot = () => { const hips = bones.Hips; hips.updateWorldMatrix(true, false); return { q: allBones.map(b => b.quaternion.clone()), p: allBones.map(b => b.position.clone()), hq: hips.getWorldQuaternion(new THREE.Quaternion()), hp: hips.getWorldPosition(new THREE.Vector3()) }; };
+  const rebase = S => { const hips = bones.Hips, i = allBones.indexOf(hips); hips.parent.updateWorldMatrix(true, false); S.q[i] = hips.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(S.hq); S.p[i] = hips.parent.worldToLocal(S.hp.clone()); };   // o quadril no referencial novo (a raiz muda entre os modos)
+  const blendFrom = (S, w) => { if (w >= 1) return; allBones.forEach((b, i) => { b.quaternion.slerpQuaternions(S.q[i], b.quaternion.clone(), w); b.position.lerpVectors(S.p[i], b.position.clone(), w); }); };
+  const sm = u => { u = Math.min(1, Math.max(0, u)); return u*u*(3 - 2*u); };
   const q = new THREE.Quaternion(), pq = new THREE.Quaternion(), p = new THREE.Vector3(), api = {
     root, sig: '', shirtTex: null, hs: 1,
     apply(kit, look) {                                                                                // uniforme + aparência (só recompõe quando algo muda)
@@ -63,10 +77,21 @@ export function instantiate(tpl) {
       hairU.cap.forEach(U => setU(U, hc.top, hc.side)); hairU.beard.forEach(U => setU(U, hc.beard, hc.beard)); acc.forEach(h => { h.visible = !!hc.band; }); bandMats.forEach(m => m.color.set(hc.band || '#ffffff'));
       api.hs = face.height || 1; const wd = (face.build || 1)*api.hs; root.scale.set(wd, api.hs, wd);                // altura e largura individuais (os pés continuam no chão: ver pose)
     },
+    playClip(ci, t, pos, yaw) {                                                                       // toca um clipe do Blender no instante t (s) com o personagem posto em pos, virado yaw
+      if (!api.mixer) api.mixer = new THREE.AnimationMixer(root);
+      const a = api.mixer.clipAction(ci.clip); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; a.enabled = true; a.paused = false; a.setEffectiveWeight(1); if (!a.isScheduled()) a.play();
+      let S = null; if (!api.clipOn && api.posed) S = snapshot();                                       // entrando no clipe: guarda a pose procedural para a transição
+      root.position.set(pos[0], pos[1], pos[2]); root.rotation.set(0, yaw, 0); api.mixer.setTime(Math.max(0, Math.min(ci.clip.duration - 1e-4, t)));
+      if (S) { rebase(S); api.into = { S, t0: t }; } api.clipOn = true; api.blendOut = null;
+      if (api.into) { if (t < api.into.t0) api.into = null; else { blendFrom(api.into.S, sm((t - api.into.t0)/BLEND)); if (t - api.into.t0 >= BLEND) api.into = null; } }
+    },
     pose(J) {                                                                                         // aplica a pose do rig.js: quaternions de mundo → locais, de pai para filho
+      if (api.clipOn) { const S = snapshot(); root.position.set(0, 0, 0); root.rotation.set(0, 0, 0); rebase(S); api.blendOut = { S, t0: performance.now() }; api.clipOn = false; api.into = null; }   // saindo de um clipe: a pose procedural trabalha no espaço do mundo; transição de BLEND s
       const sol = solvePose(tpl.rest, J);
       CANON.forEach(c => { const b = bones[c], W = sol.world[c]; if (!b || !W) return; b.parent.updateWorldMatrix(true, false); b.parent.getWorldQuaternion(pq); q.set(W[0], W[1], W[2], W[3]); b.quaternion.copy(pq.invert().multiply(q));
         if (c === 'Hips') { b.parent.updateWorldMatrix(true, false); p.set(sol.hips[0], sol.hips[1]*(api.hs || 1), sol.hips[2]); b.parent.worldToLocal(p); b.position.copy(p); } b.updateMatrix(); });
+      if (api.blendOut) { const u = (performance.now() - api.blendOut.t0)/1000/BLEND; blendFrom(api.blendOut.S, sm(u)); if (u >= 1) api.blendOut = null; }
+      api.posed = true;
     },
     dispose() { if (api.shirtTex) api.shirtTex.dispose(); }
   };

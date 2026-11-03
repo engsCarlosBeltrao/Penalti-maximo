@@ -25,4 +25,9 @@
   Usam os materiais `HairCap`, `Beard` e `Band` e o atributo `_HAIR` (cobertura, tom, u, v), lidos pelo shader de `js/three/hairMaterial.js` (degradê que mistura com a pele, textura de fios, duas cores, mechas, grisalho).
   A aparência de cada titular (penteado, cores, barba, bigode, costeleta, tom de pele) está em `js/lineups/appearance.js`. A textura de pele é neutralizada ao carregar (`loader.js → neutralizeSkin`) para o tom de cada jogador aparecer certo.
 - **Peso:** ≤ 25 000 triângulos; texturas ≤ 2048 px; todas as malhas com pesos de osso (JOINTS_0/WEIGHTS_0).
-- **Animações embutidas:** nenhuma é obrigatória. Opcional: `Idle`, `Walk`, `Run` (laços). Chute, defesas e comemorações são feitos pelo jogo (ver `INTEGRACAO_3D.md`).
+- **Animações embutidas:** nenhuma é obrigatória. Opcional: `Idle`, `Walk`, `Run` (laços). Defesas e comemorações são feitas pelo jogo (`rig.js`); o chute vem de um clipe do Blender (abaixo).
+- **Animações feitas no Blender (`assets/models/anim/`):** arquivos **só com esqueleto + clipe**, aplicados ao `athlete.glb` pelos nomes dos ossos — o modelo (malhas, materiais, cabelos, `_HAIR`, extras `shirtUV`/`legUV`) **não é reexportado** (a ida e volta pelo Blender perde esses extras e transforma `_HAIR` em cor de vértice).
+  `chute.glb` (clipe "Chute", 30 fps, 38 quadros, contato no quadro 17) é gerado por:
+  `"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --factory-startup --python-exit-code 1 -P tools/blender/chute.py -- assets/models/athlete.glb assets/models/anim/chute.glb .claude/skills`
+  (IK nas pernas, pé de apoio travado, quadros-chave em Bézier, bake pelo `bake_action.py` da skill blender-animation). O script imprime medidas: distância do pé à bola no contato, deriva do pé de apoio, quadro do pico de velocidade e se algo atravessa o gramado.
+  No jogo, `loader.js → loadClip/playClip` toca o clipe no cobrador com o contato no instante em que a bola sai (`tc = 0` em `frame.js`), com transição de 0,15 s na entrada e na saída. Sem o arquivo, o chute volta às poses de `rig.js`.

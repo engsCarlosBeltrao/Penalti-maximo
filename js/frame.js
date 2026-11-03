@@ -43,6 +43,6 @@ export function characters(game, now, b, k, res, d, bw) {
   const kt = GS.cobrador === 0 ? ta : tb, dt2 = GS.cobrador === 0 ? tb : ta, p = pickKicker(kt, GS.cobranca, game.escolha[GS.cobrador]);
   const m = !b ? (game.t < .9 ? { mode: 'walkin', t: game.t } : { mode: 'idle', t: now }) : b.t <= TF ? { mode: 'kick', tc: Math.max(KICK_T0, b.t) } : { mode: 'react', d: b.t - TF, type: res === 'gol' ? 'gol' : 'falha' };
   const kp = keeperPose(k, b, res, d, now, b && b.t > 0 ? bw : null);
-  return { final: false, list: [{ role: 'kicker', P: kickerPose(m), kit: { ...kt, sh: kt.c2, variant: GS.cobrador === 1 ? 'away' : 'home' }, look: withFace(p) },
+  return { final: false, list: [{ role: 'kicker', P: kickerPose(m), anim: m.mode === 'kick' ? { clip: 'chute', tc: m.tc } : null, kit: { ...kt, sh: kt.c2, variant: GS.cobrador === 1 ? 'away' : 'home' }, look: withFace(p) },
     { role: 'keeper', P: kp.P, kit: gkKit(dt2), look: keeperLook(dt2, kp.info.happy ? 'happy' : kp.info.sad ? 'sad' : 'neutral') }] };
 }

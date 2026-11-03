@@ -20,4 +20,16 @@ r = inspect(new Uint8Array(makeGLB({ dropBones: ['Spine1', 'Spine2', 'LeftToeBas
 r = inspect(new Uint8Array(makeGLB({ extensionsRequired: ['KHR_draco_mesh_compression'] }))); t('Draco é recusado (sem decodificador)', !r.ok && r.errors.some(e => /Draco/.test(e)));
 let threw = false; try { parseGLB(new Uint8Array(Buffer.from('isto não é um glb'))); } catch { threw = true; } t('arquivo que não é GLB gera erro claro', threw);
 r = inspect(makeGLB(), { skeletonMap: {} }); t('relatório lista materiais e ossos', Object.keys(r.info.bones).length === 22 && r.info.materialSlots.shirt === 'Shirt');
+// ---- clipe do chute feito no Blender (tools/blender/chute.py) aplicado ao athlete.glb pelos nomes dos ossos ----
+if (fs.existsSync('assets/models/anim/chute.glb')) {
+  const { readModel, readAccessor } = await load('gltf-io.mjs'), O = readModel('assets/models/athlete.glb').json, C = readModel('assets/models/anim/chute.glb'), cj = C.json, A = cj.animations || [];
+  t('chute.glb: um clipe "Chute"', A.length === 1 && A[0].name === 'Chute');
+  const skel = new Set(O.skins[0].joints.map(i => O.nodes[i].name)), tgt = [...new Set(A[0].channels.map(c => cj.nodes[c.target.node].name))];
+  t('chute.glb: todos os ossos animados existem no esqueleto do athlete.glb (65)', tgt.length === 65 && tgt.every(n => skel.has(n)));
+  t('chute.glb: só esqueleto + animação (nenhuma malha, material ou pele)', !(cj.meshes || []).length && !(cj.materials || []).length && !(cj.skins || []).length);
+  const rot = j => Object.fromEntries(j.nodes.map(n => [n.name, n.rotation || [0, 0, 0, 1]])), ro = rot(O), rc = rot(cj);
+  t('chute.glb: esqueleto de repouso igual ao do athlete.glb (< 0,1°)', tgt.every(n => Math.acos(Math.min(1, Math.abs(ro[n].reduce((s, v, i) => s + v*rc[n][i], 0))))*360/Math.PI < .1));
+  const ex = cj.nodes.find(n => n.name === 'Armature').extras || {}, dur = Math.max(...A[0].samplers.map(s => readAccessor(C, s.input).flat().pop()));
+  t('chute.glb: quadro do contato gravado (17/30 s) e clipe cobre até a reação (contato + 0,7 s)', Math.abs(ex.chute_contato_s - 17/30) < 1e-6 && dur >= ex.chute_contato_s + .7 - 1e-3);
+}
 console.log(`GLB OK ${ok} | FALHAS ${bad}`); process.exit(bad ? 1 : 0);
