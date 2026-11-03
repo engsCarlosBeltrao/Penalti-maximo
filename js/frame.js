@@ -5,12 +5,18 @@ import { pickKicker, keeperOf } from './players.js';
 import { lerp } from './vec.js';
 import { kickerPose, keeperPose, cheerPose, dejectedPose, goalToWorld, BALL0, BALL_R, SPOT_Z, KICK_T0, CLIP_END, sm } from './rig.js';
 import { faceOf, SKINS, HAIRC } from './face.js';
+import { clipStart, clipEnd } from './kicks.js';
 export const TF = .7, HS = ['short', 'long', 'bald', 'afro'], KC = ['#00c853', '#ff4fd8', '#ffd23f', '#27e1ff', '#ff7a1a'];
+export const flightTime = b => (b && b.tf) || TF;   // tempo de voo da cobrança (depende do tipo: js/kicks.js)
+const DRAG = .18;                                    // arrasto: a bola chega ao gol com ~84% da velocidade inicial
 export const kcol = t => KC[(t.id + 2) % 5] === t.c1 ? KC[0] : KC[(t.id + 2) % 5];
 export function ballWorld(b, k) {
-  if (!b || b.t <= 0) return BALL0.slice(); const T = goalToWorld(b.gx, b.gy); T[1] = Math.max(BALL_R, T[1]);
-  if (b.t < TF) { const u = b.t/TF, e = 1 - (1 - u)*(1 - u); return [T[0]*e, BALL_R + (T[1] - BALL_R)*e + (.35 + .5*b.gy)*Math.sin(Math.PI*e), SPOT_Z*(1 - e)]; }   // passa EXATAMENTE pelo ponto da mira
-  const d = b.t - TF, g = 4.9;
+  if (!b || b.t <= 0) return BALL0.slice(); const T = goalToWorld(b.gx, b.gy); T[1] = Math.max(BALL_R, T[1]); const tf = flightTime(b);
+  if (b.t < tf) {                                    // voo: avanço com arrasto; altura balística (gravidade real) que passa EXATAMENTE pelo ponto da mira no instante tf;
+    const t = b.t, u = t/tf, e = (1 - Math.exp(-DRAG*u))/(1 - Math.exp(-DRAG)), h = T[1] - BALL_R, gw = 9.81*sm((h - .05)/.35), vy = (h + gw*tf*tf/2)/tf;   // chute rasteiro: rola (sem arco)
+    return [T[0]*e + (b.curl || 0)*Math.sin(Math.PI*e), BALL_R + vy*t - gw*t*t/2, SPOT_Z*(1 - e)];   // curl: efeito da parte interna do pé (chapada)
+  }
+  const d = b.t - tf, g = 4.9;
   if (b.res === 'gol') return [T[0] + (T[0]/3.66)*.25*d, Math.max(BALL_R, T[1] - g*d*d*.5), -1.6*(1 - Math.exp(-d*3.5))];
   if (b.res === 'defesa') { const sg = Math.sign(k.tx - .5) || (T[0] < 0 ? -1 : 1); return [T[0] + sg*2.6*d, Math.max(BALL_R, T[1] + 2.2*d - g*d*d), 3.2*d]; }
   if (b.res === 'trave') { const sx = -Math.sign(T[0] || 1); return [T[0] + sx*1.2*d, Math.max(BALL_R, T[1] + (b.gy > .95 ? -.5 : 2)*d - g*d*d), 4.5*d]; }
@@ -21,7 +27,11 @@ export function camTarget(game, b, bw, res, d) {
   if (b && res && d > 0) { const T = goalToWorld(b.gx, b.gy); return { pos: [T[0]*.3 + 1.2, 2.7, 19.5], tgt: [T[0]*.5, 1.2, 0], fov: 31 }; }                // gol / defesa: aproxima do gol e da torcida
   if (b && b.t > 0) return { pos: [bw[0]*.15, 3.1, 24], tgt: [bw[0]*.5, bw[1]*.5 + .6, Math.min(1, bw[2]*.3)], fov: 25 };                                  // acompanha a bola
   if (!b && game.t < .9) { const u = sm(game.t/.9); return { pos: lerp([5, 4.2, 29], [0, 3.3, 25], u), tgt: [0, 1.0, 1], fov: 31 - 4*u }; }                    // apresentação / preparação
-  return { pos: [0, 3.3, game.dec ? 23.5 : 25], tgt: [0, 1.0, 1], fov: game.dec ? 25.5 : 27 };                                                                  // mira estável
+  const base = { pos: [0, 3.3, game.dec ? 23.5 : 25], tgt: [0, 1.0, 1], fov: game.dec ? 25.5 : 27 };                                                             // mira estável
+  const ks = game.kick; if (!ks || !ks.clip) return base;                                                                                                        // cobrador que parte de longe (ex.: Gabigol, ~9 m): a câmera recua e abre para mostrá-lo,
+  const st = clipStart(ks.clip).root, sx = ks.pe === 'l' ? -st[0] : st[0], u = b ? Math.min(1, Math.max(0, 1 - b.t/ks.t0)) : 0;                              // e volta ao enquadramento normal conforme ele chega à bola
+  const kx = sx*(1 - u), kz = SPOT_Z + (st[2] - SPOT_Z)*(1 - u), e = Math.min(1, Math.max(0, (Math.hypot(kx, kz - SPOT_Z) - 4.4)/4.6));
+  return e <= 0 ? base : { pos: [kx*.55*e, base.pos[1] + .6*e, base.pos[2] + 4.5*e], tgt: [kx*.25*e, .85, 1 + 2*e], fov: base.fov + 9*e };
 }
 // Aparência individual: o atleta (js/lineups) define pele, cabelo, barba, largura e altura; o resto do rosto vem de faceOf (determinístico). Cache por jogador: o quadro é montado a cada frame.
 const faceCache = new Map();
@@ -41,8 +51,10 @@ export function characters(game, now, b, k, res, d, bw) {
     return { final: true, list };
   }
   const kt = GS.cobrador === 0 ? ta : tb, dt2 = GS.cobrador === 0 ? tb : ta, p = pickKicker(kt, GS.cobranca, game.escolha[GS.cobrador]);
-  const m = !b ? (game.t < .9 ? { mode: 'walkin', t: game.t } : { mode: 'idle', t: now }) : b.t <= TF ? { mode: 'kick', tc: Math.max(KICK_T0, b.t) } : { mode: 'react', d: b.t - TF, type: res === 'gol' ? 'gol' : 'falha' };
+  const ks = game.kick, c = ks && ks.clip, tf = flightTime(b), t0 = b?.t0 ?? ks?.t0 ?? KICK_T0, mv = game.kmove;   // cobrança escolhida (js/kicks.js): clipe, início/fim, canhoto
+  const m = !b ? (mv ? { mode: 'walkin', t: mv.t, dur: mv.dur, from: mv.from } : game.t < .9 ? { mode: 'walkin', t: game.t } : { mode: 'idle', t: now }) : b.t <= tf ? { mode: 'kick', tc: Math.max(t0, b.t), t0 } : { mode: 'react', d: b.t - tf, type: res === 'gol' ? 'gol' : 'falha' };
+  if (c) Object.assign(m, { start: clipStart(c), end: clipEnd(c), mirror: ks.pe === 'l' });
   const kp = keeperPose(k, b, res, d, now, b && b.t > 0 ? bw : null);
-  return { final: false, list: [{ role: 'kicker', P: kickerPose(m), anim: b && b.t <= CLIP_END ? { clip: 'chute', tc: Math.max(KICK_T0, b.t) } : null, kit: { ...kt, sh: kt.c2, variant: GS.cobrador === 1 ? 'away' : 'home' }, look: withFace(p) },
+  return { final: false, list: [{ role: 'kicker', P: kickerPose(m), anim: b && b.t <= (ks ? ks.t1 : CLIP_END) ? { clip: ks ? ks.id : 'chute', tc: Math.max(t0, b.t) } : null, kit: { ...kt, sh: kt.c2, variant: GS.cobrador === 1 ? 'away' : 'home' }, look: withFace(p) },
     { role: 'keeper', P: kp.P, kit: gkKit(dt2), look: keeperLook(dt2, kp.info.happy ? 'happy' : kp.info.sad ? 'sad' : 'neutral') }] };
 }

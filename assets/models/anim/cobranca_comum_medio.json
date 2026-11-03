@@ -1,0 +1,181 @@
+{
+ "id": "comum_medio",
+ "estilo": "comum",
+ "tipo": "medio",
+ "pe": "r",
+ "arquivo": "cobranca_comum_medio.glb",
+ "t0": -1.3,
+ "t1": 1.0,
+ "contato_s": 1.3,
+ "fps": 60,
+ "toque": [
+  0.0284,
+  0.1075,
+  -0.1052
+ ],
+ "inicio": {
+  "S": [
+   2.3782,
+   3.3989
+  ],
+  "AP": -35
+ },
+ "fim": {
+  "pelve": [
+   0.05,
+   -0.95
+  ],
+  "apoio": [
+   0.2,
+   -0.98
+  ],
+  "chute": [
+   -0.1,
+   -0.92
+  ]
+ },
+ "vel_pe_contato_m_s": 21.2,
+ "relatorio": {
+  "clipe": "comum_medio",
+  "pe": "r",
+  "fps": 60,
+  "t0": -1.3,
+  "t1": 1.0,
+  "frames": 139,
+  "contact_frame": 78,
+  "contato": {
+   "chuteira_bola_mm": -1.0,
+   "material": "Sole",
+   "ponto_local_pe": [
+    0.013,
+    0.131,
+    -0.051
+   ],
+   "quadro_antes_mm": 335.3,
+   "menor_antes_mm": 335.3,
+   "recuo_tornozelo_m": 0.0366,
+   "tecnica": "peito"
+  },
+  "vel_ponta_pe": {
+   "pico_quadro_rel": -1,
+   "pico_m_s": 21.6,
+   "no_contato_m_s": 21.2
+  },
+  "joelho_chute_graus": {
+   "max_recuo": 126.8,
+   "contato": 62.2
+  },
+  "apoios_deriva_mm": [
+   [
+    "l",
+    -1.3,
+    -1.02,
+    0.0
+   ],
+   [
+    "l",
+    -0.6,
+    -0.522,
+    0.0
+   ],
+   [
+    "l",
+    -0.057,
+    0.16,
+    0.0
+   ],
+   [
+    "l",
+    0.58,
+    1.0,
+    0.0
+   ],
+   [
+    "r",
+    -1.3,
+    -1.2,
+    0.0
+   ],
+   [
+    "r",
+    -0.89,
+    -0.796,
+    0.0
+   ],
+   [
+    "r",
+    -0.34,
+    -0.233,
+    0.0
+   ],
+   [
+    "r",
+    0.46,
+    0.6,
+    0.0
+   ],
+   [
+    "r",
+    0.92,
+    1.0,
+    0.0
+   ]
+  ],
+  "max_deriva_apoio_mm": 0.0,
+  "erro_ik_apoio": {
+   "l": [
+    0.0,
+    138
+   ],
+   "r": [
+    0.0,
+    138
+   ]
+  },
+  "fim": {
+   "vel_pelve_ultimo_quadro_m_s": 0.0,
+   "pelve_parada_desde_tc": 0.95,
+   "pelve_menos_meio_dos_pes_m": [
+    0.0,
+    -0.0
+   ],
+   "base_pes_m": 0.306
+  },
+  "pe_mais_baixo_z_m": 0.008,
+  "pe_mais_baixo_tc": 0.0,
+  "pe_mais_baixo_qual": "toe_r",
+  "aceleracao_max_m_s2": {
+   "pelvis": [
+    117.1,
+    -0.133
+   ],
+   "Head": [
+    104.7,
+    0.133
+   ],
+   "hand_l": [
+    184.6,
+    -0.167
+   ],
+   "hand_r": [
+    233.8,
+    -0.117
+   ],
+   "calf_l": [
+    299.1,
+    -0.133
+   ],
+   "calf_r": [
+    214.8,
+    -0.183
+   ]
+  },
+  "passos_aproximacao": 3,
+  "pelve_abaixada_alcance_cm": [
+   -0.0,
+   -1.3
+  ],
+  "distancia_inicio_bola_m": 4.15,
+  "duracao_aproximacao_s": 1.3
+ }
+}

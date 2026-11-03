@@ -4,7 +4,8 @@ import * as THREE from 'three';
 import { Renderer } from '../renderer.js';
 import { Events } from '../events.js';
 import { GS } from '../gameState.js';
-import { TF, ballWorld, camTarget, characters } from '../frame.js';
+import { flightTime, ballWorld, camTarget, characters } from '../frame.js';
+import { KICK_CLIPS } from '../kickClips.js';
 import { humanJoints, goalToWorld, GOAL_W, GOAL_H, BALL0 } from '../rig.js';
 import { hud } from '../hud.js';
 import { AIM_LIM } from '../aim.js';
@@ -22,7 +23,14 @@ export async function start({ cv, base = 'assets/models/' }) {
   const skeletonMap = (await fetchJSON(base + 'skeleton-map.json')) || {}, lay = await fetchJSON(base + 'uniform-layout.json'), layout = lay && lay.type === 'atlas' ? lay : LAYOUTS.wrap;
   await loadKitPack();                                                                              // camisas do pack (assets/kits); sem o pack, usa o uniforme procedural
   const tpl = await loadTemplate(base + 'athlete.glb', { skeletonMap, layout }); let tplG = tpl;
-  const clips = { chute: await loadClip(base + 'anim/chute.glb').catch(e => { console.warn('Clipe do chute indisponível (usa as poses do rig.js):', e); return null; }) };   // animação do Blender (tools/blender/chute.py)
+  // clipes das cobranças (tools/blender/cobranca.py; um por estilo × tipo), carregados sob demanda e pré-carregados em segundo plano;
+  // chute.glb (tools/blender/chute.py) é o médio de referência: substitui comum_medio se este faltar. Sem clipe, o chute volta às poses do rig.js.
+  const clips = {}, loading = {}, fail = e => { console.warn('Clipe de cobrança indisponível (usa as poses do rig.js):', e); return null; };
+  const want = id => { if (id in clips || loading[id]) return clips[id] || null; const c = KICK_CLIPS[id], url = c ? base + 'anim/' + c.arquivo : base + 'anim/chute.glb';
+    loading[id] = loadClip(url).then(ci => ci || (id === 'comum_medio' ? loadClip(base + 'anim/chute.glb') : null)).catch(fail).then(ci => { clips[id] = ci; delete loading[id]; return ci; }); return null; };
+  clips.chute = await loadClip(base + 'anim/chute.glb').catch(fail);
+  await Promise.all(['comum_medio', 'comum_chapada', 'comum_bomba'].map(id => (want(id), loading[id])));   // os comuns já prontos; os dos craques chegam em segundo plano
+  Object.keys(KICK_CLIPS).forEach(want);
   try { tplG = await loadTemplate(base + 'goalkeeper.glb', { skeletonMap, layout }); } catch (e) { if (e.status !== 404) throw e; console.info('goalkeeper.glb ausente: o goleiro usará athlete.glb com o uniforme de goleiro.'); }
   // 2) WebGL por baixo da tela 2D (que continua desenhando o placar/HUD, transparente)
   const gl = document.createElement('canvas'); gl.id = 'gl'; Object.assign(gl.style, { position: 'absolute', left: '0', top: '0', width: '100%', height: '100%', pointerEvents: 'none' }); cv.parentNode.insertBefore(gl, cv);
@@ -43,13 +51,13 @@ export async function start({ cv, base = 'assets/models/' }) {
   }
   function drawScene(c, game) {
     const now = performance.now()/1000, dt = Math.min(.05, now - last || .016); last = now; exS = exS.map(v => Math.max(0, v - dt*.5)); sad = sad.map(v => Math.max(0, v - dt*.4)); shake = Math.max(0, shake - dt*2.2);
-    const b = game.fin ? null : game.ball, k = game.keeper, res = b?.res, d = b ? b.t - TF : 0, bw = ballWorld(b, k), T = camTarget(game, b, bw, res, d), f = 1 - Math.exp(-3*dt);
+    const b = game.fin ? null : game.ball, k = game.keeper, res = b?.res, d = b ? b.t - flightTime(b) : 0, bw = ballWorld(b, k), T = camTarget(game, b, bw, res, d), f = 1 - Math.exp(-3*dt);
     cam.pos = lerp(cam.pos, T.pos, f); cam.tgt = lerp(cam.tgt, T.tgt, f); cam.fov += (T.fov - cam.fov)*f; if (DBG.cam) cam = { pos: DBG.cam.pos.slice(), tgt: DBG.cam.tgt.slice(), fov: DBG.cam.fov };
     camera.fov = cam.fov; camera.updateProjectionMatrix(); camera.position.set(cam.pos[0] + (shake ? rng()*shake*.12 : 0), cam.pos[1] + (shake ? rng()*shake*.12 : 0), cam.pos[2]); camera.lookAt(J(cam.tgt));
     // personagens: o rig.js define as poses; o GLB as recebe por retargeting
     const fr = characters(game, now, b, k, res, d, bw); let n = 0; field.forEach(i => { i.root.visible = false; }); keeper.root.visible = false;
     if (fr) fr.list.forEach(ch => { const inst = ch.role === 'keeper' ? keeper : field[n++]; if (!inst) return; inst.root.visible = true; inst.apply(ch.kit, ch.look);
-      const ci = ch.anim && clips[ch.anim.clip]; if (ci) inst.playClip(ci, ci.contact + ch.anim.tc, [BALL0[0], 0, BALL0[2]], Math.PI); else inst.pose(humanJoints(ch.P)); });   // chute: clipe do Blender com o contato no instante em que a bola sai (tc = 0)
+      const ci = ch.anim && (want(ch.anim.clip) || (ch.anim.clip === 'comum_medio' ? clips.chute : null)); if (ci) inst.playClip(ci, ci.contact + ch.anim.tc, [BALL0[0], 0, BALL0[2]], Math.PI); else inst.pose(humanJoints(ch.P)); });   // chute: clipe do Blender com o contato no instante em que a bola sai (tc = 0)
     st.ball.visible = !!fr && !fr.final; st.ball.position.set(bw[0], bw[1], bw[2]); if (b) st.ball.rotation.x -= dt*14*(b.t > 0 ? 1 : 0);
     st.updateNet(res === 'gol' && d > 0 ? Math.max(0, 1 - d/.8)*Math.cos(d*22) : 0, b ? goalToWorld(b.gx, b.gy) : [0, 1, 0]); st.updateBoards(now); st.updateCrowd(now, exS, sad); fx.update(now, dt, game);
     renderer.render(scene, camera);

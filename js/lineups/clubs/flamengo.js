@@ -9,9 +9,9 @@ export const L_flamengo = {
     { n: 4, name: "Léo Pereira", pos: "CB" },
     { n: 13, name: "Danilo", pos: "CB" },
     { n: 6, name: "Ayrton Lucas", pos: "LB" },
-    { n: 21, name: "Jorginho", pos: "DM" },
+    { n: 21, name: "Jorginho", pos: "DM", foot: "right" },   // pé: Transfermarkt (perfil 102017), conferido em 02/11/2026
     { n: 11, name: "Lucas Paquetá", nick: "Paquetá", pos: "AM", star: true, r: 87, cel: "confident" },
-    { n: 10, name: "Giorgian de Arrascaeta", nick: "Arrascaeta", pos: "AM", star: true, r: 90, cel: "crest" },
+    { n: 10, name: "Giorgian de Arrascaeta", nick: "Arrascaeta", pos: "AM", star: true, r: 90, cel: "crest", foot: "right" },   // pé: Transfermarkt (perfil 248410), conferido em 02/11/2026
     { n: 7, name: "Luiz Araújo", pos: "RW" },
     { n: 27, name: "Bruno Henrique", pos: "LW" },
     { n: 9, name: "Pedro", pos: "ST", star: true, r: 86, cel: "arms" }

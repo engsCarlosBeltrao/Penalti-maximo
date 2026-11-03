@@ -7,4 +7,5 @@ export const Events = {
     [...(h['*'] || []), ...(h[t] || [])].forEach(f => { try { f(e); } catch (x) { console.error(x); } });
   }
 };
-// Eventos: partida_iniciada, gol, defesa, fora, trave, placar_alterado, cobranca_mudou, partida_encerrada, vitoria, derrota, partida_reiniciada
+// Eventos: partida_iniciada, gol, defesa, fora, trave, placar_alterado, cobranca_mudou, partida_encerrada, vitoria, derrota, partida_reiniciada,
+// chute { equipe, tipoCobranca, estilo }, tipo_cobranca { tipoCobranca, estilo }  (o campo "tipo" é reservado ao nome do evento)

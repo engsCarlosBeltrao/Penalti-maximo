@@ -80,8 +80,9 @@ export function instantiate(tpl) {
     },
     playClip(ci, t, pos, yaw) {                                                                       // toca um clipe do Blender no instante t (s) com o personagem posto em pos, virado yaw
       if (!api.mixer) api.mixer = new THREE.AnimationMixer(root);
-      const a = api.mixer.clipAction(ci.clip); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; a.enabled = true; a.paused = false; a.setEffectiveWeight(1); if (!a.isScheduled()) a.play();
-      let S = null; if (!api.clipOn && api.posed) S = snapshot();                                       // entrando no clipe: guarda a pose procedural para a transição
+      let S = null; if (!api.clipOn && api.posed) S = snapshot();                                       // entrando no clipe: guarda a pose procedural para a transição (ANTES de trocar de clipe)
+      if (api.curClip && api.curClip !== ci.clip) { api.mixer.stopAllAction(); api.mixer.uncacheClip(api.curClip); }   // outro clipe (outra cobrança): só um ativo por vez; stopAllAction restaura um estado antigo dos ossos, por isso a foto vem antes
+      api.curClip = ci.clip; const a = api.mixer.clipAction(ci.clip); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; a.enabled = true; a.paused = false; a.setEffectiveWeight(1); if (!a.isScheduled()) a.play();
       root.position.set(pos[0], pos[1], pos[2]); root.rotation.set(0, yaw, 0);
       if (ci.touch) { const c = new THREE.Vector3(...ci.touch); root.position.add(c.clone().sub(c.clone().multiply(root.scale)).applyAxisAngle(Y_AXIS, yaw)); }   // altura/largura do atleta: o ponto de toque da chuteira continua na bola
       api.mixer.setTime(Math.max(0, Math.min(ci.clip.duration - 1e-4, t)));

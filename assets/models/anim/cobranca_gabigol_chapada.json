@@ -1,0 +1,232 @@
+{
+ "id": "gabigol_chapada",
+ "estilo": "gabigol",
+ "tipo": "chapada",
+ "pe": "l",
+ "arquivo": "cobranca_gabigol_chapada.glb",
+ "t0": -4.766666666666667,
+ "t1": 1.0,
+ "contato_s": 4.766666666666667,
+ "fps": 60,
+ "toque": [
+  0.016,
+  0.0761,
+  -0.1024
+ ],
+ "inicio": {
+  "S": [
+   3.8781,
+   8.0453
+  ],
+  "AP": -25.6
+ },
+ "fim": {
+  "pelve": [
+   0.08,
+   -0.65
+  ],
+  "apoio": [
+   0.18,
+   -0.68
+  ],
+  "chute": [
+   -0.1,
+   -0.64
+  ]
+ },
+ "vel_pe_contato_m_s": 14.0,
+ "relatorio": {
+  "clipe": "gabigol_chapada",
+  "pe": "l",
+  "fps": 60,
+  "t0": -4.766666666666667,
+  "t1": 1.0,
+  "frames": 347,
+  "contact_frame": 286,
+  "contato": {
+   "chuteira_bola_mm": -1.0,
+   "material": "Boots",
+   "ponto_local_pe": [
+    0.039,
+    0.105,
+    -0.011
+   ],
+   "quadro_antes_mm": 211.2,
+   "menor_antes_mm": 211.2,
+   "recuo_tornozelo_m": -0.0067,
+   "tecnica": "chapa"
+  },
+  "vel_ponta_pe": {
+   "pico_quadro_rel": 0,
+   "pico_m_s": 14.0,
+   "no_contato_m_s": 14.0
+  },
+  "joelho_chute_graus": {
+   "max_recuo": 76.0,
+   "contato": 35.2
+  },
+  "apoios_deriva_mm": [
+   [
+    "l",
+    -4.767,
+    -4.66,
+    0.0
+   ],
+   [
+    "l",
+    -4.35,
+    -4.082,
+    0.0
+   ],
+   [
+    "l",
+    -3.55,
+    -3.282,
+    0.0
+   ],
+   [
+    "l",
+    -2.75,
+    -2.474,
+    0.0
+   ],
+   [
+    "l",
+    -1.92,
+    -1.636,
+    0.0
+   ],
+   [
+    "l",
+    -1.06,
+    -0.546,
+    0.0
+   ],
+   [
+    "l",
+    -0.09,
+    0.36,
+    0.0
+   ],
+   [
+    "l",
+    0.68,
+    1.0,
+    0.0
+   ],
+   [
+    "r",
+    -4.767,
+    -4.437,
+    0.0
+   ],
+   [
+    "r",
+    -3.95,
+    -3.682,
+    0.0
+   ],
+   [
+    "r",
+    -3.15,
+    -2.882,
+    0.0
+   ],
+   [
+    "r",
+    -2.34,
+    -2.056,
+    0.0
+   ],
+   [
+    "r",
+    -1.5,
+    -0.72,
+    0.0
+   ],
+   [
+    "r",
+    -0.36,
+    -0.25,
+    0.0
+   ],
+   [
+    "r",
+    0.4,
+    0.7,
+    0.0
+   ],
+   [
+    "r",
+    0.96,
+    1.0,
+    0.0
+   ]
+  ],
+  "max_deriva_apoio_mm": 0.0,
+  "erro_ik_apoio": {
+   "l": [
+    0.0001,
+    280
+   ],
+   "r": [
+    0.0,
+    346
+   ]
+  },
+  "fim": {
+   "vel_pelve_ultimo_quadro_m_s": 0.0,
+   "pelve_parada_desde_tc": 0.883,
+   "pelve_menos_meio_dos_pes_m": [
+    0.04,
+    0.01
+   ],
+   "base_pes_m": 0.283
+  },
+  "pe_mais_baixo_z_m": 0.003,
+  "pe_mais_baixo_tc": 0.817,
+  "pe_mais_baixo_qual": "toe_r",
+  "aceleracao_max_m_s2": {
+   "pelvis": [
+    98.0,
+    -0.167
+   ],
+   "Head": [
+    92.9,
+    -0.167
+   ],
+   "hand_l": [
+    261.8,
+    -0.883
+   ],
+   "hand_r": [
+    375.7,
+    -0.883
+   ],
+   "calf_l": [
+    295.3,
+    -0.2
+   ],
+   "calf_r": [
+    330.6,
+    -2.4
+   ]
+  },
+  "passos_aproximacao": 10,
+  "pelve_abaixada_alcance_cm": [
+   4.7,
+   -1.667
+  ],
+  "distancia_inicio_bola_m": 8.93,
+  "duracao_aproximacao_s": 4.767,
+  "hesitacao": {
+   "duracao_s": 0.35,
+   "vel_media_pelve_m_s": 0.292
+  },
+  "contato_canhoto": {
+   "chuteira_bola_mm": -1.0,
+   "quadro_antes_mm": 211.2
+  },
+  "canhoto_deriva_apoio_plantio_mm": 0.0
+ }
+}
