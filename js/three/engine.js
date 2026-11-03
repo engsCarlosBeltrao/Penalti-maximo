@@ -33,6 +33,8 @@ export async function start({ cv, base = 'assets/models/' }) {
   await Promise.all(['comum_medio', 'comum_chapada', 'comum_bomba'].map(id => (want(id), loading[id])));   // os comuns já prontos; os dos craques chegam em segundo plano
   Object.keys(KICK_CLIPS).forEach(want);
   const idle = { r: await loadClip(base + 'anim/repouso_r.glb').catch(fail), l: await loadClip(base + 'anim/repouso_l.glb').catch(fail) };   // repouso do cobrador (tools/blender/repouso.py)
+  const reac = {};                                                                                  // entrada, comemoração e frustração (tools/blender/reacoes.py)
+  for (const n of ['entrada', 'gol', 'perdeu']) for (const pe of ['r', 'l']) reac[n + '_' + pe] = await loadClip(base + `anim/${n}_${pe}.glb`).catch(fail);
   try { tplG = await loadTemplate(base + 'goalkeeper.glb', { skeletonMap, layout }); } catch (e) { if (e.status !== 404) throw e; console.info('goalkeeper.glb ausente: o goleiro usará athlete.glb com o uniforme de goleiro.'); }
   // 2) WebGL por baixo da tela 2D (que continua desenhando o placar/HUD, transparente)
   const gl = document.createElement('canvas'); gl.id = 'gl'; Object.assign(gl.style, { position: 'absolute', left: '0', top: '0', width: '100%', height: '100%', pointerEvents: 'none' }); cv.parentNode.insertBefore(gl, cv);
@@ -63,6 +65,7 @@ export async function start({ cv, base = 'assets/models/' }) {
     if (fr) fr.list.forEach(ch => { const inst = ch.role === 'keeper' ? keeper : field[n++]; if (!inst) return; inst.root.visible = true; inst.apply(ch.kit, ch.look);
       const an = ch.anim, ic = an && an.idle && idle[an.pe], rc = ic && an.ready.w > 0 && want(an.ready.clip);
       if (ic) inst.playIdle(ic, an.t, an.pos, an.yaw, rc ? { ci: rc, w: an.ready.w, pos: [BALL0[0], 0, BALL0[2]], yaw: Math.PI } : null);   // repouso / carregando
+      else if (an && reac[an.clip + '_' + an.pe]) inst.playClip(reac[an.clip + '_' + an.pe], an.t, an.pos, an.yaw, an.blend);
       else { const ci = an && !an.idle && (want(an.clip) || (an.clip === 'comum_medio' ? clips.chute : null)); if (ci) inst.playClip(ci, ci.contact + an.tc, [BALL0[0], 0, BALL0[2]], Math.PI); else inst.pose(humanJoints(ch.P)); } });   // chute: clipe do Blender com o contato no instante em que a bola sai (tc = 0)
     st.ball.visible = !!fr && !fr.final; st.ball.position.set(bw[0], bw[1], bw[2]); if (b) st.ball.rotation.x -= dt*14*(b.t > 0 ? 1 : 0);
     st.updateNet(res === 'gol' && d > 0 ? Math.max(0, 1 - d/.8)*Math.cos(d*22) : 0, b ? goalToWorld(b.gx, b.gy) : [0, 1, 0]); st.updateBoards(now); st.updateCrowd(now, exS, sad); fx.update(now, dt, game);

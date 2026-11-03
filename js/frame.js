@@ -5,14 +5,16 @@ import { pickKicker, keeperOf } from './players.js';
 import { lerp } from './vec.js';
 import { kickerPose, keeperPose, cheerPose, dejectedPose, goalToWorld, BALL0, BALL_R, SPOT_Z, KICK_T0, CLIP_END, sm } from './rig.js';
 import { faceOf, SKINS, HAIRC } from './face.js';
-import { clipStart, clipEnd } from './kicks.js';
-// MÁQUINA DE ESTADOS do cobrador: walkin → idle (clipe de repouso) → charging (segurando a barra: o repouso se mistura à pose inicial da cobrança)
-// → runUp → kick (do plantio ao contato) → followThrough → recovery (fim do clipe) → react (comemoração/lamento do rig.js). Só UM clipe controla os ossos por vez.
+import { clipStart, clipEnd, ENTRY_S } from './kicks.js';
+// MÁQUINA DE ESTADOS do cobrador: entering (clipe de entrada: caminha e para no ponto de partida) → idle (clipe de repouso) → charging (segurando a barra:
+// o repouso se mistura à pose inicial da cobrança) → runUp → kick (do plantio ao contato) → followThrough → recovery (fim do clipe) →
+// goalCelebration (só se o resultado CONFIRMADO for gol) ou missReaction (defesa, trave ou fora). O estado é função do tempo e do resultado: não se
+// "ativa" a cada quadro, e uma cobrança nunca tem as duas reações. Só UM clipe controla os ossos por vez.
 export const CHARGE_S = .45;
 export function kickerState(game, b) {
   const ks = game.kick;
-  if (!b) return game.t < .9 ? 'walkin' : chargeOf(game) > 0 ? 'charging' : 'idle';
-  if (!ks || b.t > ks.t1) return 'react';
+  if (!b) return game.t < ENTRY_S ? 'entering' : chargeOf(game) > 0 ? 'charging' : 'idle';
+  if (!ks || b.t > ks.t1) return b.res === 'gol' ? 'goalCelebration' : b.res ? 'missReaction' : 'recovery';
   const c = ks.clip; return b.t < (c.plantio ?? -.12) ? 'runUp' : b.t < 1e-9 ? 'kick' : b.t < (c.pouso ?? .4) ? 'followThrough' : 'recovery';
 }
 export function chargeOf(game) {                                     // 0..1: quanto o cobrador já saiu do repouso para a pose de partida
@@ -69,10 +71,12 @@ export function characters(game, now, b, k, res, d, bw) {
   }
   const kt = GS.cobrador === 0 ? ta : tb, dt2 = GS.cobrador === 0 ? tb : ta, p = pickKicker(kt, GS.cobranca, game.escolha[GS.cobrador]);
   const ks = game.kick, c = ks && ks.clip, tf = flightTime(b), t0 = b?.t0 ?? ks?.t0 ?? KICK_T0, state = kickerState(game, b), lk = withFace(p), wd = widthOf(lk);   // cobrança (js/kicks.js): clipe, início/fim, canhoto
-  const m = !b ? (game.t < .9 ? { mode: 'walkin', t: game.t } : { mode: 'idle', t: now }) : b.t <= tf ? { mode: 'kick', tc: Math.max(t0, b.t), t0 } : { mode: 'react', d: b.t - tf, type: res === 'gol' ? 'gol' : 'falha' };
+  const m = !b ? (game.t < ENTRY_S ? { mode: 'walkin', t: game.t, dur: ENTRY_S } : { mode: 'idle', t: now }) : b.t <= tf ? { mode: 'kick', tc: Math.max(t0, b.t), t0 } : { mode: 'react', d: b.t - tf, type: res === 'gol' ? 'gol' : 'falha' };
   if (c) Object.assign(m, { start: clipStart(c, wd), end: clipEnd(c, wd), mirror: ks.pe === 'l' });
-  let anim = null;
-  if (c && (state === 'idle' || state === 'charging')) { const st = clipStart(c, wd), mir = ks.pe === 'l';   // repouso no ponto de partida (espelhado no canhoto) + mistura para a pose de partida
+  let anim = null; const mir = ks && ks.pe === 'l', fx = v => [mir ? -v[0] : v[0], 0, v[2]];
+  if (c && state === 'entering') { const st = clipStart(c, wd); anim = { clip: 'entrada', state, pe: ks.pe, t: game.t, pos: fx(st.root), yaw: mir ? -st.yaw : st.yaw, blend: 0 }; }   // corte no início da vez
+  else if (c && (state === 'goalCelebration' || state === 'missReaction')) anim = { clip: state === 'goalCelebration' ? 'gol' : 'perdeu', state, pe: ks.pe, t: b.t - ks.t1, pos: fx(clipEnd(c, wd).root), yaw: Math.PI, blend: .3 };
+  else if (c && (state === 'idle' || state === 'charging')) { const st = clipStart(c, wd), mir = ks.pe === 'l';   // repouso no ponto de partida (espelhado no canhoto) + mistura para a pose de partida
     anim = { idle: true, state, pe: ks.pe, t: game.t + phaseOf(p.id), pos: [mir ? -st.root[0] : st.root[0], 0, st.root[2]], yaw: mir ? -st.yaw : st.yaw, ready: { clip: ks.id, w: chargeOf(game) } }; }
   else if (b && b.t <= (ks ? ks.t1 : CLIP_END)) anim = { clip: ks ? ks.id : 'chute', tc: Math.max(t0, b.t), state };
   const kp = keeperPose(k, b, res, d, now, b && b.t > 0 ? bw : null);

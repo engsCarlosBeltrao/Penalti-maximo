@@ -94,7 +94,7 @@ export function instantiate(tpl) {
       let S = null; if (api.mode !== ci.clip && (api.posed || api.mode)) S = snapshot();                // entrando neste clipe: foto da pose atual para a transição
       apply(ci, t, pos, yaw);
       if (S) { rebase(S); api.into = { S, t0: t, dur: blend }; } api.mode = ci.clip; api.clipOn = true; api.blendOut = null;
-      if (api.into) { if (t < api.into.t0) api.into = null; else { const u = (t - api.into.t0)/api.into.dur; blendFrom(api.into.S, sm(u)); if (u >= 1) api.into = null; } }
+      if (api.into) { if (t < api.into.t0) api.into = null; else { const u = api.into.dur > 0 ? (t - api.into.t0)/api.into.dur : 1; blendFrom(api.into.S, sm(u)); if (u >= 1) api.into = null; } }
     },
     // repouso (laço) no ponto de partida; ready = { ci, w, pos, yaw }: "carregando" — mistura o repouso com a pose inicial do clipe da cobrança (w: 0 → 1)
     playIdle(ci, t, pos, yaw, ready) {

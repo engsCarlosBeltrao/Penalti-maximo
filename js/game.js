@@ -5,7 +5,7 @@ import { Aim } from './aim.js';
 import { sfx, crowd, ambient, level } from './audio.js';
 import { Renderer } from './renderer.js';
 import { pickKicker } from './players.js';
-import { kickSpec, waitSpec, forceFromAim, typeFromForce } from './kicks.js';
+import { kickSpec, waitSpec, forceFromAim, typeFromForce, ENTRY_S } from './kicks.js';
 export const cfg = { hs: 0.9, vs: 0.6, diff: 'normal', sound: true, vol: 0.5, volCrowd: 0.5 };
 // Dificuldade: tempo de reação, alcance do braço, erro de leitura, deslocamento máximo do mergulho
 const DIFF = { easy:{react:.45,reach:.09,err:.22,dive:.3,vr:.3}, normal:{react:.3,reach:.12,err:.13,dive:.36,vr:.36}, hard:{react:.2,reach:.15,err:.07,dive:.42,vr:.42} };
@@ -43,13 +43,13 @@ export const Game = {
   setTurn(k) {
     GS.cobrador = k; this.ball = null;
     const p = pickKicker(GS.equipes[k], GS.cobranca, this.escolha[k]); this.kick = waitSpec(p.id);   /* espera no ponto de partida do estilo; o TIPO só sai da força, ao soltar */ this.aim.reset(); if (this.hum(k)) this.aim.run(); this.keeperKey = null; this.t = 0; this.keeper = { x:.5, tx:.5, t0:0 };   // a linha de mira já oscila durante a espera
-    this.wait = this.hum(k) ? 0 : 1.1; this.dec = this.m.taken[k] >= 4; if (this.dec) sfx('decisiva'); level(this.dec ? .85 : .45);     // cobrança decisiva: 5ª ou morte súbita                       // adversário cobra após breve pausa
+    this.wait = this.hum(k) ? 0 : ENTRY_S + .6;   /* a CPU espera o cobrador terminar a entrada (caminhada) */ this.dec = this.m.taken[k] >= 4; if (this.dec) sfx('decisiva'); level(this.dec ? .85 : .45);     // cobrança decisiva: 5ª ou morte súbita                       // adversário cobra após breve pausa
     GS.estado = this.hum(k) ? 'AGUARDANDO_COBRANCA' : 'DEFESA_DO_GOLEIRO';
     Events.emit('cobranca_mudou', { cobranca: GS.cobranca, cobrador: k });
   },
   down(e) {
     if (this.paused || !this.m) return;
-    if (this.t < .9) return;     // espera o cobrador chegar ao ponto de partida
+    if (this.t < ENTRY_S) return;     // espera o cobrador chegar ao ponto de partida (clipe de entrada)
     if (GS.estado === 'AGUARDANDO_COBRANCA') { this.aim.start(); this.aimT = this.t; GS.estado = 'MIRANDO'; level(.75); crowd('expect'); }   // só inicia aqui
     else if (GS.estado === 'DEFESA_DO_GOLEIRO' && this.ball && e) {          // toque/clique no campo escolhe o lado e a altura do mergulho
       const r = this.cv.getBoundingClientRect(), nx = (e.clientX - r.left)/r.width, ny = (e.clientY - r.top)/r.height; this.keeperChoose(nx < .38 ? .15 : nx > .62 ? .85 : .5, ny < .3 ? .85 : ny > .6 ? .15 : .4);
@@ -98,7 +98,7 @@ export const Game = {
     const [a, c] = m.taken, [sa, sc] = GS.placar, ra = Math.max(0, 5 - a), rc = Math.max(0, 5 - c);
     if (a <= 5 || c <= 5) m.fim = sa > sc + rc || sc > sa + ra;
     if (a > 5 || c > 5 || (a >= 5 && c >= 5)) m.fim = a === c && sa !== sc;
-    this.wait = 1.9; this.after = true; b.decisiva = m.taken[q] >= 5; GS.estado = 'RESULTADO';
+    this.wait = 3.6; this.after = true;   // tempo para a comemoração / frustração do cobrador b.decisiva = m.taken[q] >= 5; GS.estado = 'RESULTADO';
   },
   next() {
     const m = this.m;

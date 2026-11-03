@@ -35,6 +35,8 @@ export function kickSpec(playerId, tipoPedido = 'medio') {
 }
 // Todos os tipos de um estilo partem do MESMO ponto e da mesma pose (o tipo só é conhecido ao soltar a barra): a espera usa o médio do estilo.
 export const waitSpec = playerId => kickSpec(playerId, 'medio');
+// Clipes de reação do cobrador (tools/blender/reacoes.py): duração da ENTRADA (caminhada até o ponto de partida), da comemoração e da frustração.
+export const ENTRY_S = 2.7, GOAL_S = 3.4, MISS_S = 3.0;
 // Pose de início e fim do clipe no mundo do jogo (Blender → mundo: x = −x_b, z = y_b + 11; yaw = π + AP). Espaço do destro: o canhoto espelha (rig.js).
 // wd = largura do atleta (build × altura, a escala x/z do modelo: loader.js → apply). O clipe da cobrança é escalado em torno da BOLA e deslocado para o
 // ponto de toque da chuteira continuar na bola (loader.js → apply); a espera e a reação precisam usar o MESMO ponto, senão o pé desliza na transição.

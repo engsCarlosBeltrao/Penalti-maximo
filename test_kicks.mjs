@@ -1,7 +1,7 @@
 // Cobranças: tipos (chapada/médio/bomba) × estilos (comum, Neymar, Gabigol, Jorginho, Arrascaeta). node test_kicks.mjs
 import fs from 'node:fs';
 import { KICK_CLIPS } from './js/kickClips.js';
-import { kickSpec, waitSpec, forceFromAim, typeFromForce, FORCE_BANDS, styleOf, footOf, supportedTypes, clipStart, clipEnd, KICK_TYPES, STAR_STYLES } from './js/kicks.js';
+import { ENTRY_S, GOAL_S, MISS_S, kickSpec, waitSpec, forceFromAim, typeFromForce, FORCE_BANDS, styleOf, footOf, supportedTypes, clipStart, clipEnd, KICK_TYPES, STAR_STYLES } from './js/kicks.js';
 import { characters, ballWorld, flightTime, kickerState, chargeOf, widthOf } from './js/frame.js';
 import { AIM_LIM, AIM_BASE } from './js/aim.js';
 import { kickerPose, mirrorPose, goalToWorld, BALL0, BALL_R } from './js/rig.js';
@@ -84,7 +84,7 @@ GS.equipes = [TEAMS.find(x => x.key === 'santos'), TEAMS.find(x => x.key === 'fl
 const K = { x: .5, tx: .8, th: .85, t0: 0 };
 for (const pid of ['santos-neymar-jr', 'santos-gabriel-barbosa', squad(GS.equipes[0]).find(p => styleOf(p.id) === 'comum' && p.posCode !== 'GK').id]) {
   for (const tp of ['chapada', 'medio']) {
-    const ks = kickSpec(pid, tp), game = { m: {}, fin: null, t: 2, escolha: [pid, null], hum: () => true, kick: ks }, idle = characters(game, 5, null, K, undefined, 0, BALL0).list[0], wd = widthOf(idle.look);
+    const ks = kickSpec(pid, tp), game = { m: {}, fin: null, t: 4, escolha: [pid, null], hum: () => true, kick: ks }, idle = characters(game, 5, null, K, undefined, 0, BALL0).list[0], wd = widthOf(idle.look);
     const st = clipStart(ks.clip, wd), en = clipEnd(ks.clip, wd), mir = ks.pe === 'l';
     t(`${ks.id}: largura do atleta (${wd.toFixed(3)}) usada no ponto de partida`, Math.abs(Math.hypot(st.root[0], st.root[2] - 11) - wd*Math.hypot(...ks.clip.inicio.S)) < .03);
     const exp = kickerPose({ mode: 'idle', t: 5, start: st, end: en, mirror: mir });
@@ -94,7 +94,8 @@ for (const pid of ['santos-neymar-jr', 'santos-gabriel-barbosa', squad(GS.equipe
     const bc = { ...b0, t: 0 }; t(`${ks.id}: contato (tc = 0) com a bola ainda na marca`, characters(game, 5, bc, K, undefined, 0, BALL0).list[0].anim.tc === 0 && near(ballWorld(bc, K), BALL0));
     const be = { ...b0, t: ks.t1 + .05, res: 'gol' }, after = characters(game, 5, be, K, 'gol', be.t - ks.tf, BALL0).list[0];
     const expR = kickerPose({ mode: 'react', d: be.t - ks.tf, type: 'gol', start: st, end: en, mirror: mir });
-    t(`${ks.id}: depois do clipe, pose de reação onde o clipe termina`, !after.anim && JSON.stringify(after.P) === JSON.stringify(expR) && Math.abs(after.P.root[2] - en.root[2]) < 1e-9);
+    t(`${ks.id}: depois do clipe, comemoração (gol) no ponto onde o clipe termina`, after.state === 'goalCelebration' && after.anim?.clip === 'gol' && Math.abs(after.anim.pos[2] - en.root[2]) < 1e-9 && Math.abs(after.anim.pos[0] - (mir ? -en.root[0] : en.root[0])) < 1e-9 && JSON.stringify(after.P) === JSON.stringify(expR));
+    const miss = characters(game, 5, { ...be, res: 'defesa' }, K, 'defesa', be.t - ks.tf, BALL0).list[0]; t(`${ks.id}: defesa → reação de frustração (não a comemoração)`, miss.state === 'missReaction' && miss.anim?.clip === 'perdeu');
   }
 }
 { const P = kickerPose({ mode: 'react', d: .2, type: 'gol' }), M = mirrorPose(JSON.parse(JSON.stringify(P))); t('espelho troca lados e reflete x', M.root[0] === -P.root[0] && JSON.stringify(M.hipL) === JSON.stringify(P.hipR) && M.ikL.t[0] === -P.ikR.t[0] && M.yaw === -P.yaw); }
@@ -128,7 +129,7 @@ for (const [team, star, tipos] of [['vasco', null, ['chapada', 'medio', 'bomba']
   const fr = characters(Game, 5, null, Game.keeper, undefined, 0, BALL0); t('fim: comemoração (mates) e lamento (loser)', Game.fin && fr.final && fr.list.some(c => c.role === 'mate') && fr.list.some(c => c.role === 'loser')); }
 // máquina de estados e decisão ÚNICA do tipo: walkin → idle → charging → runUp → kick → followThrough → recovery → react
 { Game.start(TEAMS.find(x => x.key === 'vasco'), TEAMS[0], () => {}); const seen = [], st = () => kickerState(Game, Game.ball), push = () => { const s_ = st(); if (seen[seen.length - 1] !== s_) seen.push(s_); };
-  push(); for (let i = 0; i < 12; i++) { Game.update(.1); push(); }
+  push(); for (let i = 0; i < 32; i++) { Game.update(.1); push(); }   // entrada (caminhada) de ENTRY_S s
   t('sem botões de tipo: Game.setTipo, tipoSel e kmove não existem mais', typeof Game.setTipo === 'undefined' && !('tipoSel' in Game) && !('kmove' in Game));
   t('antes de soltar, a espera usa o ponto de partida do estilo (médio como referência)', Game.kick.tipo === 'medio');
   Game.down(null); for (let i = 0; i < 10; i++) { Game.update(.05); push(); } const w = chargeOf(Game);
@@ -137,7 +138,7 @@ for (const [team, star, tipos] of [['vasco', null, ['chapada', 'medio', 'bomba']
   let changed = false; while (Game.ball && !Game.ball.res) { Game.update(.02); push(); if (Game.kick.id !== k0 || Game.ball.forca !== f0) changed = true; }
   for (let i = 0; i < 40; i++) { Game.update(.02); push(); }
   t('o tipo não muda depois que a cobrança começou', !changed);
-  t(`sequência de estados completa e em ordem (${seen.join(' → ')})`, ['walkin', 'idle', 'charging', 'runUp', 'kick', 'followThrough', 'recovery', 'react'].every((x, i, arr) => seen.indexOf(x) >= 0 && (i === 0 || seen.indexOf(x) > seen.indexOf(arr[i - 1]))));
+  t(`sequência de estados completa e em ordem (${seen.join(' → ')})`, ['entering', 'idle', 'charging', 'runUp', 'kick', 'followThrough', 'recovery', Game.ball?.res === 'gol' || seen.includes('goalCelebration') ? 'goalCelebration' : 'missReaction'].every((x, i, arr) => seen.indexOf(x) >= 0 && (i === 0 || seen.indexOf(x) > seen.indexOf(arr[i - 1]))));
 }
 // as três forças pedidas: 20%, 50% e 95% → três clipes diferentes e velocidades de bola coerentes
 { const yOf = f => AIM_LIM.ymin + f*(AIM_LIM.ymax - AIM_LIM.ymin), K0 = { x: .5, t0: null }, out = {};
@@ -161,4 +162,23 @@ for (const [team, star, tipos] of [['vasco', null, ['chapada', 'medio', 'bomba']
     const out = []; for (const m of [A, B, A, B]) { ev(m, 0); out.push(o.position.x); } return out.join(','); };
   t('sem a correção um mixer deixa de escrever e o osso fica com a pose do outro clipe (o bug existia)', run(false) !== '2,0,2,0');
   t('com forceWrite cada clipe avaliado escreve sempre a sua pose', run(true) === '2,0,2,0'); }
+// ---- entrada, comemoração e frustração (tools/blender/reacoes.py) ----
+for (const [n, dur] of [['entrada', ENTRY_S], ['gol', GOAL_S], ['perdeu', MISS_S]]) for (const side of ['r', 'l']) {
+  const C = readModel(`assets/models/anim/${n}_${side}.glb`), cj = C.json, A = cj.animations || [], ex = cj.nodes.find(n_ => n_.name === 'Armature').extras || {};
+  const tgt = [...new Set(A[0].channels.map(ch => cj.nodes[ch.target.node].name))], d = Math.max(...A[0].samplers.map(s_ => readAccessor(C, s_.input).flat().pop()));
+  t(`${n}_${side}: um clipe de ${dur} s (= constante do jogo), 65 ossos do esqueleto original, sem malha`, A.length === 1 && Math.abs(d - dur) < .02 && ex.clipe_duracao_s === dur && ex.clipe_pe === side && tgt.length === 65 && tgt.every(n_ => skel.has(n_)) && !(cj.meshes || []).length); }
+{ GS.equipes = [TEAMS.find(x => x.key === 'vasco'), TEAMS[0]]; GS.cobrador = 0; GS.cobranca = 1;
+  const ks = kickSpec(comum.id, 'medio'), g = { m: {}, fin: null, escolha: [null, null], hum: () => true, kick: ks, t: 1 }, st = s_ => characters(g, 5, s_, K, s_?.res, 0, BALL0).list[0];
+  t('início da vez: entrada pelo clipe (corte, sem misturar com a pose anterior)', st(null).state === 'entering' && st(null).anim?.clip === 'entrada' && st(null).anim.blend === 0);
+  g.t = ENTRY_S + .1; t('depois da entrada: repouso', st(null).state === 'idle');
+  const b = { gx: .3, gy: .3, t: ks.t1 + .5, t0: ks.t0, tf: ks.tf };
+  t('reação só depois do resultado: sem resultado, continua em "recovery"', st({ ...b, res: null }).state === 'recovery');
+  const tipos = ['gol', 'defesa', 'fora', 'trave'].map(r => st({ ...b, res: r }).state); t('gol → comemoração; defesa, fora e trave → frustração', tipos.join() === 'goalCelebration,missReaction,missReaction,missReaction');
+  const seq = [.1, .5, 1, 2, 3].map(dt => st({ ...b, t: ks.t1 + dt, res: 'gol' }).state); t('comemorando, nunca volta à caminhada nem troca de reação', seq.every(x => x === 'goalCelebration'));
+  t('tempo do clipe de reação começa no fim da cobrança', st({ ...b, t: ks.t1 + .8, res: 'gol' }).anim.t === .8 || Math.abs(st({ ...b, t: ks.t1 + .8, res: 'gol' }).anim.t - .8) < 1e-9); }
+// repetição: várias cobranças seguidas, a vez seguinte sempre recomeça pela entrada e o jogo segue
+{ let end = null; Game.start(TEAMS.find(x => x.key === 'vasco'), TEAMS[0], w => end = w); const st = () => kickerState(Game, Game.ball); let turns = 0, entr = 0, both = 0, last = null;
+  for (let g = 0; g < 9000 && end === null; g++) { if (GS.estado === 'AGUARDANDO_COBRANCA' && Game.t >= ENTRY_S) { Game.down(null); for (let i = 0; i < 50; i++) Game.update(.01); Game.up(); turns++; }
+    if (GS.estado === 'DEFESA_DO_GOLEIRO' && Game.ball) Game.keeperChoose(.5); const s_ = st(); if (s_ === 'entering' && last !== 'entering') entr++; if (Game.ball && Game.ball.res && s_ === 'goalCelebration' && Game.ball.res !== 'gol') both++; last = s_; Game.update(.05); }
+  t(`repetição: partida inteira (${turns} cobranças do jogador), cada vez começa pela entrada, sem reação trocada`, end !== null && entr >= turns && both === 0); }
 console.log(`KICKS OK ${ok} | FALHAS ${bad}`); process.exit(bad ? 1 : 0);
