@@ -1,23 +1,65 @@
 // GERADO por tools/build-kick-clips.mjs a partir de assets/models/anim/cobranca_*.json (tools/blender/cobranca.py). Não editar à mão.
 // Coordenadas do clipe (Blender): bola em (0,0); gol em -Y; esquerda do jogador = +X. inicio/fim no espaço do DESTRO (pe 'l' = espelho).
 export const KICK_CLIPS = {
+ "arrascaeta_bomba": {
+  "estilo": "arrascaeta",
+  "tipo": "bomba",
+  "pe": "r",
+  "arquivo": "cobranca_arrascaeta_bomba.glb",
+  "t0": -1.0833333333333333,
+  "t1": 1.15,
+  "contato": 1.0833333333333333,
+  "toque": [
+   0.0284,
+   0.1021,
+   -0.1049
+  ],
+  "plantio": -0.13,
+  "pouso": 0.47,
+  "inicio": {
+   "S": [
+    1.9621,
+    3.1236
+   ],
+   "AP": -32
+  },
+  "fim": {
+   "pelve": [
+    0.05,
+    -1.3
+   ],
+   "apoio": [
+    0.22,
+    -1.36
+   ],
+   "chute": [
+    -0.1,
+    -1.3
+   ]
+  },
+  "velPe": 25.3,
+  "folgaContatoMm": -1,
+  "derivaApoioMm": 0
+ },
  "arrascaeta_chapada": {
   "estilo": "arrascaeta",
   "tipo": "chapada",
   "pe": "r",
   "arquivo": "cobranca_arrascaeta_chapada.glb",
-  "t0": -1.35,
+  "t0": -1.4333333333333333,
   "t1": 1,
-  "contato": 1.35,
+  "contato": 1.4333333333333333,
   "toque": [
    -0.016,
    0.0761,
    -0.1024
   ],
+  "plantio": -0.15,
+  "pouso": 0.34,
   "inicio": {
    "S": [
-    1.7801,
-    2.8385
+    1.9621,
+    3.1236
    ],
    "AP": -32
   },
@@ -52,6 +94,8 @@ export const KICK_CLIPS = {
    0.1075,
    -0.1052
   ],
+  "plantio": -0.117,
+  "pouso": 0.4,
   "inicio": {
    "S": [
     1.9621,
@@ -82,20 +126,22 @@ export const KICK_CLIPS = {
   "tipo": "bomba",
   "pe": "r",
   "arquivo": "cobranca_comum_bomba.glb",
-  "t0": -1.8833333333333333,
+  "t0": -1.25,
   "t1": 1.15,
-  "contato": 1.8833333333333333,
+  "contato": 1.25,
   "toque": [
    0.0284,
    0.1021,
    -0.1049
   ],
+  "plantio": -0.13,
+  "pouso": 0.47,
   "inicio": {
    "S": [
-    4.4235,
-    5.3611
+    2.3782,
+    3.3989
    ],
-   "AP": -40
+   "AP": -35
   },
   "fim": {
    "pelve": [
@@ -120,20 +166,22 @@ export const KICK_CLIPS = {
   "tipo": "chapada",
   "pe": "r",
   "arquivo": "cobranca_comum_chapada.glb",
-  "t0": -1.4333333333333333,
+  "t0": -1.8166666666666667,
   "t1": 1,
-  "contato": 1.4333333333333333,
+  "contato": 1.8166666666666667,
   "toque": [
    -0.016,
    0.0761,
    -0.1024
   ],
+  "plantio": -0.15,
+  "pouso": 0.34,
   "inicio": {
    "S": [
-    1.5814,
-    2.7181
+    2.3782,
+    3.3989
    ],
-   "AP": -30
+   "AP": -35
   },
   "fim": {
    "pelve": [
@@ -166,6 +214,8 @@ export const KICK_CLIPS = {
    0.1075,
    -0.1052
   ],
+  "plantio": -0.117,
+  "pouso": 0.4,
   "inicio": {
    "S": [
     2.3782,
@@ -191,23 +241,65 @@ export const KICK_CLIPS = {
   "folgaContatoMm": -1,
   "derivaApoioMm": 0
  },
+ "gabigol_bomba": {
+  "estilo": "gabigol",
+  "tipo": "bomba",
+  "pe": "l",
+  "arquivo": "cobranca_gabigol_bomba.glb",
+  "t0": -4.283333333333333,
+  "t1": 1.15,
+  "contato": 4.283333333333333,
+  "toque": [
+   -0.0284,
+   0.1021,
+   -0.1049
+  ],
+  "plantio": -0.13,
+  "pouso": 0.47,
+  "inicio": {
+   "S": [
+    4.0297,
+    8.3445
+   ],
+   "AP": -25.6
+  },
+  "fim": {
+   "pelve": [
+    0.05,
+    -1.3
+   ],
+   "apoio": [
+    0.22,
+    -1.36
+   ],
+   "chute": [
+    -0.1,
+    -1.3
+   ]
+  },
+  "velPe": 26.7,
+  "folgaContatoMm": -1,
+  "derivaApoioMm": 0
+ },
  "gabigol_chapada": {
   "estilo": "gabigol",
   "tipo": "chapada",
   "pe": "l",
   "arquivo": "cobranca_gabigol_chapada.glb",
-  "t0": -4.766666666666667,
+  "t0": -5.233333333333333,
   "t1": 1,
-  "contato": 4.766666666666667,
+  "contato": 5.233333333333333,
   "toque": [
    0.016,
    0.0761,
    -0.1024
   ],
+  "plantio": -0.15,
+  "pouso": 0.34,
   "inicio": {
    "S": [
-    3.8781,
-    8.0453
+    4.0297,
+    8.3445
    ],
    "AP": -25.6
   },
@@ -242,6 +334,8 @@ export const KICK_CLIPS = {
    0.1075,
    -0.1052
   ],
+  "plantio": -0.117,
+  "pouso": 0.4,
   "inicio": {
    "S": [
     4.0297,
@@ -267,23 +361,65 @@ export const KICK_CLIPS = {
   "folgaContatoMm": -1,
   "derivaApoioMm": 0
  },
+ "jorginho_bomba": {
+  "estilo": "jorginho",
+  "tipo": "bomba",
+  "pe": "r",
+  "arquivo": "cobranca_jorginho_bomba.glb",
+  "t0": -1.9333333333333333,
+  "t1": 1.15,
+  "contato": 1.9333333333333333,
+  "toque": [
+   0.0284,
+   0.1021,
+   -0.1049
+  ],
+  "plantio": -0.13,
+  "pouso": 0.47,
+  "inicio": {
+   "S": [
+    2.0441,
+    3.5102
+   ],
+   "AP": -30
+  },
+  "fim": {
+   "pelve": [
+    0.05,
+    -1.3
+   ],
+   "apoio": [
+    0.22,
+    -1.36
+   ],
+   "chute": [
+    -0.1,
+    -1.3
+   ]
+  },
+  "velPe": 26.6,
+  "folgaContatoMm": -1,
+  "derivaApoioMm": 0
+ },
  "jorginho_chapada": {
   "estilo": "jorginho",
   "tipo": "chapada",
   "pe": "r",
   "arquivo": "cobranca_jorginho_chapada.glb",
-  "t0": -2.0833333333333335,
+  "t0": -2.216666666666667,
   "t1": 1,
-  "contato": 2.0833333333333335,
+  "contato": 2.216666666666667,
   "toque": [
    -0.016,
    0.0761,
    -0.1024
   ],
+  "plantio": -0.15,
+  "pouso": 0.34,
   "inicio": {
    "S": [
-    2.0214,
-    3.4802
+    2.0441,
+    3.5102
    ],
    "AP": -30
   },
@@ -318,6 +454,8 @@ export const KICK_CLIPS = {
    0.1075,
    -0.1052
   ],
+  "plantio": -0.117,
+  "pouso": 0.4,
   "inicio": {
    "S": [
     2.0441,
@@ -343,25 +481,67 @@ export const KICK_CLIPS = {
   "folgaContatoMm": -1,
   "derivaApoioMm": 0
  },
+ "neymar_bomba": {
+  "estilo": "neymar",
+  "tipo": "bomba",
+  "pe": "r",
+  "arquivo": "cobranca_neymar_bomba.glb",
+  "t0": -2.816666666666667,
+  "t1": 1.15,
+  "contato": 2.816666666666667,
+  "toque": [
+   0.0284,
+   0.1021,
+   -0.1049
+  ],
+  "plantio": -0.13,
+  "pouso": 0.47,
+  "inicio": {
+   "S": [
+    3.68,
+    4.2686
+   ],
+   "AP": -41
+  },
+  "fim": {
+   "pelve": [
+    0.05,
+    -1.3
+   ],
+   "apoio": [
+    0.22,
+    -1.36
+   ],
+   "chute": [
+    -0.1,
+    -1.3
+   ]
+  },
+  "velPe": 26.5,
+  "folgaContatoMm": -1,
+  "derivaApoioMm": 0
+ },
  "neymar_chapada": {
   "estilo": "neymar",
   "tipo": "chapada",
   "pe": "r",
   "arquivo": "cobranca_neymar_chapada.glb",
-  "t0": -3.3666666666666667,
+  "t0": -3.6666666666666665,
   "t1": 1,
-  "contato": 3.3666666666666667,
+  "contato": 3.6666666666666665,
   "toque": [
    -0.016,
-   0.076,
+   0.0759,
    -0.1024
   ],
+  "plantio": -0.15,
+  "pouso": 0.34,
   "inicio": {
    "S": [
-    3.1,
-    4.2762
+    3.68,
+    4.2686
    ],
-   "AP": -36
+   "AP": -41
   },
   "fim": {
    "pelve": [
@@ -394,6 +574,8 @@ export const KICK_CLIPS = {
    0.1068,
    -0.1052
   ],
+  "plantio": -0.117,
+  "pouso": 0.4,
   "inicio": {
    "S": [
     3.68,

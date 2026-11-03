@@ -22,7 +22,7 @@ t('encerrou 1x', ev.filter(e => e === 'partida_encerrada').length === 1); t('ven
 for (let r = 0; r < 20; r++) { const c = new Cup(r % 16); let n = 0; while (c.champion === null && n++ < 20) { const nx = c.alive && c.nextForMe(); if (!nx) break; c.playerResult(Math.random() < .5 ? 5 : 3, 4); } t('campeao definido', c.champion !== null || !c.alive); }
 const c = new Cup(0); c.playerResult(5, 3); t('hist', c.hist.length === 8);
 // 2 pessoas, elencos, anúncios
-Game.start(A, B, () => {}, true); t('2p: turno 0 humano', GS.estado === 'AGUARDANDO_COBRANCA'); Game.update(1); Game.aim.start(); GS.estado = 'MIRANDO'; Game.update(.3); Game.up(); for (let i = 0; i < 90; i++) Game.update(.05); t('2p: turno 1 humano', GS.cobrador === 1 && GS.estado === 'AGUARDANDO_COBRANCA');
+Game.start(A, B, () => {}, true); t('2p: turno 0 humano', GS.estado === 'AGUARDANDO_COBRANCA'); Game.update(1); Game.aim.start(); GS.estado = 'MIRANDO'; Game.update(.3); Game.up(); for (let i = 0; i < 160 && GS.cobrador !== 1; i++) Game.update(.05); t('2p: turno 1 humano', GS.cobrador === 1 && GS.estado === 'AGUARDANDO_COBRANCA');
 t('20 clubes', TEAMS.length === 20); t('elenco >=5', TEAMS.every(c => squad(c).length >= 5)); t('Campo Real ativo', Ads.current('main', 0, 0).ad.id === 'campo-real');
 
 // morte súbita forçada: 5x5 todos gols, depois A converte e B erra

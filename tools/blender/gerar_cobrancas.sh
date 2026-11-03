@@ -5,7 +5,7 @@ set -e
 cd "$(dirname "$0")/../.."
 B="${BLENDER_EXE:-C:/Program Files/Blender Foundation/Blender 5.2/blender.exe}"
 OUT="${1:-assets/models/anim}"; shift || true
-LIST="${*:-comum_chapada comum_medio comum_bomba neymar_chapada neymar_medio gabigol_chapada gabigol_medio jorginho_chapada jorginho_medio arrascaeta_chapada arrascaeta_medio}"
+LIST="${*:-comum_chapada comum_medio comum_bomba neymar_chapada neymar_medio neymar_bomba gabigol_chapada gabigol_medio gabigol_bomba jorginho_chapada jorginho_medio jorginho_bomba arrascaeta_chapada arrascaeta_medio arrascaeta_bomba}"
 LOGS="${LOGS:-$(mktemp -d)}"; mkdir -p "$LOGS"
 run() { local e="${1%_*}" t="${1##*_}"; "$B" -b --factory-startup --python-exit-code 1 -P tools/blender/cobranca.py -- assets/models/athlete.glb "$OUT" .claude/skills "$e" "$t" > "$LOGS/$1.log" 2>&1 && echo "ok $1" || { echo "FALHOU $1 (ver $LOGS/$1.log)"; return 1; }; }
 pids=(); n=0; fail=0

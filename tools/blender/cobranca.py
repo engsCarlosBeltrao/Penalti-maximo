@@ -127,8 +127,16 @@ FF = [None]*n; acc_l = acc_t = 0
 for k in range(n - 1, -1, -1):
     acc_l += PS[k][0]; acc_t += PS[k][1] + (E["hesita"] if k == n - 1 else 0)
     FF[k] = dict(s=feet[k], pos=R3 - A*acc_l + (N*lat if feet[k] == "l" else Vector()), tdn=tR3 - acc_t, dur=PS[k][1] + (E["hesita"] if k == n - 1 else 0))
-S = FF[0]["pos"] - A*E["inicio"] - (N*lat if feet[0] == "l" else Vector())
-SW0 = .25 if E["gait"] < 0 else .32
+def ponto_partida(Tt, Ee):                                           # posição parada de uma rotina (mesma conta acima, só posições)
+    PL_ = V2(Tt["PL"]); R3_ = PL_ - A*Tt["last"] - N*Tt["lat"]
+    if Ee["pulinho"]: R3_ = PL_ - A*.40 - A*.78 - N*Tt["lat"]
+    PS_ = Ee["passos"]; n_ = len(PS_); f0 = "l" if (n_ - 1) % 2 == 0 else "r"
+    return R3_ - A*sum(x[0] for x in PS_) + (N*Tt["lat"] if f0 == "l" else Vector()) - A*Ee["inicio"] - (N*Tt["lat"] if f0 == "l" else Vector())
+# MESMO ponto de partida para os três tipos de um estilo (o do médio): o tipo só é conhecido quando o jogador solta a barra de força
+S = ponto_partida(PC.tipo("medio"), PC.estilo(ESTILO, PC.tipo("medio")))
+if (FF[0]["pos"] - S).length < .25: FF = FF[1:]; n = len(FF); feet = feet[1:]   # 1º passo minúsculo (o ponto de partida já está ali): o outro pé começa a corrida
+PRIMEIRO_PASSO = (FF[0]["pos"] - S).length
+SW0 = (.25 if E["gait"] < 0 else .32) + .22*max(0, PRIMEIRO_PASSO - .7)   # 1º passo mais longo → balanço mais longo
 T0 = FF[0]["tdn"] - SW0 - .10
 T0 = -math.ceil(-T0*FPS - 1e-6)/FPS; T1 = T["T1"]
 CONTACT, END = round(-T0*FPS), round((T1 - T0)*FPS)
@@ -273,9 +281,14 @@ for k_, v in T["ang"].items():
 if HOP: ak.update({tH: (-4*amp, -80*amp), tH + .08: (-9*amp, -92*amp), PLANT - .11: (-14*amp, -105*amp)})
 else: ak.update({PLANT + dt: (v[0]*amp, v[1]*amp) for dt, v in T["pre_ang"].items()})
 ANG = pchip(ak)
+TIP = REST["foot_r"].inverted() @ arm.data.bones["ball_r"].tail_local   # ponta do pé no referencial do osso do pé
 def kick_leg(tc):
     th, sh = ANG(tc); f, g = leg_plane(PSI(tc), BETA(tc)); h = hip_pos("r", tc)
-    kn = h + f*(LT*math.sin(D(th))) + g*(LT*math.cos(D(th))); an = kn + f*(LS*math.sin(D(sh))) + g*(LS*math.cos(D(sh))); return an, kn, PITCH_K(tc), PSI(tc) + FY(tc)
+    kn = h + f*(LT*math.sin(D(th))) + g*(LT*math.cos(D(th))); an = kn + f*(LS*math.sin(D(sh))) + g*(LS*math.cos(D(sh)))
+    if tc > .05:                                                     # depois do contato a ponta da chuteira nunca desce ao gramado
+        tip = an + foot_m("r", PSI(tc) + FY(tc), PITCH_K(tc)) @ TIP
+        if tip.z < .012: an = an + Vector((0, 0, .012 - tip.z))
+    return an, kn, PITCH_K(tc), PSI(tc) + FY(tc)
 
 # ---------- pés fora do chute ----------
 def yw_prev(s, t_off):
@@ -367,6 +380,13 @@ for f, tc, st in TOES:
             set_rot(f"ball_{s}", rot(yw_prev(s, tc + 1e-3) if not ground else fy)); q = pb.rotation_quaternion.copy()
             pb.rotation_quaternion = Quaternion((1, 0, 0, 0)).slerp(q, w)
         key(f"ball_{s}", f)
+FINGERS = [f"{d}_0{i}_{s}" for s in "lr" for d in ("index", "middle", "ring", "pinky", "thumb") for i in (1, 2, 3)]
+for f in (0, END):                                                   # mão relaxada: cada falange flexiona para o lado da palma (palma = -Z no T-pose), como no repouso
+    for nm in FINGERS:
+        pb = arm.pose.bones[nm]; d = REST[nm].to_3x3().col[1].normalized(); ax = d.cross(Vector((0, 0, -1)))
+        if ax.length < 1e-4: continue
+        ang = (16 if nm[-4:-2] == "01" else 24 if nm[-4:-2] == "02" else 18)*(.55 if nm.startswith("thumb") else 1)*.75
+        pb.rotation_quaternion = Quaternion(REST[nm].to_3x3().inverted() @ ax.normalized(), D(ang)); pb.keyframe_insert("rotation_quaternion", frame=f, group=nm)
 act = arm.animation_data.action; act.name = "Chute"; act.use_fake_user = True
 
 sys.path.insert(0, os.path.join(SKILLS, "blender-animation", "scripts")); import bake_action
@@ -419,7 +439,7 @@ report = {"clipe": CLIP, "pe": PE, "fps": FPS, "t0": T0, "t1": T1, "frames": END
           "joelho_chute_graus": {"max_recuo": max(knee_ang(i) for i in range(round(F(KICK_OFF)), CONTACT)), "contato": knee_ang(CONTACT)},
           "apoios_deriva_mm": apoios, "max_deriva_apoio_mm": max(a[3] for a in apoios), "erro_ik_apoio": IK_ERR, "fim": fim(),
           "pe_mais_baixo_z_m": round(lowz(traj[lowf]), 3), "pe_mais_baixo_tc": round(TC(lowf), 3), "pe_mais_baixo_qual": min(("toe_l", "toe_r", "ball_l", "ball_r"), key=lambda j: traj[lowf][j].z), "aceleracao_max_m_s2": {j: accs(j) for j in ("pelvis", "Head", "hand_l", "hand_r", "calf_l", "calf_r")},
-          "passos_aproximacao": len(FF) + 1, "pelve_abaixada_alcance_cm": ALCANCE_MAX_CM, "distancia_inicio_bola_m": round(S.length, 2), "duracao_aproximacao_s": round(-T0, 3)}
+          "passos_aproximacao": len(FF) + 1, "primeiro_passo_m": round(PRIMEIRO_PASSO, 3), "pelve_abaixada_alcance_cm": ALCANCE_MAX_CM, "distancia_inicio_bola_m": round(S.length, 2), "duracao_aproximacao_s": round(-T0, 3)}
 if HOP:
     zs_ = [traj[i]["pelvis"].z for i in range(round(F(tH)), round(F(PLANT)) + 1)]
     bz = REST["ball_r"].translation.z + .02; ar = [i for i in range(round(F(tH)), round(F(PLANT)) + 1) if min(traj[i]["ball_l"].z, traj[i]["ball_r"].z) > bz]
@@ -470,7 +490,7 @@ r = bpy.ops.export_scene.gltf(filepath=out_glb, export_format="GLB", use_selecti
                               export_force_sampling=True, export_extras=True, export_skins=False, export_morph=False, export_materials="NONE")
 lastt = traj[END]
 meta = {"id": CLIP, "estilo": ESTILO, "tipo": TIPO, "pe": PE, "arquivo": f"cobranca_{CLIP}.glb", "t0": T0, "t1": T1, "contato_s": CONTACT/FPS, "fps": FPS,
-        "toque": glt(TOQUE), "inicio": {"S": [round(S.x, 4), round(S.y, 4)], "AP": AP},
+        "toque": glt(TOQUE), "plantio": round(PLANT, 4), "pouso": round(KICK_LAND, 4), "inicio": {"S": [round(S.x, 4), round(S.y, 4)], "AP": AP},
         # fim, no espaço do destro (o jogo espelha para o canhoto): pelve, pé de apoio, pé de chute
         "fim": {"pelve": [round(P_POS(T1)[0], 4), round(P_POS(T1)[1], 4)], "apoio": [round(L5.x, 4), round(L5.y, 4)], "chute": [round(R5.x, 4), round(R5.y, 4)]},
         "vel_pe_contato_m_s": report["vel_ponta_pe"]["no_contato_m_s"], "relatorio": report}

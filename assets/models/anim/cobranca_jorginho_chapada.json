@@ -4,19 +4,21 @@
  "tipo": "chapada",
  "pe": "r",
  "arquivo": "cobranca_jorginho_chapada.glb",
- "t0": -2.0833333333333335,
+ "t0": -2.216666666666667,
  "t1": 1.0,
- "contato_s": 2.0833333333333335,
+ "contato_s": 2.216666666666667,
  "fps": 60,
  "toque": [
   -0.016,
   0.0761,
   -0.1024
  ],
+ "plantio": -0.15,
+ "pouso": 0.34,
  "inicio": {
   "S": [
-   2.0214,
-   3.4802
+   2.0441,
+   3.5102
   ],
   "AP": -30
  },
@@ -39,10 +41,10 @@
   "clipe": "jorginho_chapada",
   "pe": "r",
   "fps": 60,
-  "t0": -2.0833333333333335,
+  "t0": -2.216666666666667,
   "t1": 1.0,
-  "frames": 186,
-  "contact_frame": 125,
+  "frames": 194,
+  "contact_frame": 133,
   "contato": {
    "chuteira_bola_mm": -1.0,
    "material": "Boots",
@@ -68,20 +70,20 @@
   "apoios_deriva_mm": [
    [
     "l",
-    -2.083,
-    -1.98,
+    -2.217,
+    -2.102,
     0.0
    ],
    [
     "l",
-    -1.67,
-    -1.442,
+    -1.792,
+    -1.53,
     0.0
    ],
    [
     "l",
-    -1.01,
-    -0.746,
+    -1.053,
+    -0.75,
     0.0
    ],
    [
@@ -104,14 +106,14 @@
    ],
    [
     "r",
-    -2.083,
-    -1.745,
+    -2.217,
+    -1.867,
     0.0
    ],
    [
     "r",
-    -1.35,
-    -1.104,
+    -1.434,
+    -1.151,
     0.0
    ],
    [
@@ -137,11 +139,11 @@
   "erro_ik_apoio": {
    "l": [
     0.0,
-    185
+    193
    ],
    "r": [
     0.0,
-    185
+    193
    ]
   },
   "fim": {
@@ -174,8 +176,8 @@
     -0.25
    ],
    "calf_l": [
-    140.1,
-    -0.45
+    150.9,
+    -1.117
    ],
    "calf_r": [
     230.1,
@@ -183,14 +185,15 @@
    ]
   },
   "passos_aproximacao": 4,
+  "primeiro_passo_m": 0.511,
   "pelve_abaixada_alcance_cm": [
-   3.6,
-   -1.067
+   3.1,
+   -1.1
   ],
-  "distancia_inicio_bola_m": 4.02,
-  "duracao_aproximacao_s": 2.083,
+  "distancia_inicio_bola_m": 4.06,
+  "duracao_aproximacao_s": 2.217,
   "pulinho": {
-   "subida_pelve_m": 0.101,
+   "subida_pelve_m": 0.102,
    "dois_pes_no_ar_s": 0.233
   }
  }

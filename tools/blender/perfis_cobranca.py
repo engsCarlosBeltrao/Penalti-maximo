@@ -19,8 +19,7 @@
 #    aproximação controlada, reduz o ritmo, pulinho sobre o pé de apoio que aterrissa ao lado da bola e já transfere o peso para o chute.
 #  - arrascaeta: perfil ORIGINAL (direção artística pedida, sem medição do atleta): preparação econômica, passadas controladas, chute compacto.
 
-TIPOS_SUPORTADOS = {"comum": ("chapada", "medio", "bomba"), "neymar": ("chapada", "medio"), "gabigol": ("chapada", "medio"),
-                    "jorginho": ("chapada", "medio"), "arrascaeta": ("chapada", "medio")}
+TIPOS_SUPORTADOS = {e: ("chapada", "medio", "bomba") for e in ("comum", "neymar", "gabigol", "jorginho", "arrascaeta")}   # o tipo vem da barra de força
 PE = {"comum": "r", "neymar": "r", "gabigol": "l", "jorginho": "r", "arrascaeta": "r"}   # pé de chute (Transfermarkt / elenco do jogo)
 
 
@@ -104,17 +103,25 @@ def tipo(nome):
 
 
 def estilo(nome, t):
+    e = _estilo(nome, t)
+    if nome != "comum":                                              # o craque mantém o ritmo, mas a força muda a pressa: chapada controlada, bomba agressiva
+        k = 1.12 if t["last"] <= 1.1 else .86 if t["last"] >= 1.5 else 1.0
+        e = e | dict(passos=[(d, dt*k) for d, dt in e["passos"]])
+    return e
+
+
+def _estilo(nome, t):
     """Rotina de aproximação. passos = [(distância até o PRÓXIMO apoio, tempo até o próximo toque)] do 1º apoio até o último antes de R3 (pé de chute na última passada).
     inicio = distância da posição parada ao 1º apoio. olhar = janelas (tc0, tc1) em que a cabeça mira o goleiro."""
-    base = dict(AP=t["AP"], gait=t["gait"], zs=t["zs"], zf=t["zf"], lean=t["lean"], sway=t["sway"], arms=t["armk"], amp=1.0, olhar=(), hesita=0, pulinho=False, ajustes=0)
+    base = dict(AP=-35, gait=t["gait"], zs=t["zs"], zf=t["zf"], lean=t["lean"], sway=t["sway"], arms=t["armk"], amp=1.0, olhar=(), hesita=0, pulinho=False, ajustes=0)
     if nome == "comum":
-        if t["last"] >= 1.5:   # bomba: corrida progressiva (passos crescentes, tempos decrescentes)
-            return base | dict(inicio=.55, passos=[(.85, .30), (1.05, .28), (1.25, .26), (1.40, .24)])
-        if t["last"] <= 1.1:   # chapada: aproximação curta e econômica
-            return base | dict(inicio=.40, passos=[(.70, .34), (.85, .32)])
+        if t["last"] >= 1.5:   # bomba: do mesmo ponto, passadas mais longas e rápidas (corrida agressiva), última passada longa
+            return base | dict(inicio=.60, passos=[(.80, .25), (1.0, .21)])
+        if t["last"] <= 1.1:   # chapada: do mesmo ponto, passos curtos, controlados e mais lentos
+            return base | dict(inicio=.60, passos=[(.62, .36), (.74, .34), (.80, .32)])
         return base | dict(inicio=.60, passos=[(.90, .29), (1.10, .26)])
     if nome == "neymar":       # passos curtos e longos alternados, desaceleração, cabeça no goleiro, pequenos ajustes do corpo
-        return base | dict(AP=t["AP"] - 6, gait=.05, zs=.93, zf=.905, lean=6, sway=4, arms=.8, inicio=.35, ajustes=3,
+        return base | dict(AP=-41, gait=.05, zs=.93, zf=.905, lean=6, sway=4, arms=.8, inicio=.35, ajustes=3,
                            passos=[(.55, .26), (.30, .22), (.60, .28), (.28, .26), (.55, .32), (.32, .34), (.50, .40), (.62, .44)],
                            olhar=((-2.4, -1.5), (-1.1, -.55)))
     if nome == "gabigol":      # longe da bola (~9 m), ângulo ~25,6°, corrida calma e longa, hesitação curta perto da bola

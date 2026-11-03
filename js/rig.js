@@ -67,7 +67,7 @@ export function kickerPose(m) {
 function kickerPoseR(m) {
   const P = base(), st = m.start || { root: P0, yaw: YAW0 }, en = m.end || { root: P3, sup: SUP, kick: LAND }; P.root = st.root.slice(); P.yaw = st.yaw;
   if (m.mode === 'walkin') { const from = m.from || add(st.root, [PS[0] - P0[0], 0, PS[2] - P0[2]]), u = Math.min(1, m.t/(m.dur || .9)), s = Math.sin(u*Math.PI*2*2.2*(m.dur || .9)/.9); P.root = lerp(from, st.root, sm(u)); P.lean = .1; P.hipL = [.5*s, .05, Math.max(0, -s)*.9 + .1]; P.hipR = [-.5*s, .05, Math.max(0, s)*.9 + .1]; P.armL = [-.5*s, .15, .5]; P.armR = [.5*s, .15, .5]; }
-  else if (m.mode === 'idle') { const t = m.t, s = Math.sin(t*2); P.root = [st.root[0] + Math.sin(t*.9)*.04, 0, st.root[2]]; P.lean = .03 + s*.015; P.head = [.14 + Math.sin(t*.7)*.07]; P.armL = [.5, .35, 1 + s*.05]; P.armR = [.5, .35, 1 - s*.05]; P.hipL = [.04*Math.sin(t*.9), .1, .1]; P.hipR = [-.04*Math.sin(t*.9), .1, .1]; }
+  else if (m.mode === 'idle') { const t = m.t, s = Math.sin(t*2); P.root = [st.root[0] + Math.sin(t*.9)*.04, 0, st.root[2]]; P.lean = .03 + s*.015; P.head = [.14 + Math.sin(t*.7)*.07]; P.armL = [.06 + s*.02, .1, .3]; P.armR = [.06 - s*.02, .1, .3]; P.hipL = [.04*Math.sin(t*.9), .1, .1]; P.hipR = [-.04*Math.sin(t*.9), .1, .1]; }
   else if (m.mode === 'kick') {
     const t = m.tc; P.yaw = Math.PI;
     if (t < -.55) { const T0 = Math.min(-.6, m.t0 ?? KICK_T0), u = (t - T0)/(-.55 - T0), s = Math.sin(u*Math.PI*2*2); P.root = lerp(st.root, PR, sm(u)); P.yaw = lN(st.yaw, Math.PI, sm(u)); P.lean = .12; P.hipL = [.5*s, .05, Math.max(0, -s)*.9 + .1]; P.hipR = [-.5*s, .05, Math.max(0, s)*.9 + .1]; P.armL = [-.5*s, .15, .5]; P.armR = [.5*s, .15, .5]; }   // sem o clipe: corre até o início das poses antigas

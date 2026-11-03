@@ -10,6 +10,7 @@ import { composeShirt, uniformColors, hairVisibility, beardVisibility, hairColor
 import { setupHairMaterial } from './hairMaterial.js';
 import { packMeta, packImage } from './kitPack.js';
 import { faceOf } from '../face.js';
+import { forceWrite } from './mixerUtil.js';   // o mixer sempre escreve nos ossos (ver o arquivo)
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 const ALL_SLOTS = { ...SLOTS, ...OPT_SLOTS }, LEG_RIG = .43 + .44;
 const TEX = new WeakMap(), imgTex = img => { if (!img) return null; let t = TEX.get(img); if (!t) { t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.flipY = false; t.anisotropy = 4; t.needsUpdate = true; TEX.set(img, t); } return t; };   // uma textura por imagem (calção/meião), compartilhada pelas instâncias
@@ -36,7 +37,9 @@ export async function loadClip(url) {
   const gltf = await new GLTFLoader().parseAsync(await res.arrayBuffer(), url.replace(/[^/]*$/, '')), clip = gltf.animations[0]; if (!clip) return null;
   clip.tracks = clip.tracks.filter(t => !t.name.endsWith('.scale'));                                // escala dos ossos fica a do modelo
   let ex = {}; gltf.scene.traverse(o => { if (o.userData && o.userData.chute_contato_s != null) ex = o.userData; });
-  return { clip, contact: ex.chute_contato_s ?? 0, ball: ex.bola || [0, .11, 0], touch: ex.chute_toque || null };
+  if (ex.repouso_loop_s == null) gltf.scene.traverse(o => { if (o.userData && o.userData.repouso_loop_s != null) ex = o.userData; });
+  const loop = ex.repouso_loop_s != null; if (loop) clip.userData = { loop: true };                     // repouso: laço (tools/blender/repouso.py)
+  return { clip, loop, contact: ex.chute_contato_s ?? 0, ball: ex.bola || [0, .11, 0], touch: ex.chute_toque || null };
 }
 // A textura de pele do modelo já é morena (média ~ 0,65/0,47/0,34): multiplicada pela cor do jogador, escurecia todo mundo. Aqui ela vira neutra (mesma média em
 // todos os canais, preservando os detalhes de rosto), para a cor de pele de cada jogador aparecer como na tabela. Uma vez por modelo; as instâncias compartilham a textura.
@@ -54,13 +57,20 @@ export function instantiate(tpl) {
     (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m.name === 'HairCap' || m.name === 'Beard') { hairU[m.name === 'HairCap' ? 'cap' : 'beard'].push(setupHairMaterial(m)); return; } if (m.name === 'Band') { bandMats.push(m); return; }   // shader próprio, fora dos slots
       for (const [s, re] of Object.entries(ALL_SLOTS)) if (re.test(m.name || '')) slots[s].push(m); }); if (/^hair/i.test(o.name)) hair.push(o); else if (/^(beard|must|side)_/i.test(o.name)) beard.push(o); else if (/^acc_/i.test(o.name)) acc.push(o); } });
   CANON.forEach(c => { if (tpl.map[c]) bones[c] = byName[tpl.map[c]]; });
-  const allBones = Object.values(byName), BLEND = .15;                                              // transição entre poses procedurais e clipes (s)
+  const allBones = Object.values(byName), BLEND = .15, IDLE_BLEND = .35, mixers = new Map();                                              // transição entre poses procedurais e clipes (s)
   const snapshot = () => { const hips = bones.Hips; hips.updateWorldMatrix(true, false); return { q: allBones.map(b => b.quaternion.clone()), p: allBones.map(b => b.position.clone()), hq: hips.getWorldQuaternion(new THREE.Quaternion()), hp: hips.getWorldPosition(new THREE.Vector3()) }; };
   const rebase = S => { const hips = bones.Hips, i = allBones.indexOf(hips); hips.parent.updateWorldMatrix(true, false); S.q[i] = hips.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(S.hq); S.p[i] = hips.parent.worldToLocal(S.hp.clone()); };   // o quadril no referencial novo (a raiz muda entre os modos)
   const blendFrom = (S, w) => { if (w >= 1) return; allBones.forEach((b, i) => { b.quaternion.slerpQuaternions(S.q[i], b.quaternion.clone(), w); b.position.lerpVectors(S.p[i], b.position.clone(), w); }); };
   const sm = u => { u = Math.min(1, Math.max(0, u)); return u*u*(3 - 2*u); };
+  const mixerOf = ci => { let m = mixers.get(ci.clip); if (m) return m;                                // um mixer por clipe (laço para o repouso, uma vez para a cobrança)
+    m = new THREE.AnimationMixer(root); const a = m.clipAction(ci.clip); a.setLoop(ci.loop ? THREE.LoopRepeat : THREE.LoopOnce, Infinity); a.clampWhenFinished = true; a.play(); mixers.set(ci.clip, m);
+    if (mixers.size > 4) { const old = [...mixers.keys()].find(c => c !== ci.clip && !c.userData?.loop); if (old) mixers.delete(old); } return m; };
+  const apply = (ci, t, pos, yaw) => {                                                                // escreve nos ossos a pose do clipe no instante t
+    root.position.set(pos[0], pos[1], pos[2]); root.rotation.set(0, yaw, 0);
+    if (ci.touch) { const c = new THREE.Vector3(...ci.touch); root.position.add(c.clone().sub(c.clone().multiply(root.scale)).applyAxisAngle(Y_AXIS, yaw)); }   // altura/largura do atleta: o ponto de toque da chuteira continua na bola
+    const mx = mixerOf(ci); forceWrite(mx); mx.setTime(ci.loop ? ((t % ci.clip.duration) + ci.clip.duration) % ci.clip.duration : Math.max(0, Math.min(ci.clip.duration - 1e-4, t))); };
   const q = new THREE.Quaternion(), pq = new THREE.Quaternion(), p = new THREE.Vector3(), api = {
-    root, sig: '', shirtTex: null, hs: 1,
+    root, sig: '', shirtTex: null, hs: 1, _mixers: mixers,   // _mixers: só para depuração
     apply(kit, look) {                                                                                // uniforme + aparência (só recompõe quando algo muda)
       api.last = [kit, look];
       const again = () => { api.sig = ''; if (api.last) api.apply(api.last[0], api.last[1]); }, extra = f => f ? packImage({ file: f }, again) : null;
@@ -78,19 +88,21 @@ export function instantiate(tpl) {
       hairU.cap.forEach(U => setU(U, hc.top, hc.side)); hairU.beard.forEach(U => setU(U, hc.beard, hc.beard)); acc.forEach(h => { h.visible = !!hc.band; }); bandMats.forEach(m => m.color.set(hc.band || '#ffffff'));
       api.hs = face.height || 1; const wd = (face.build || 1)*api.hs; root.scale.set(wd, api.hs, wd);                // altura e largura individuais (os pés continuam no chão: ver pose)
     },
-    playClip(ci, t, pos, yaw) {                                                                       // toca um clipe do Blender no instante t (s) com o personagem posto em pos, virado yaw
-      if (!api.mixer) api.mixer = new THREE.AnimationMixer(root);
-      let S = null; if (!api.clipOn && api.posed) S = snapshot();                                       // entrando no clipe: guarda a pose procedural para a transição (ANTES de trocar de clipe)
-      if (api.curClip && api.curClip !== ci.clip) { api.mixer.stopAllAction(); api.mixer.uncacheClip(api.curClip); }   // outro clipe (outra cobrança): só um ativo por vez; stopAllAction restaura um estado antigo dos ossos, por isso a foto vem antes
-      api.curClip = ci.clip; const a = api.mixer.clipAction(ci.clip); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; a.enabled = true; a.paused = false; a.setEffectiveWeight(1); if (!a.isScheduled()) a.play();
-      root.position.set(pos[0], pos[1], pos[2]); root.rotation.set(0, yaw, 0);
-      if (ci.touch) { const c = new THREE.Vector3(...ci.touch); root.position.add(c.clone().sub(c.clone().multiply(root.scale)).applyAxisAngle(Y_AXIS, yaw)); }   // altura/largura do atleta: o ponto de toque da chuteira continua na bola
-      api.mixer.setTime(Math.max(0, Math.min(ci.clip.duration - 1e-4, t)));
-      if (S) { rebase(S); api.into = { S, t0: t }; } api.clipOn = true; api.blendOut = null;
-      if (api.into) { if (t < api.into.t0) api.into = null; else { blendFrom(api.into.S, sm((t - api.into.t0)/BLEND)); if (t - api.into.t0 >= BLEND) api.into = null; } }
+    // Clipes do Blender: UM AnimationMixer por clipe (repouso, cobrança). Cada quadro só o clipe da vez escreve nos ossos — nada de dois clipes
+    // disputando braços e pernas — e, ao trocar de clipe (ou sair de uma pose do rig.js), a pose anterior vira uma "foto" misturada por blend segundos.
+    playClip(ci, t, pos, yaw, blend = BLEND) {                                                        // toca um clipe no instante t (s) com o personagem posto em pos, virado yaw
+      let S = null; if (api.mode !== ci.clip && (api.posed || api.mode)) S = snapshot();                // entrando neste clipe: foto da pose atual para a transição
+      apply(ci, t, pos, yaw);
+      if (S) { rebase(S); api.into = { S, t0: t, dur: blend }; } api.mode = ci.clip; api.clipOn = true; api.blendOut = null;
+      if (api.into) { if (t < api.into.t0) api.into = null; else { const u = (t - api.into.t0)/api.into.dur; blendFrom(api.into.S, sm(u)); if (u >= 1) api.into = null; } }
+    },
+    // repouso (laço) no ponto de partida; ready = { ci, w, pos, yaw }: "carregando" — mistura o repouso com a pose inicial do clipe da cobrança (w: 0 → 1)
+    playIdle(ci, t, pos, yaw, ready) {
+      api.playClip(ci, t, pos, yaw, IDLE_BLEND); if (!ready || ready.w <= 0) return;
+      const S = snapshot(); apply(ready.ci, 0, ready.pos, ready.yaw); rebase(S); blendFrom(S, ready.w);   // no fim (w = 1) o corpo já está na pose de partida: a cobrança começa sem salto
     },
     pose(J) {                                                                                         // aplica a pose do rig.js: quaternions de mundo → locais, de pai para filho
-      if (api.clipOn) { const S = snapshot(); root.position.set(0, 0, 0); root.rotation.set(0, 0, 0); rebase(S); api.blendOut = { S, t0: performance.now() }; api.clipOn = false; api.into = null; }   // saindo de um clipe: a pose procedural trabalha no espaço do mundo; transição de BLEND s
+      if (api.clipOn) { const S = snapshot(); root.position.set(0, 0, 0); root.rotation.set(0, 0, 0); rebase(S); api.blendOut = { S, t0: performance.now() }; api.clipOn = false; api.into = null; api.mode = null; }   // saindo de um clipe: a pose procedural trabalha no espaço do mundo; transição de BLEND s
       const sol = solvePose(tpl.rest, J);
       CANON.forEach(c => { const b = bones[c], W = sol.world[c]; if (!b || !W) return; b.parent.updateWorldMatrix(true, false); b.parent.getWorldQuaternion(pq); q.set(W[0], W[1], W[2], W[3]); b.quaternion.copy(pq.invert().multiply(q));
         if (c === 'Hips') { b.parent.updateWorldMatrix(true, false); p.set(sol.hips[0], sol.hips[1]*(api.hs || 1), sol.hips[2]); b.parent.worldToLocal(p); b.position.copy(p); } b.updateMatrix(); });

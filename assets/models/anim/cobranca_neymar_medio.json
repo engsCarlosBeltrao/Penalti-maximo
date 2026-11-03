@@ -13,6 +13,8 @@
   0.1068,
   -0.1052
  ],
+ "plantio": -0.117,
+ "pouso": 0.4,
  "inicio": {
   "S": [
    3.68,
@@ -207,6 +209,7 @@
    ]
   },
   "passos_aproximacao": 9,
+  "primeiro_passo_m": 0.35,
   "pelve_abaixada_alcance_cm": [
    5.4,
    -0.417

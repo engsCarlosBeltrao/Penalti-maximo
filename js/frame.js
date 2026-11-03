@@ -6,6 +6,21 @@ import { lerp } from './vec.js';
 import { kickerPose, keeperPose, cheerPose, dejectedPose, goalToWorld, BALL0, BALL_R, SPOT_Z, KICK_T0, CLIP_END, sm } from './rig.js';
 import { faceOf, SKINS, HAIRC } from './face.js';
 import { clipStart, clipEnd } from './kicks.js';
+// MÁQUINA DE ESTADOS do cobrador: walkin → idle (clipe de repouso) → charging (segurando a barra: o repouso se mistura à pose inicial da cobrança)
+// → runUp → kick (do plantio ao contato) → followThrough → recovery (fim do clipe) → react (comemoração/lamento do rig.js). Só UM clipe controla os ossos por vez.
+export const CHARGE_S = .45;
+export function kickerState(game, b) {
+  const ks = game.kick;
+  if (!b) return game.t < .9 ? 'walkin' : chargeOf(game) > 0 ? 'charging' : 'idle';
+  if (!ks || b.t > ks.t1) return 'react';
+  const c = ks.clip; return b.t < (c.plantio ?? -.12) ? 'runUp' : b.t < 1e-9 ? 'kick' : b.t < (c.pouso ?? .4) ? 'followThrough' : 'recovery';
+}
+export function chargeOf(game) {                                     // 0..1: quanto o cobrador já saiu do repouso para a pose de partida
+  if (GS.estado === 'MIRANDO') return sm((game.t - (game.aimT ?? game.t))/CHARGE_S);
+  if (GS.estado === 'DEFESA_DO_GOLEIRO' && game.hum && !game.hum()) return sm((CHARGE_S - (game.wait ?? 9))/CHARGE_S);   // CPU: prepara-se antes de partir
+  return 0;
+}
+const phaseOf = id => { let h = 0; for (const ch of String(id)) h = (h*31 + ch.charCodeAt(0)) >>> 0; return (h % 640)/100; };   // fase do laço de repouso por atleta (ninguém sincronizado)
 export const TF = .7, HS = ['short', 'long', 'bald', 'afro'], KC = ['#00c853', '#ff4fd8', '#ffd23f', '#27e1ff', '#ff7a1a'];
 export const flightTime = b => (b && b.tf) || TF;   // tempo de voo da cobrança (depende do tipo: js/kicks.js)
 const DRAG = .18;                                    // arrasto: a bola chega ao gol com ~84% da velocidade inicial
@@ -38,6 +53,8 @@ const faceCache = new Map();
 const faceFor = L => { let f = faceCache.get(L.id); if (!f) { const a = L.ap; f = { ...faceOf(L.id), skinI: a.skinI, skin: a.skinHex || SKINS[a.skinI], hairC: a.hairHex || HAIRC[a.hairI], style: a.hair, beard: a.beard, build: a.build, height: a.height,
     mustache: a.mustache, sideburn: a.sideburn, hairC2: a.hairC2, beardC: a.beardC, hl: a.hl, hlAmt: a.hlAmt, tips: a.tips, grey: a.grey, band: a.band };   /* estilo/barba novos (3D) e a versão 2D */ faceCache.set(L.id, f); } return f; };
 const withFace = L => L.ap ? { ...L, face: faceFor(L) } : L;
+// largura do atleta como o loader a aplica (root.scale x/z = build × altura): a mesma conta de js/three/loader.js → apply
+export const widthOf = lk => { const f = lk.face || faceOf((lk.nome || '') + (lk.num ?? ''), { hair: lk.hair }); return (f.build || 1)*(f.height || 1); };
 const keeperLook = (t, mood) => { const g = keeperOf(t); return g ? { ...withFace(g), mood } : { skin: t.id % 4, hair: HS[t.id % 4], nome: 'GOL', num: 1, face: faceOf('gk' + t.id), mood }; };   // goleiro do clube (nome/número/aparência próprios) ou genérico se o clube não tiver dados
 const gkKit = t => ({ c1: kcol(t), c2: '#141414', c3: '#fff', pat: 'p', sh: '#1b1b1b', keeper: true, long: true, glove: true, key: 'gk' + t.id });
 // Personagens do quadro: [{ role, P (pose do rig), kit, look }]. role: kicker | keeper | mate | loser
@@ -51,10 +68,14 @@ export function characters(game, now, b, k, res, d, bw) {
     return { final: true, list };
   }
   const kt = GS.cobrador === 0 ? ta : tb, dt2 = GS.cobrador === 0 ? tb : ta, p = pickKicker(kt, GS.cobranca, game.escolha[GS.cobrador]);
-  const ks = game.kick, c = ks && ks.clip, tf = flightTime(b), t0 = b?.t0 ?? ks?.t0 ?? KICK_T0, mv = game.kmove;   // cobrança escolhida (js/kicks.js): clipe, início/fim, canhoto
-  const m = !b ? (mv ? { mode: 'walkin', t: mv.t, dur: mv.dur, from: mv.from } : game.t < .9 ? { mode: 'walkin', t: game.t } : { mode: 'idle', t: now }) : b.t <= tf ? { mode: 'kick', tc: Math.max(t0, b.t), t0 } : { mode: 'react', d: b.t - tf, type: res === 'gol' ? 'gol' : 'falha' };
-  if (c) Object.assign(m, { start: clipStart(c), end: clipEnd(c), mirror: ks.pe === 'l' });
+  const ks = game.kick, c = ks && ks.clip, tf = flightTime(b), t0 = b?.t0 ?? ks?.t0 ?? KICK_T0, state = kickerState(game, b), lk = withFace(p), wd = widthOf(lk);   // cobrança (js/kicks.js): clipe, início/fim, canhoto
+  const m = !b ? (game.t < .9 ? { mode: 'walkin', t: game.t } : { mode: 'idle', t: now }) : b.t <= tf ? { mode: 'kick', tc: Math.max(t0, b.t), t0 } : { mode: 'react', d: b.t - tf, type: res === 'gol' ? 'gol' : 'falha' };
+  if (c) Object.assign(m, { start: clipStart(c, wd), end: clipEnd(c, wd), mirror: ks.pe === 'l' });
+  let anim = null;
+  if (c && (state === 'idle' || state === 'charging')) { const st = clipStart(c, wd), mir = ks.pe === 'l';   // repouso no ponto de partida (espelhado no canhoto) + mistura para a pose de partida
+    anim = { idle: true, state, pe: ks.pe, t: game.t + phaseOf(p.id), pos: [mir ? -st.root[0] : st.root[0], 0, st.root[2]], yaw: mir ? -st.yaw : st.yaw, ready: { clip: ks.id, w: chargeOf(game) } }; }
+  else if (b && b.t <= (ks ? ks.t1 : CLIP_END)) anim = { clip: ks ? ks.id : 'chute', tc: Math.max(t0, b.t), state };
   const kp = keeperPose(k, b, res, d, now, b && b.t > 0 ? bw : null);
-  return { final: false, list: [{ role: 'kicker', P: kickerPose(m), anim: b && b.t <= (ks ? ks.t1 : CLIP_END) ? { clip: ks ? ks.id : 'chute', tc: Math.max(t0, b.t) } : null, kit: { ...kt, sh: kt.c2, variant: GS.cobrador === 1 ? 'away' : 'home' }, look: withFace(p) },
+  return { final: false, list: [{ role: 'kicker', P: kickerPose(m), anim, state, kit: { ...kt, sh: kt.c2, variant: GS.cobrador === 1 ? 'away' : 'home' }, look: lk },
     { role: 'keeper', P: kp.P, kit: gkKit(dt2), look: keeperLook(dt2, kp.info.happy ? 'happy' : kp.info.sad ? 'sad' : 'neutral') }] };
 }

@@ -4,21 +4,23 @@
  "tipo": "chapada",
  "pe": "r",
  "arquivo": "cobranca_comum_chapada.glb",
- "t0": -1.4333333333333333,
+ "t0": -1.8166666666666667,
  "t1": 1.0,
- "contato_s": 1.4333333333333333,
+ "contato_s": 1.8166666666666667,
  "fps": 60,
  "toque": [
   -0.016,
   0.0761,
   -0.1024
  ],
+ "plantio": -0.15,
+ "pouso": 0.34,
  "inicio": {
   "S": [
-   1.5814,
-   2.7181
+   2.3782,
+   3.3989
   ],
-  "AP": -30
+  "AP": -35
  },
  "fim": {
   "pelve": [
@@ -39,10 +41,10 @@
   "clipe": "comum_chapada",
   "pe": "r",
   "fps": 60,
-  "t0": -1.4333333333333333,
+  "t0": -1.8166666666666667,
   "t1": 1.0,
-  "frames": 147,
-  "contact_frame": 86,
+  "frames": 170,
+  "contact_frame": 109,
   "contato": {
    "chuteira_bola_mm": -1.0,
    "material": "Boots",
@@ -51,8 +53,8 @@
     0.105,
     -0.011
    ],
-   "quadro_antes_mm": 211.3,
-   "menor_antes_mm": 211.3,
+   "quadro_antes_mm": 211.6,
+   "menor_antes_mm": 211.6,
    "recuo_tornozelo_m": -0.0067,
    "tecnica": "chapa"
   },
@@ -68,8 +70,14 @@
   "apoios_deriva_mm": [
    [
     "l",
-    -1.433,
-    -1.11,
+    -1.817,
+    -1.711,
+    0.0
+   ],
+   [
+    "l",
+    -1.38,
+    -1.152,
     0.0
    ],
    [
@@ -92,8 +100,8 @@
    ],
    [
     "r",
-    -1.433,
-    -1.33,
+    -1.817,
+    -1.473,
     0.0
    ],
    [
@@ -124,12 +132,12 @@
   "max_deriva_apoio_mm": 0.0,
   "erro_ik_apoio": {
    "l": [
-    0.0003,
-    80
+    0.0,
+    169
    ],
    "r": [
     0.0,
-    146
+    169
    ]
   },
   "fim": {
@@ -146,23 +154,23 @@
   "pe_mais_baixo_qual": "toe_r",
   "aceleracao_max_m_s2": {
    "pelvis": [
-    101.1,
+    106.6,
     -0.167
    ],
    "Head": [
-    98.3,
+    105.1,
     -0.167
    ],
    "hand_l": [
-    194.1,
+    194.0,
     -0.233
    ],
    "hand_r": [
-    109.7,
+    114.1,
     -0.167
    ],
    "calf_l": [
-    219.9,
+    217.1,
     -0.167
    ],
    "calf_r": [
@@ -170,12 +178,13 @@
     0.333
    ]
   },
-  "passos_aproximacao": 3,
+  "passos_aproximacao": 4,
+  "primeiro_passo_m": 0.795,
   "pelve_abaixada_alcance_cm": [
-   -0.0,
-   -1.433
+   0.8,
+   -1.533
   ],
-  "distancia_inicio_bola_m": 3.14,
-  "duracao_aproximacao_s": 1.433
+  "distancia_inicio_bola_m": 4.15,
+  "duracao_aproximacao_s": 1.817
  }
 }

@@ -8,4 +8,4 @@ export const Events = {
   }
 };
 // Eventos: partida_iniciada, gol, defesa, fora, trave, placar_alterado, cobranca_mudou, partida_encerrada, vitoria, derrota, partida_reiniciada,
-// chute { equipe, tipoCobranca, estilo }, tipo_cobranca { tipoCobranca, estilo }  (o campo "tipo" é reservado ao nome do evento)
+// chute { equipe, tipoCobranca, estilo, forca }  (o campo "tipo" é reservado ao nome do evento)

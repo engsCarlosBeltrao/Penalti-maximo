@@ -4,19 +4,21 @@
  "tipo": "chapada",
  "pe": "r",
  "arquivo": "cobranca_arrascaeta_chapada.glb",
- "t0": -1.35,
+ "t0": -1.4333333333333333,
  "t1": 1.0,
- "contato_s": 1.35,
+ "contato_s": 1.4333333333333333,
  "fps": 60,
  "toque": [
   -0.016,
   0.0761,
   -0.1024
  ],
+ "plantio": -0.15,
+ "pouso": 0.34,
  "inicio": {
   "S": [
-   1.7801,
-   2.8385
+   1.9621,
+   3.1236
   ],
   "AP": -32
  },
@@ -39,10 +41,10 @@
   "clipe": "arrascaeta_chapada",
   "pe": "r",
   "fps": 60,
-  "t0": -1.35,
+  "t0": -1.4333333333333333,
   "t1": 1.0,
-  "frames": 142,
-  "contact_frame": 81,
+  "frames": 147,
+  "contact_frame": 86,
   "contato": {
    "chuteira_bola_mm": -1.0,
    "material": "Boots",
@@ -68,14 +70,14 @@
   "apoios_deriva_mm": [
    [
     "l",
-    -1.35,
-    -1.042,
+    -1.433,
+    -1.115,
     0.0
    ],
    [
     "l",
-    -0.63,
-    -0.514,
+    -0.662,
+    -0.526,
     0.0
    ],
    [
@@ -92,14 +94,14 @@
    ],
    [
     "r",
-    -1.35,
-    -1.24,
+    -1.433,
+    -1.328,
     0.0
    ],
    [
     "r",
-    -0.93,
-    -0.795,
+    -0.998,
+    -0.84,
     0.0
    ],
    [
@@ -125,11 +127,11 @@
   "erro_ik_apoio": {
    "l": [
     0.0002,
-    75
+    80
    ],
    "r": [
     0.0,
-    141
+    146
    ]
   },
   "fim": {
@@ -154,7 +156,7 @@
     -0.167
    ],
    "hand_l": [
-    195.4,
+    194.9,
     -0.233
    ],
    "hand_r": [
@@ -162,7 +164,7 @@
     -0.167
    ],
    "calf_l": [
-    217.2,
+    216.1,
     -0.167
    ],
    "calf_r": [
@@ -171,11 +173,12 @@
    ]
   },
   "passos_aproximacao": 3,
+  "primeiro_passo_m": 0.788,
   "pelve_abaixada_alcance_cm": [
    -0.0,
-   -1.35
+   -1.433
   ],
-  "distancia_inicio_bola_m": 3.35,
-  "duracao_aproximacao_s": 1.35
+  "distancia_inicio_bola_m": 3.69,
+  "duracao_aproximacao_s": 1.433
  }
 }
