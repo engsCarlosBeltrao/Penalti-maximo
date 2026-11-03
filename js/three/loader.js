@@ -10,6 +10,7 @@ import { composeShirt, uniformColors, hairVisibility, beardVisibility, hairColor
 import { setupHairMaterial } from './hairMaterial.js';
 import { packMeta, packImage } from './kitPack.js';
 import { faceOf } from '../face.js';
+const Y_AXIS = new THREE.Vector3(0, 1, 0);
 const ALL_SLOTS = { ...SLOTS, ...OPT_SLOTS }, LEG_RIG = .43 + .44;
 const TEX = new WeakMap(), imgTex = img => { if (!img) return null; let t = TEX.get(img); if (!t) { t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.flipY = false; t.anisotropy = 4; t.needsUpdate = true; TEX.set(img, t); } return t; };   // uma textura por imagem (calção/meião), compartilhada pelas instâncias
 export async function fetchJSON(url) { try { const r = await fetch(url); return r.ok ? await r.json() : null; } catch { return null; } }
@@ -35,7 +36,7 @@ export async function loadClip(url) {
   const gltf = await new GLTFLoader().parseAsync(await res.arrayBuffer(), url.replace(/[^/]*$/, '')), clip = gltf.animations[0]; if (!clip) return null;
   clip.tracks = clip.tracks.filter(t => !t.name.endsWith('.scale'));                                // escala dos ossos fica a do modelo
   let ex = {}; gltf.scene.traverse(o => { if (o.userData && o.userData.chute_contato_s != null) ex = o.userData; });
-  return { clip, contact: ex.chute_contato_s ?? 0, ball: ex.bola || [0, .11, 0] };
+  return { clip, contact: ex.chute_contato_s ?? 0, ball: ex.bola || [0, .11, 0], touch: ex.chute_toque || null };
 }
 // A textura de pele do modelo já é morena (média ~ 0,65/0,47/0,34): multiplicada pela cor do jogador, escurecia todo mundo. Aqui ela vira neutra (mesma média em
 // todos os canais, preservando os detalhes de rosto), para a cor de pele de cada jogador aparecer como na tabela. Uma vez por modelo; as instâncias compartilham a textura.
@@ -81,7 +82,9 @@ export function instantiate(tpl) {
       if (!api.mixer) api.mixer = new THREE.AnimationMixer(root);
       const a = api.mixer.clipAction(ci.clip); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; a.enabled = true; a.paused = false; a.setEffectiveWeight(1); if (!a.isScheduled()) a.play();
       let S = null; if (!api.clipOn && api.posed) S = snapshot();                                       // entrando no clipe: guarda a pose procedural para a transição
-      root.position.set(pos[0], pos[1], pos[2]); root.rotation.set(0, yaw, 0); api.mixer.setTime(Math.max(0, Math.min(ci.clip.duration - 1e-4, t)));
+      root.position.set(pos[0], pos[1], pos[2]); root.rotation.set(0, yaw, 0);
+      if (ci.touch) { const c = new THREE.Vector3(...ci.touch); root.position.add(c.clone().sub(c.clone().multiply(root.scale)).applyAxisAngle(Y_AXIS, yaw)); }   // altura/largura do atleta: o ponto de toque da chuteira continua na bola
+      api.mixer.setTime(Math.max(0, Math.min(ci.clip.duration - 1e-4, t)));
       if (S) { rebase(S); api.into = { S, t0: t }; } api.clipOn = true; api.blendOut = null;
       if (api.into) { if (t < api.into.t0) api.into = null; else { blendFrom(api.into.S, sm((t - api.into.t0)/BLEND)); if (t - api.into.t0 >= BLEND) api.into = null; } }
     },

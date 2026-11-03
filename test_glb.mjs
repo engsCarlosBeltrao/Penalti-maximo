@@ -31,5 +31,6 @@ if (fs.existsSync('assets/models/anim/chute.glb')) {
   t('chute.glb: esqueleto de repouso igual ao do athlete.glb (< 0,1°)', tgt.every(n => Math.acos(Math.min(1, Math.abs(ro[n].reduce((s, v, i) => s + v*rc[n][i], 0))))*360/Math.PI < .1));
   const ex = cj.nodes.find(n => n.name === 'Armature').extras || {}, dur = Math.max(...A[0].samplers.map(s => readAccessor(C, s.input).flat().pop()));
   t('chute.glb: 60 fps, contato no quadro 78 (1,3 s de aproximação) e clipe cobre a recuperação (contato + 1 s)', ex.chute_fps === 60 && Math.abs(ex.chute_contato_s - 78/60) < 1e-6 && ex.chute_inicio_tc === -1.3 && ex.chute_fim_tc === 1 && dur >= ex.chute_contato_s + 1 - 1e-3);
+  t('chute.glb: ponto de toque da chuteira gravado junto à superfície da bola (para compensar altura/largura do atleta)', Array.isArray(ex.chute_toque) && Math.abs(Math.hypot(ex.chute_toque[0] - ex.bola[0], ex.chute_toque[1] - ex.bola[1], ex.chute_toque[2] - ex.bola[2]) - .11) < .005);
 }
 console.log(`GLB OK ${ok} | FALHAS ${bad}`); process.exit(bad ? 1 : 0);

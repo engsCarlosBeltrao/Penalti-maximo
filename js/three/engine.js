@@ -29,7 +29,7 @@ export async function start({ cv, base = 'assets/models/' }) {
   cv.style.position = 'relative';   // a tela 2D (placar, mira) fica POR CIMA do WebGL e continua recebendo o clique do chute; o menu (#ui) segue acima de ambas
   let renderer; try { renderer = new THREE.WebGLRenderer({ canvas: gl, antialias: true }); } catch (e) { gl.remove(); throw e; }
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; const app = cv.parentNode, resize = () => { renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.setSize(app.clientWidth, app.clientHeight, false); }; window.addEventListener('resize', resize); resize();
-  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, W/H, .2, 220), st = buildStadium(scene), fx = createStadiumFx(scene); DBG.fx = fx;
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, W/H, .2, 220), st = buildStadium(scene), fx = createStadiumFx(scene); DBG.fx = fx; DBG.scene = scene;
   const field = [0, 1, 2, 3, 4].map(() => { const i = instantiate(tpl); i.root.visible = false; scene.add(i.root); return i; }), keeper = instantiate(tplG); keeper.root.visible = false; scene.add(keeper.root);
   // 3) estado visual (câmera suavizada, tremor e reação da torcida) — igual ao motor procedural
   let cam = { pos: [0, 3.3, 25], tgt: [0, 1, 1], fov: 27 }, shake = 0, last = 0, exS = [0, 0], sad = [0, 0];
