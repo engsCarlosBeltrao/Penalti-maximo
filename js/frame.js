@@ -3,7 +3,7 @@
 import { GS } from './gameState.js';
 import { pickKicker, keeperOf } from './players.js';
 import { lerp } from './vec.js';
-import { kickerPose, keeperPose, cheerPose, dejectedPose, goalToWorld, BALL0, BALL_R, SPOT_Z, KICK_T0, sm } from './rig.js';
+import { kickerPose, keeperPose, cheerPose, dejectedPose, goalToWorld, BALL0, BALL_R, SPOT_Z, KICK_T0, CLIP_END, sm } from './rig.js';
 import { faceOf, SKINS, HAIRC } from './face.js';
 export const TF = .7, HS = ['short', 'long', 'bald', 'afro'], KC = ['#00c853', '#ff4fd8', '#ffd23f', '#27e1ff', '#ff7a1a'];
 export const kcol = t => KC[(t.id + 2) % 5] === t.c1 ? KC[0] : KC[(t.id + 2) % 5];
@@ -43,6 +43,6 @@ export function characters(game, now, b, k, res, d, bw) {
   const kt = GS.cobrador === 0 ? ta : tb, dt2 = GS.cobrador === 0 ? tb : ta, p = pickKicker(kt, GS.cobranca, game.escolha[GS.cobrador]);
   const m = !b ? (game.t < .9 ? { mode: 'walkin', t: game.t } : { mode: 'idle', t: now }) : b.t <= TF ? { mode: 'kick', tc: Math.max(KICK_T0, b.t) } : { mode: 'react', d: b.t - TF, type: res === 'gol' ? 'gol' : 'falha' };
   const kp = keeperPose(k, b, res, d, now, b && b.t > 0 ? bw : null);
-  return { final: false, list: [{ role: 'kicker', P: kickerPose(m), anim: m.mode === 'kick' ? { clip: 'chute', tc: m.tc } : null, kit: { ...kt, sh: kt.c2, variant: GS.cobrador === 1 ? 'away' : 'home' }, look: withFace(p) },
+  return { final: false, list: [{ role: 'kicker', P: kickerPose(m), anim: b && b.t <= CLIP_END ? { clip: 'chute', tc: Math.max(KICK_T0, b.t) } : null, kit: { ...kt, sh: kt.c2, variant: GS.cobrador === 1 ? 'away' : 'home' }, look: withFace(p) },
     { role: 'keeper', P: kp.P, kit: gkKit(dt2), look: keeperLook(dt2, kp.info.happy ? 'happy' : kp.info.sad ? 'sad' : 'neutral') }] };
 }

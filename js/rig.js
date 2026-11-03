@@ -44,25 +44,28 @@ export function humanJoints(P) {
 }
 
 // ================= POSES =================
-const P0 = [-.95, 0, 12.45], P1 = [-.62, 0, 11.8], P2 = [-.38, 0, 11.22], P3 = [-.2, 0, 10.95], PS = [-2.6, 0, 16.6];
+// P0/YAW0: onde o clipe do Blender começa (parado, na linha de corrida a 35°); P3/LAND/SUP: onde ele termina (depois do pulo e da passada de recuperação)
+const P0 = [-2.38, 0, 14.4], YAW0 = Math.PI - .61, PR = [-.95, 0, 12.45], P1 = [-.62, 0, 11.8], P2 = [-.38, 0, 11.22], P3 = [-.05, 0, 10.05], PS = [-4.2, 0, 17.6], SUP = [-.2, .08, 10.02];
 const lN = (a, b, t) => a + (b - a)*t, ease = u => Math.pow(Math.min(1, Math.max(0, u)), 1.7);
-const base = () => ({ root: P0.slice(), yaw: Math.PI, lean: .05, twist: 0, head: [.25], hipL: [0, .06, .12], hipR: [0, .06, .12], armL: [.3, .2, .6], armR: [.3, .2, .6] });
+const base = () => ({ root: P0.slice(), yaw: YAW0, lean: .05, twist: 0, head: [.25], hipL: [0, .06, .12], hipR: [0, .06, .12], armL: [.3, .2, .6], armR: [.3, .2, .6] });
 // Cobrador (chuta com a perna 'L', que fica à direita da tela; apoio em 'R'). tc = tempo relativo ao CONTATO (s).
-export const KICK_T0 = -.55;
-const BACK = [-.2, .55, 11.8], CONT = [0, .18, 11.29], FOL = [.1, .85, 10], LAND = [.02, .08, 10.78], PF = [-.42, .08, 11.06];
+// KICK_T0..CLIP_END: duração do clipe "Chute" (tools/blender/chute.py) — 1,3 s de aproximação até o contato e 1 s de acompanhamento/recuperação.
+export const KICK_T0 = -1.3, CLIP_END = 1;
+const BACK = [-.2, .55, 11.8], CONT = [0, .18, 11.29], FOL = [.1, .85, 10], LAND = [.1, .08, 10.08], PF = [-.42, .08, 11.06];
 export function kickerPose(m) {
   const P = base();
   if (m.mode === 'walkin') { const u = Math.min(1, m.t/.9), s = Math.sin(u*Math.PI*2*2.2); P.root = lerp(PS, P0, sm(u)); P.lean = .1; P.hipL = [.5*s, .05, Math.max(0, -s)*.9 + .1]; P.hipR = [-.5*s, .05, Math.max(0, s)*.9 + .1]; P.armL = [-.5*s, .15, .5]; P.armR = [.5*s, .15, .5]; }
   else if (m.mode === 'idle') { const t = m.t, s = Math.sin(t*2); P.root = [P0[0] + Math.sin(t*.9)*.04, 0, P0[2]]; P.lean = .03 + s*.015; P.head = [.14 + Math.sin(t*.7)*.07]; P.armL = [.5, .35, 1 + s*.05]; P.armR = [.5, .35, 1 - s*.05]; P.hipL = [.04*Math.sin(t*.9), .1, .1]; P.hipR = [-.04*Math.sin(t*.9), .1, .1]; }
   else if (m.mode === 'kick') {
-    const t = m.tc;
-    if (t < -.3) { const u = (t - KICK_T0)/.25, s = Math.sin(u*Math.PI*2); P.root = lerp(P0, P1, sm(u)); P.lean = .12; P.hipL = [.5*s, .05, Math.max(0, -s)*.9 + .1]; P.hipR = [-.5*s, .05, Math.max(0, s)*.9 + .1]; P.armL = [-.5*s, .15, .5]; P.armR = [.5*s, .15, .5]; }   // 2 passos de aproximação
+    const t = m.tc; P.yaw = Math.PI;
+    if (t < -.55) { const u = (t - KICK_T0)/(-.55 - KICK_T0), s = Math.sin(u*Math.PI*2*2); P.root = lerp(P0, PR, sm(u)); P.yaw = lN(YAW0, Math.PI, sm(u)); P.lean = .12; P.hipL = [.5*s, .05, Math.max(0, -s)*.9 + .1]; P.hipR = [-.5*s, .05, Math.max(0, s)*.9 + .1]; P.armL = [-.5*s, .15, .5]; P.armR = [.5*s, .15, .5]; }   // sem o clipe: corre até o início das poses antigas
+    else if (t < -.3) { const u = (t + .55)/.25, s = Math.sin(u*Math.PI*2); P.root = lerp(PR, P1, sm(u)); P.lean = .12; P.hipL = [.5*s, .05, Math.max(0, -s)*.9 + .1]; P.hipR = [-.5*s, .05, Math.max(0, s)*.9 + .1]; P.armL = [-.5*s, .15, .5]; P.armR = [.5*s, .15, .5]; }   // 2 passos de aproximação
     else if (t < -.12) { const u = (t + .3)/.18, e = u*.6 + sm(u)*.4; P.root = lerp(P1, P2, e); P.lean = lN(.12, -.05, e); P.ikR = { t: PF, w: sm(u*2.5) }; P.ikL = { t: lerp([-.25, .3, 11.5], BACK, e), w: sm(u*3) }; P.armR = [lN(.3, 1.2, e), lN(.2, .8, e), .5]; P.armL = [lN(.3, -.6, e), lN(.2, .7, e), .3]; }   // apoia o pé e leva a perna para trás
     else if (t < 0) { const u = (t + .12)/.12, e = ease(u); P.root = P2.slice(); P.twist = lN(0, -.4, sm(u)); P.lean = lN(-.05, .2, sm(u)); P.ikR = { t: PF, w: 1 }; const f = lerp(BACK, CONT, e); f[1] += .25*Math.sin(Math.PI*e); P.ikL = { t: f, w: 1 }; P.armR = [1.2, .8, .5]; P.armL = [-.6, .7, .3]; }   // golpe até o contato
     else if (t < .3) { const u = t/.3, e = sm(u); P.root = add(P2, mul([.08, 0, -.22], e)); P.twist = lN(-.4, -.2, e); P.lean = lN(.2, .25, e); P.ikR = { t: add(PF, [0, 0, -.18*e]), w: 1 }; const f = lerp(CONT, FOL, e); f[1] += .15*Math.sin(Math.PI*e); P.ikL = { t: f, w: 1 }; P.armR = [lN(1.2, .6, e), .8, .5]; P.armL = [lN(-.6, -.2, e), .7, .3]; }   // acompanhamento
-    else { const u = (t - .3)/.4, e = sm(u); P.root = lerp(add(P2, [.08, 0, -.22]), P3, e); P.twist = lN(-.2, 0, e); P.lean = lN(.25, .05, e); P.ikR = { t: lerp(add(PF, [0, 0, -.18]), [-.3, .08, 10.9], e), w: 1 }; P.ikL = { t: lerp(FOL, LAND, e), w: 1 }; P.armR = [lN(.6, .3, e), lN(.8, .2, e), .6]; P.armL = [lN(-.2, .3, e), lN(.7, .2, e), .6]; }   // recupera o equilíbrio
+    else { const u = (t - .3)/.4, e = sm(u); P.root = lerp(add(P2, [.08, 0, -.22]), P3, e); P.twist = lN(-.2, 0, e); P.lean = lN(.25, .05, e); P.ikR = { t: lerp(add(PF, [0, 0, -.18]), SUP, e), w: 1 }; P.ikL = { t: lerp(FOL, LAND, e), w: 1 }; P.armR = [lN(.6, .3, e), lN(.8, .2, e), .6]; P.armL = [lN(-.2, .3, e), lN(.7, .2, e), .6]; }   // recupera o equilíbrio
   } else {                                              // reação depois da jogada (m.type: 'gol' | 'falha' | 'normal')
-    P.root = P3.slice(); P.ikR = { t: [-.3, .08, 10.9], w: 1 }; P.ikL = { t: LAND, w: 1 }; P.lean = .05; const d = m.d || 0;
+    P.root = P3.slice(); P.yaw = Math.PI; P.ikR = { t: SUP, w: 1 }; P.ikL = { t: LAND, w: 1 }; P.lean = .05; const d = m.d || 0;
     if (m.type === 'gol') { const up = d < .9; P.armL = up ? [2.9, .35, .2] : [.3, .2, .6]; P.armR = [.3, .2, .6]; P.lift = Math.max(0, .08 - d*.2); }
     else if (m.type === 'falha') { P.lean = .3; P.head = [.7]; P.armL = [2.5, .25, 2.3]; P.armR = [2.5, .25, 2.3]; }
   }

@@ -5,6 +5,7 @@ import { Aim } from './aim.js';
 import { sfx, crowd, ambient, level } from './audio.js';
 import { Renderer } from './renderer.js';
 import { pickKicker } from './players.js';
+import { KICK_T0 } from './rig.js';
 export const cfg = { hs: 0.9, vs: 0.6, diff: 'normal', sound: true, vol: 0.5, volCrowd: 0.5 };
 // Dificuldade: tempo de reação, alcance do braço, erro de leitura, deslocamento máximo do mergulho
 const DIFF = { easy:{react:.45,reach:.09,err:.22,dive:.3,vr:.3}, normal:{react:.3,reach:.12,err:.13,dive:.36,vr:.36}, hard:{react:.2,reach:.15,err:.07,dive:.42,vr:.42} };
@@ -59,7 +60,7 @@ export const Game = {
   cancel() { if (GS.estado === 'MIRANDO') { this.aim.reset(); this.aim.run(); GS.estado = 'AGUARDANDO_COBRANCA'; } },  // perda de foco: cancela mira
   launch(gx, gy) {
     GS.estado = this.hum() ? 'CHUTANDO' : 'DEFESA_DO_GOLEIRO';
-    this.ball = { gx, gy, t: -.55, res: null, som: false };     // t<0: corrida de aproximação; a bola só sai no CONTATO (t=0); a corrida dura 0,55 s
+    this.ball = { gx, gy, t: KICK_T0, res: null, som: false };  // t<0: corrida de aproximação; a bola só sai no CONTATO (t=0); a corrida dura 1,3 s
     this.rating = pickKicker(GS.equipes[GS.cobrador], GS.cobranca, this.escolha[GS.cobrador]).rating;
     this.keeper.t0 = null; level(1); Events.emit('chute', { equipe: GS.cobrador });
     if (this.hum()) {                              // goleiro CPU: decide só após o tempo de reação, vendo a bola

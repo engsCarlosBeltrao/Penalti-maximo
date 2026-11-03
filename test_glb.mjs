@@ -30,6 +30,6 @@ if (fs.existsSync('assets/models/anim/chute.glb')) {
   const rot = j => Object.fromEntries(j.nodes.map(n => [n.name, n.rotation || [0, 0, 0, 1]])), ro = rot(O), rc = rot(cj);
   t('chute.glb: esqueleto de repouso igual ao do athlete.glb (< 0,1°)', tgt.every(n => Math.acos(Math.min(1, Math.abs(ro[n].reduce((s, v, i) => s + v*rc[n][i], 0))))*360/Math.PI < .1));
   const ex = cj.nodes.find(n => n.name === 'Armature').extras || {}, dur = Math.max(...A[0].samplers.map(s => readAccessor(C, s.input).flat().pop()));
-  t('chute.glb: quadro do contato gravado (17/30 s) e clipe cobre até a reação (contato + 0,7 s)', Math.abs(ex.chute_contato_s - 17/30) < 1e-6 && dur >= ex.chute_contato_s + .7 - 1e-3);
+  t('chute.glb: 60 fps, contato no quadro 78 (1,3 s de aproximação) e clipe cobre a recuperação (contato + 1 s)', ex.chute_fps === 60 && Math.abs(ex.chute_contato_s - 78/60) < 1e-6 && ex.chute_inicio_tc === -1.3 && ex.chute_fim_tc === 1 && dur >= ex.chute_contato_s + 1 - 1e-3);
 }
 console.log(`GLB OK ${ok} | FALHAS ${bad}`); process.exit(bad ? 1 : 0);
