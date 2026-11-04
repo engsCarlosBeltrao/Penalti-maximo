@@ -42,10 +42,10 @@ export async function start({ cv, base = 'assets/models/' }) {
   let renderer; try { renderer = new THREE.WebGLRenderer({ canvas: gl, antialias: true }); } catch (e) { gl.remove(); throw e; }
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; const app = cv.parentNode, resize = () => { renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.setSize(app.clientWidth, app.clientHeight, false); }; window.addEventListener('resize', resize); resize();
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, W/H, .2, 220), st = buildStadium(scene), fx = createStadiumFx(scene); DBG.fx = fx; DBG.scene = scene;
-  const field = [0, 1, 2, 3, 4].map(() => { const i = instantiate(tpl); i.root.visible = false; scene.add(i.root); return i; }), keeper = instantiate(tplG, { maos: 'luva' }); keeper.root.visible = false; scene.add(keeper.root);
+  const field = [0, 1, 2, 3, 4, 5, 6].map(() => { const i = instantiate(tpl); i.root.visible = false; scene.add(i.root); return i; }), keeper = instantiate(tplG, { maos: 'luva' }); keeper.root.visible = false; scene.add(keeper.root);
   DBG.field = field;                                                                                // só para depuração (testes no navegador)
   // 3) estado visual (câmera suavizada, tremor e reação da torcida) — igual ao motor procedural
-  let cam = { pos: [0, 3.3, 25], tgt: [0, 1, 1], fov: 27 }, shake = 0, last = 0, exS = [0, 0], sad = [0, 0];
+  let cam = { pos: [0, 3.3, 25], tgt: [0, 1, 1], fov: 27 }, cutId = null, shake = 0, last = 0, exS = [0, 0], sad = [0, 0];
   [['gol', e => { exS[e.equipe] = 1; sad[1 - e.equipe] = 1; shake = 1; fx.burst(e.equipe); }], ['defesa', e => { exS[1 - e.equipe] = .7; sad[e.equipe] = .6; shake = .5; }], ['trave', () => { exS = exS.map(v => Math.max(v, .4)); shake = .8; }], ['fora', e => { sad[e.equipe] = .5; }], ['partida_encerrada', e => { exS[e.vencedor] = 1; sad[1 - e.vencedor] = 1; fx.burst(e.vencedor); }]].forEach(([k, f]) => Events.on(k, f));
   const rng = () => Math.random() - .5, J = a => new THREE.Vector3(...a);
   function drawAim(c, aim, hold) {                                                  // mira no plano do gol, projetada pela câmera 3D
@@ -58,6 +58,7 @@ export async function start({ cv, base = 'assets/models/' }) {
   function drawScene(c, game) {
     const now = performance.now()/1000, dt = Math.min(.05, now - last || .016); last = now; exS = exS.map(v => Math.max(0, v - dt*.5)); sad = sad.map(v => Math.max(0, v - dt*.4)); shake = Math.max(0, shake - dt*2.2);
     const b = game.fin ? null : game.ball, k = game.keeper, res = b?.res, d = b ? b.t - flightTime(b) : 0, bw = ballWorld(b, k), T = camTarget(game, b, bw, res, d), f = 1 - Math.exp(-3*dt);
+    if ((T.cut || null) !== cutId) { cam = { pos: T.pos.slice(), tgt: T.tgt.slice(), fov: T.fov }; shake = 0; } cutId = T.cut || null;   // corte seco na ida e na volta (sem atravessar o campo voando)
     cam.pos = lerp(cam.pos, T.pos, f); cam.tgt = lerp(cam.tgt, T.tgt, f); cam.fov += (T.fov - cam.fov)*f; if (DBG.cam) cam = { pos: DBG.cam.pos.slice(), tgt: DBG.cam.tgt.slice(), fov: DBG.cam.fov };
     camera.fov = cam.fov; camera.updateProjectionMatrix(); camera.position.set(cam.pos[0] + (shake ? rng()*shake*.12 : 0), cam.pos[1] + (shake ? rng()*shake*.12 : 0), cam.pos[2]); camera.lookAt(J(cam.tgt));
     // personagens: o rig.js define as poses; o GLB as recebe por retargeting

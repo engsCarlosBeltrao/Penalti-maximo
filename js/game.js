@@ -5,7 +5,7 @@ import { Aim } from './aim.js';
 import { sfx, crowd, ambient, level } from './audio.js';
 import { Renderer } from './renderer.js';
 import { pickKicker } from './players.js';
-import { kickSpec, waitSpec, forceFromAim, typeFromForce, ENTRY_S, GOAL_REACTIONS, MISS_REACTIONS, reactionBag } from './kicks.js';
+import { kickSpec, waitSpec, forceFromAim, typeFromForce, ENTRY_S, GOAL_REACTIONS, MISS_REACTIONS, reactionBag, RESULT_WAIT } from './kicks.js';
 export const cfg = { hs: 0.9, vs: 0.6, diff: 'normal', sound: true, vol: 0.5, volCrowd: 0.5 };
 // Dificuldade: tempo de reação, alcance do braço, erro de leitura, deslocamento máximo do mergulho
 const DIFF = { easy:{react:.45,reach:.09,err:.22,dive:.3,vr:.3}, normal:{react:.3,reach:.12,err:.13,dive:.36,vr:.36}, hard:{react:.2,reach:.15,err:.07,dive:.42,vr:.42} };
@@ -100,7 +100,7 @@ export const Game = {
     const [a, c] = m.taken, [sa, sc] = GS.placar, ra = Math.max(0, 5 - a), rc = Math.max(0, 5 - c);
     if (a <= 5 || c <= 5) m.fim = sa > sc + rc || sc > sa + ra;
     if (a > 5 || c > 5 || (a >= 5 && c >= 5)) m.fim = a === c && sa !== sc;
-    this.wait = 3.6; this.after = true;   // tempo para a comemoração / frustração do cobrador b.decisiva = m.taken[q] >= 5; GS.estado = 'RESULTADO';
+    this.wait = RESULT_WAIT; this.after = true;   // reação do cobrador e do goleiro, depois o corte para os dois times no círculo central b.decisiva = m.taken[q] >= 5; GS.estado = 'RESULTADO';
   },
   next() {
     const m = this.m;

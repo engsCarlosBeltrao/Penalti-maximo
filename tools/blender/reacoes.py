@@ -73,87 +73,121 @@ def plano_entrada():
             "r": {0: HANG(-1), .48: WBCK(-1, k(.48)), .98: WFWD(-1, k(.98)), 1.48: WBCK(-1, k(1.48)), 1.98: WFWD(-1, k(1.98)), 2.36: HANG(-1), 2.7: HANG(-1)}}
     return plano("Entrada", 2.7, steps, pel, prot, crot, head, arms, init={"r": (V(-.10, P0 + .04), 0), "l": (V(.10, P0 + .04), 0)})
 
-# ======================= 5 COMEMORAÇÕES =======================
+# ======================= 5 COMEMORAÇÕES (com energia: percebe → explode → gesto → corre/salta → continua vibrando → desacelera → estável) =======================
+UPF = lambda s: ((s*.48, -.18, -.86), (s*.18, -.30, .94))            # punho cerrado na altura do ombro, antebraço em pé (cotovelo ~95°)
+DNF = lambda s: ((s*.32, .14, -.94), (s*.22, -.62, .75))             # "puxada": cotovelo para trás com força, punho junto ao peito
+OVH = lambda s, x=.25: ((s*x, -.12, .96), (s*x*.6, -.16, .98))       # braço esticado acima da cabeça
+ASA = lambda s, up: ((s*.95, -.08, up), (s*.92, -.22, up + .12))     # braço aberto como asa
+CRO = lambda s: ((s*.18, .45, -.88), (s*.10, .25, -.96))             # braços jogados para trás (preparação de salto / explosão)
+
+def corrida(Y, ds, tts, feet, hh=None):
+    """Passadas num caminho girado Y graus: ds = distância de cada apoio, tts = (sai, pousa); pelve baixa no apoio, alta no voo; braços opostos às pernas."""
+    A, sd, c = caminho(Y); steps = {"r": [], "l": []}; prev = {"r": END_R, "l": END_L}; pel = {}; arms = {"l": {}, "r": {}}
+    tts = [(min(a, tts[i - 2][1] + .12) if i >= 2 else a, b) for i, (a, b) in enumerate(tts)]   # apoio de ~0,12 s e fase de VOO (o pé sai antes do outro pousar)
+    for i, (f, (a, b)) in enumerate(zip(feet, tts)):
+        p = sd(ds[i], -1 if f == "r" else 1); steps[f].append((a, b, prev[f], p, Y if i else Y/2) + ((hh,) if hh else ())); prev[f] = p
+        pel[b] = c(ds[i] - .12, .90); pel[b + .06] = c(ds[i] - .02, .885)                    # pousa um pouco à frente da pelve, amortece sobre o pé
+        if i: pel[(tts[i - 1][1] + b)/2 + .02] = c(ds[i - 1] + (ds[i] - ds[i - 1])*.5, .94)    # voo
+        fl, bl = ("l", "r") if f == "r" else ("r", "l"); arms[fl][b] = RFWD(1 if fl == "l" else -1); arms[bl][b] = RBCK(1 if bl == "l" else -1)
+    return steps, pel, arms, (A, sd, c)
+
 def gol_bracos_abertos():
-    """Abre os braços como asas e caminha alguns passos girando, peito aberto e cabeça erguida; depois os braços descem."""
-    Y = 35; A, sd, c = caminho(Y)
-    steps = {"r": [(.35, .65, END_R, sd(.45, -1), 20), (.95, 1.25, sd(.45, -1), sd(1.20, -1), Y)], "l": [(.65, .95, END_L, sd(.85, 1), 28), (1.25, 1.55, sd(.85, 1), sd(1.32, 1, -.05), Y)]}
-    pel = {0: (0, 0, .93), .3: (0, .01, .91), .65: c(.30, .905), .80: c(.50, .93), .95: c(.68, .905), 1.10: c(.88, .93), 1.25: c(1.05, .91), 1.55: c(1.22, .92), 2.0: c(1.26, .928), 3.2: c(1.27, .926)}
-    prot = {0: (0, 6, 0), .65: (10, 4, -2), .95: (Y - 6, 3, 2), 1.25: (Y + 4, 2, -2), 1.55: (Y, 1, 0), 3.2: (Y, 3, 0)}
-    crot = {0: (0, 10, 0), .4: (4, 2, 0), .95: (Y - 2, -6, 1), 1.6: (Y + 2, -9, -1), 2.3: (Y, -7, 0), 2.8: (Y, 2, 0), 3.2: (Y, 5, 0)}
-    head = {0: (20, 0), .5: (2, 0), 1.0: (-10, 6), 1.6: (-14, -6), 2.3: (-8, 0), 2.8: (8, 0), 3.2: (14, 0)}
-    ASA = lambda s, up: ((s*.95, -.08, up), (s*.92, -.22, up + .12))
-    arms = {s: {0: HANG(g), .45: ((g*.55, -.2, -.65), (g*.55, -.35, -.5)), 1.0: ASA(g, .12), 1.6: ASA(g, .28), 2.3: ASA(g, .18), 2.8: ((g*.4, -.1, -.85), (g*.3, -.35, -.85)), 3.2: HANG(g)}
-            for s, g in (("l", 1), ("r", -1))}
-    arms["r"][1.6] = ASA(-1, .36)                                     # assimetria: o braço direito sobe um pouco mais
-    maos = {s: {0: ("relaxada", 1), .7: ("aberta", .8), 2.4: ("aberta", .8), 2.9: ("relaxada", 1)} for s in "lr"}
-    return plano("GolBracosAbertos", 3.2, steps, pel, prot, crot, head, arms, maos=maos)
+    """Explode (agacha e puxa os braços), sai correndo em curva com os braços abertos como asas, inclinando o corpo de um lado para o outro e gritando;
+    desacelera, fecha os braços em dois socos no ar e termina parado, ofegante."""
+    Y = 40; ds = [.55, 1.20, 1.88, 2.56, 3.18, 3.62, 3.80]; tts = [(.24, .46), (.46, .70), (.70, .94), (.94, 1.18), (1.18, 1.44), (1.50, 1.80), (1.88, 2.16)]
+    steps, pel, _, (A, sd, c) = corrida(Y, ds, tts, ["r", "l", "r", "l", "r", "l", "r"])
+    pel.update({0: (0, 0, .93), .16: (0, .02, .86), 2.3: c(3.74, .90), 2.55: c(3.75, .92), 2.75: c(3.75, .895), 3.0: c(3.76, .92), 3.6: c(3.76, .926)})
+    prot = {0: (0, 6, 0), .16: (0, 18, 0), .46: (Y/2, 12, 0), .94: (Y, 10, 6), 1.44: (Y + 6, 8, -6), 1.8: (Y + 10, 6, 0), 2.3: (Y + 10, 8, 0), 3.6: (Y + 10, 3, 0)}
+    crot = {0: (0, 10, 0), .16: (0, 30, 0), .4: (Y/2, 8, 0), .7: (Y, 2, 12), 1.0: (Y + 4, 0, -12), 1.3: (Y + 8, 0, 12), 1.6: (Y + 10, 2, -8), 1.95: (Y + 10, 4, 0),
+            2.35: (Y + 10, 18, 0), 2.55: (Y + 10, -2, 0), 2.75: (Y + 10, 16, 0), 3.0: (Y + 10, 0, 0), 3.3: (Y + 10, 8, 0), 3.6: (Y + 10, 5, 0)}
+    head = {0: (20, 0), .16: (24, 0), .4: (-12, 0), .9: (-20, 8), 1.4: (-18, -8), 1.9: (-10, 0), 2.35: (10, 0), 2.55: (-22, 0), 2.75: (6, 0), 3.0: (-16, 0), 3.6: (10, 0)}
+    arms = {s: {0: HANG(g), .16: CRO(g), .4: ((g*.7, -.3, -.4), (g*.75, -.4, -.2)), .65: ASA(g, .02), 1.0: ASA(g, .16), 1.35: ASA(g, .04), 1.7: ASA(g, .2), 2.0: ASA(g, .1),
+                2.3: UPF(g), 2.5: OVH(g), 2.7: UPF(g), 2.9: OVH(g, .3), 3.25: ((g*.35, -.1, -.85), (g*.25, -.4, -.85)), 3.6: HANG(g)} for s, g in (("l", 1), ("r", -1))}
+    arms["r"].update({1.0: ASA(-1, .04), 1.35: ASA(-1, .18), 1.7: ASA(-1, .06)})   # asas balançam em oposição (o corpo inclina para um lado, as asas para o outro)
+    maos = {s: {0: ("relaxada", 1), .12: ("punho", 1), .4: ("aberta", .8), 2.05: ("aberta", .8), 2.25: ("punho", 1), 3.0: ("punho", 1), 3.35: ("relaxada", 1)} for s in "lr"}
+    return plano("GolBracosAbertos", 3.6, steps, pel, prot, crot, head, arms, maos=maos)
 
 def gol_punhos():
-    """Fica no lugar: agacha, cerra os punhos e puxa os dois braços duas vezes ("vamos!"), tronco e cabeça acompanhando; relaxa com um ajuste de pé."""
-    steps = {"r": [], "l": [(1.95, 2.25, END_L, END_L + V(.03, .07), 6)]}
-    pel = {0: (0, 0, .93), .2: (0, .02, .87), .45: (0, .01, .895), .7: (0, .02, .865), .95: (0, .01, .895), 1.2: (0, .02, .87), 1.6: (0, .01, .91), 2.25: (.02, .03, .924), 2.8: (.02, .03, .926)}
-    prot = {0: (0, 6, 0), .2: (0, 14, 0), .45: (-4, 10, 0), .7: (0, 16, 0), .95: (4, 10, 0), 1.2: (0, 15, 0), 1.6: (0, 7, 0), 2.8: (3, 4, 0)}
-    crot = {0: (0, 10, 0), .2: (0, 24, 0), .45: (-6, 12, 2), .7: (0, 26, 0), .95: (6, 12, -2), 1.2: (0, 22, 0), 1.6: (0, 8, 0), 2.8: (2, 6, 0)}
-    head = {0: (20, 0), .2: (-6, 0), .45: (-14, 0), .7: (-4, 0), .95: (-14, 0), 1.2: (-6, 0), 1.7: (6, 0), 2.8: (14, 0)}
-    UP = lambda s: ((s*.48, -.18, -.86), (s*.18, -.30, .94))          # punho na altura do ombro, antebraço em pé, cotovelo ~95°
-    DOWN = lambda s: ((s*.32, .12, -.94), (s*.22, -.62, .75))         # puxada: cotovelo para trás, punho junto ao peito
-    arms = {s: {0: HANG(g), .28: UP(g), .5: DOWN(g), .74: UP(g), .98: DOWN(g), 1.22: UP(g), 1.7: ((g*.3, -.1, -.9), (g*.2, -.5, -.8)), 2.4: HANG(g), 2.8: HANG(g)}
-            for s, g in (("l", 1), ("r", -1))}
-    maos = {s: {0: ("relaxada", 1), .15: ("punho", 1), 1.5: ("punho", 1), 2.1: ("relaxada", 1)} for s in "lr"}
-    return plano("GolPunhos", 2.8, steps, pel, prot, crot, head, arms, maos=maos)
+    """VAMOS: agacha de repente e avança um passo puxando os dois punhos com força e gritando; três socos alternados no ar com os joelhos quicando;
+    pulinho com os dois punhos acima da cabeça; vira em dois passos ainda vibrando e se acalma."""
+    Y = 25; A, sd, c = caminho(Y)
+    R1, L0 = END_R + V(.02, -.32), END_L
+    steps = {"r": [(.16, .40, END_R, R1, 4), (1.38, 1.62, R1, R1 + V(0, .02), 4, .12), (2.05, 2.35, R1 + V(0, .02), sd(.55, -1), Y)],
+             "l": [(1.38, 1.62, L0, L0 + V(0, .02), 0, .12), (2.35, 2.65, L0 + V(0, .02), sd(.62, 1), Y)]}
+    pel = {0: (0, 0, .93), .14: (0, .01, .855), .40: (0, -.12, .87), .55: (0, -.14, .895), .75: (0, -.14, .865), .95: (0, -.14, .895), 1.15: (0, -.14, .865), 1.32: (0, -.14, .86),
+           1.5: (0, -.14, 1.02), 1.66: (0, -.14, .87), 1.85: (0, -.14, .91), 2.35: c(.42, .905), 2.65: c(.55, .92), 3.4: c(.58, .926)}
+    prot = {0: (0, 6, 0), .14: (0, 16, 0), .4: (2, 20, 0), .75: (-6, 12, 0), 1.15: (6, 12, 0), 1.32: (0, 14, 0), 1.5: (0, 0, 0), 1.66: (0, 12, 0), 2.35: (Y - 6, 8, 0), 2.65: (Y, 5, 0), 3.4: (Y, 3, 0)}
+    crot = {0: (0, 10, 0), .14: (0, 30, 0), .4: (0, 34, 0), .55: (-10, 10, 4), .75: (10, 22, -4), .95: (-10, 10, 4), 1.15: (10, 22, -4), 1.32: (0, 20, 0), 1.5: (0, -8, 0),
+            1.66: (0, 16, 0), 1.9: (4, 4, 0), 2.35: (Y - 4, 10, 0), 2.6: (Y, 2, 0), 3.0: (Y, 8, 0), 3.4: (Y, 5, 0)}
+    head = {0: (20, 0), .14: (26, 0), .4: (-4, 0), .55: (-18, 6), .75: (-8, -6), .95: (-18, 6), 1.15: (-8, -6), 1.5: (-26, 0), 1.7: (-6, 0), 2.3: (-12, 10), 2.8: (4, 0), 3.4: (12, 0)}
+    SOC = lambda g: ((g*.32, -.28, .9), (g*.2, -.3, .93))            # soco para o alto (braço quase esticado acima da cabeça)
+    arms = {s: {0: HANG(g), .14: CRO(g), .40: DNF(g), .55: SOC(g), .75: DNF(g), .95: SOC(g), 1.15: DNF(g), 1.32: DNF(g), 1.5: OVH(g, .3), 1.66: UPF(g), 1.85: DNF(g), 2.1: UPF(g),
+                2.45: ((g*.45, -.1, -.6), (g*.3, -.5, -.4)), 2.9: ((g*.25, -.05, -.95), (g*.15, -.35, -.9)), 3.4: HANG(g)} for s, g in (("l", 1), ("r", -1))}
+    arms["r"].update({.55: DNF(-1), .75: SOC(-1), .95: DNF(-1), 1.15: SOC(-1)})   # socos ALTERNADOS: um sobe enquanto o outro puxa
+    maos = {s: {0: ("relaxada", 1), .1: ("punho", 1), 2.4: ("punho", 1), 2.9: ("relaxada", 1)} for s in "lr"}
+    return plano("GolPunhos", 3.4, steps, pel, prot, crot, head, arms, maos=maos)
 
 def gol_salto():
-    """Dois passos rápidos, salto com os dois pés e os braços para cima (um mais alto), aterrissa amortecendo, ajusta e relaxa."""
+    """Percebe o gol e explode em dois passos rápidos, salta com os dois pés socando o ar com o punho direito (o outro braço aberto), aterrissa
+    amortecendo, dá um segundo pulinho com os dois punhos para cima, grita com os punhos cerrados e caminha se acalmando."""
     Y = 15; A, sd, c = caminho(Y)
-    steps = {"r": [(.25, .50, END_R, sd(.42, -1), Y), (1.00, 1.32, sd(.42, -1), sd(1.02, -1), Y), (1.95, 2.2, sd(1.02, -1), sd(1.06, -1, .04), Y)],
-             "l": [(.45, .72, END_L, sd(.82, 1), Y), (1.00, 1.32, sd(.82, 1), sd(1.10, 1), Y)]}
-    pel = {0: (0, 0, .93), .5: c(.30, .905), .72: c(.62, .925), .92: c(.84, .845), 1.16: c(.97, 1.03), 1.32: c(1.04, .86), 1.55: c(1.05, .905), 2.0: c(1.07, .924), 3.0: c(1.08, .926)}
-    prot = {0: (0, 6, 0), .5: (Y - 4, 8, -2), .72: (Y + 4, 8, 2), .92: (Y, 16, 0), 1.16: (Y, -4, 0), 1.32: (Y, 14, 0), 1.6: (Y, 6, 0), 3.0: (Y, 3, 0)}
-    crot = {0: (0, 10, 0), .5: (Y + 5, 10, 1), .72: (Y - 5, 10, -1), .92: (Y, 24, 0), 1.16: (Y + 4, -10, -3), 1.32: (Y, 14, 0), 1.7: (Y, 2, 0), 2.4: (Y, 4, 0), 3.0: (Y, 6, 0)}
-    head = {0: (20, 0), .6: (6, 0), .92: (10, 0), 1.16: (-24, 0), 1.4: (-12, 0), 2.0: (-4, 0), 2.6: (10, 0), 3.0: (14, 0)}
-    arms = {"l": {0: HANG(1), .5: RBCK(1), .66: ((.15, .2, -.97), (.1, -.1, -.99)), .86: ((.2, .55, -.8), (.1, .3, -.95)), 1.04: ((.3, -.9, -.1), (.25, -.95, .15)), 1.24: ((.38, -.1, .92), (.22, -.12, .97)), 1.46: ((.40, -.12, .90), (.26, -.2, .94)),
-                  1.9: ((.6, -.3, -.2), (.5, -.6, .2)), 2.5: ((.3, -.1, -.9), (.2, -.4, -.85)), 3.0: HANG(1)},
-            "r": {0: HANG(-1), .5: RFWD(-1), .66: ((-.15, .2, -.97), (-.1, -.1, -.99)), .86: ((-.2, .55, -.8), (-.1, .3, -.95)), 1.04: ((-.3, -.9, -.1), (-.25, -.95, .15)), 1.24: ((-.25, -.35, .90), (-.14, -.42, .90)), 1.46: ((-.3, -.3, .85), (-.2, -.45, .85)),
-                  1.9: ((-.6, -.3, -.3), (-.5, -.6, .1)), 2.5: ((-.3, -.1, -.9), (-.2, -.4, -.85)), 3.0: HANG(-1)}}
-    maos = {s: {0: ("relaxada", 1), .85: ("punho", 1), 1.9: ("punho", 1), 2.4: ("relaxada", 1)} for s in "lr"}
-    return plano("GolSalto", 3.0, steps, pel, prot, crot, head, arms, maos=maos)
+    steps = {"r": [(.22, .44, END_R, sd(.42, -1), Y), (.94, 1.36, sd(.42, -1), sd(1.02, -1), Y, .22), (1.60, 1.92, sd(1.02, -1), sd(1.10, -1), Y, .12), (2.55, 2.85, sd(1.10, -1), sd(1.50, -1), Y)],
+             "l": [(.42, .66, END_L, sd(.82, 1), Y), (.94, 1.36, sd(.82, 1), sd(1.10, 1), Y, .22), (1.60, 1.92, sd(1.10, 1), sd(1.18, 1), Y, .12), (2.85, 3.15, sd(1.18, 1), sd(1.60, 1, -.02), Y)]}
+    pel = {0: (0, 0, .93), .16: (0, .01, .87), .44: c(.30, .90), .66: c(.62, .89), .86: c(.80, .83), 1.15: c(.98, 1.16), 1.36: c(1.04, .86), 1.48: c(1.05, .84), 1.60: c(1.06, .87),
+           1.76: c(1.09, 1.03), 1.92: c(1.12, .87), 2.1: c(1.13, .90), 2.4: c(1.14, .92), 2.85: c(1.38, .91), 3.15: c(1.52, .925), 3.3: c(1.535, .926), 3.6: c(1.54, .926)}
+    prot = {0: (0, 6, 0), .16: (0, 16, 0), .44: (Y - 4, 10, -2), .66: (Y + 4, 12, 2), .86: (Y, 22, 0), 1.15: (Y, -6, 0), 1.36: (Y, 18, 0), 1.6: (Y, 10, 0), 1.76: (Y, -4, 0),
+            1.92: (Y, 14, 0), 2.3: (Y, 6, 0), 3.6: (Y, 3, 0)}
+    crot = {0: (0, 10, 0), .16: (0, 28, 0), .44: (Y + 6, 12, 2), .66: (Y - 6, 12, -2), .86: (Y, 30, 0), 1.15: (Y + 8, -14, -6), 1.36: (Y, 18, 0), 1.6: (Y, 10, 0),
+            1.76: (Y, -12, 0), 1.92: (Y, 16, 0), 2.15: (Y, 4, 0), 2.35: (Y, 18, 0), 2.6: (Y, 4, 0), 3.0: (Y, 6, 0), 3.6: (Y, 5, 0)}
+    head = {0: (20, 0), .16: (26, 0), .44: (4, 0), .86: (14, 0), 1.15: (-28, 0), 1.4: (-6, 0), 1.76: (-26, 0), 1.95: (-4, 0), 2.35: (-20, 0), 2.7: (2, 0), 3.6: (12, 0)}
+    arms = {"l": {0: HANG(1), .16: CRO(1), .44: RFWD(1), .66: RBCK(1), .86: CRO(1), 1.04: ((.55, -.6, -.3), (.6, -.6, .1)), 1.18: ASA(1, .3), 1.36: ASA(1, .1),
+                  1.5: DNF(1), 1.76: OVH(1, .3), 1.95: UPF(1), 2.15: DNF(1), 2.35: UPF(1), 2.6: DNF(1), 3.0: ((.3, -.05, -.92), (.2, -.4, -.88)), 3.4: HANG(1), 3.6: HANG(1)},
+            "r": {0: HANG(-1), .16: CRO(-1), .44: RBCK(-1), .66: RFWD(-1), .86: CRO(-1), 1.04: ((-.3, -.8, -.4), (-.25, -.95, .1)), 1.18: OVH(-1, .12), 1.36: OVH(-1, .2),
+                  1.5: DNF(-1), 1.76: OVH(-1, .3), 1.95: UPF(-1), 2.15: DNF(-1), 2.35: UPF(-1), 2.6: DNF(-1), 3.0: ((-.3, -.05, -.92), (-.2, -.4, -.88)), 3.4: HANG(-1), 3.6: HANG(-1)}}
+    maos = {"l": {0: ("relaxada", 1), .12: ("punho", 1), 1.04: ("aberta", .7), 1.36: ("aberta", .7), 1.48: ("punho", 1), 2.75: ("punho", 1), 3.1: ("relaxada", 1)},
+            "r": {0: ("relaxada", 1), .12: ("punho", 1), 2.75: ("punho", 1), 3.1: ("relaxada", 1)}}
+    return plano("GolSalto", 3.6, steps, pel, prot, crot, head, arms, maos=maos)
 
 def gol_aponta():
-    """Ergue o braço direito e aponta o indicador para o céu, olhando para cima; a outra mão no peito; dá dois passos lentos e baixa o braço."""
-    Y = -20; A, sd, c = caminho(Y)
-    steps = {"l": [(.50, .85, END_L, sd(.32, 1), Y), (1.6, 1.9, sd(.32, 1), sd(.70, 1), Y)], "r": [(1.0, 1.35, END_R, sd(.62, -1), Y)]}
-    pel = {0: (0, 0, .93), .5: (0, .02, .915), .85: c(.20, .925), 1.35: c(.48, .924), 1.9: c(.66, .926), 3.0: c(.68, .926)}
-    prot = {0: (0, 6, 0), .85: (Y + 3, 4, 2), 1.35: (Y - 3, 3, -2), 1.9: (Y, 2, 0), 3.0: (Y, 3, 0)}
-    crot = {0: (0, 10, 0), .6: (-6, 2, 3), 1.2: (Y - 8, -8, 4), 2.2: (Y - 6, -8, 3), 2.7: (Y, 2, 0), 3.0: (Y, 5, 0)}
-    head = {0: (20, 0), .6: (0, 0), 1.0: (-30, -4), 2.2: (-28, -6), 2.6: (0, 0), 3.0: (14, 0)}
-    arms = {"r": {0: HANG(-1), .35: ((-.35, -.25, -.1), (-.25, -.35, .55)), .85: ((-.16, -.12, .98), (-.08, -.10, .99)), 1.5: ((-.18, -.14, .97), (-.08, -.12, .99)),
-                  2.2: ((-.16, -.12, .98), (-.08, -.10, .99)), 2.6: ((-.35, -.15, -.5), (-.25, -.45, -.4)), 3.0: HANG(-1)},
-            "l": {0: HANG(1), 3.0: HANG(1)}}
-    ik = {"l": {0: ("peito", 0), .4: ("peito", 0), .9: ("peito", 1), 2.2: ("peito", 1), 2.7: ("peito", 0), 3.0: ("peito", 0)}}
-    maos = {"r": {0: ("relaxada", 1), .5: ("aponta", 1), 2.3: ("aponta", 1), 2.7: ("relaxada", 1)}, "l": {0: ("relaxada", 1), .9: ("aberta", .6), 2.2: ("aberta", .6), 2.7: ("relaxada", 1)}}
-    return plano("GolAponta", 3.0, steps, pel, prot, crot, head, arms, ik=ik, maos=maos)
+    """Explode cerrando os punhos e gritando, corre quatro passadas para a torcida vibrando os punhos, freia com os dois indicadores apontando para o
+    céu (olhando para cima), alterna os braços apontando, leva a mão direita ao peito com o indicador esquerdo ainda no alto e se acalma."""
+    Y = -25; ds = [.50, 1.12, 1.76, 2.30, 2.58]; tts = [(.22, .44), (.44, .68), (.68, .92), (.92, 1.20), (1.26, 1.56)]
+    steps, pel, _, (A, sd, c) = corrida(Y, ds, tts, ["l", "r", "l", "r", "l"])
+    steps["r"].append((2.45, 2.75, steps["r"][-1][3], sd(2.70, -1), Y)); steps["l"].append((2.75, 3.05, steps["l"][-1][3], sd(2.80, 1, -.04), Y))
+    pel.update({0: (0, 0, .93), .14: (0, .01, .86), 1.7: c(2.55, .905), 2.0: c(2.56, .92), 2.3: c(2.57, .905), 2.75: c(2.68, .915), 3.05: c(2.76, .924), 3.6: c(2.77, .926)})
+    prot = {0: (0, 6, 0), .14: (0, 18, 0), .44: (Y/2, 12, 0), .92: (Y, 12, 0), 1.56: (Y, 4, 0), 2.3: (Y, 3, 0), 3.6: (Y, 3, 0)}
+    crot = {0: (0, 10, 0), .14: (0, 30, 0), .44: (Y/2 + 5, 14, 0), .68: (Y - 6, 14, 0), .92: (Y + 6, 14, 0), 1.2: (Y - 4, 10, 0), 1.6: (Y, -10, 0), 1.95: (Y + 8, -8, 3),
+            2.25: (Y - 8, -8, -3), 2.6: (Y, -4, 0), 3.1: (Y, 4, 0), 3.6: (Y, 5, 0)}
+    head = {0: (20, 0), .14: (26, 0), .4: (-14, 0), 1.2: (-6, 0), 1.6: (-34, 0), 1.95: (-30, 8), 2.25: (-30, -8), 2.6: (-24, 0), 3.1: (0, 0), 3.6: (12, 0)}
+    arms = {s: {0: HANG(g), .14: CRO(g), .32: UPF(g), .44: DNF(g), .68: UPF(g), .92: DNF(g), 1.2: UPF(g), 1.5: OVH(g, .22), 1.95: OVH(g, .12), 2.25: OVH(g, .3)}
+            for s, g in (("l", 1), ("r", -1))}
+    arms["r"].update({1.95: OVH(-1, .32), 2.25: OVH(-1, .1), 2.6: ((-.3, -.3, -.6), (-.2, -.6, .3)), 3.0: ((-.25, -.2, -.9), (-.15, -.5, -.8)), 3.6: HANG(-1)})
+    arms["l"].update({2.6: OVH(1, .2), 3.0: OVH(1, .25), 3.3: ((.4, -.1, -.6), (.3, -.4, -.5)), 3.6: HANG(1)})
+    ik = {"r": {0: ("peito", 0), 2.35: ("peito", 0), 2.7: ("peito", 1), 3.05: ("peito", 1), 3.4: ("peito", 0), 3.6: ("peito", 0)}}
+    maos = {"r": {0: ("relaxada", 1), .1: ("punho", 1), 1.25: ("punho", 1), 1.45: ("aponta", 1), 2.4: ("aponta", 1), 2.65: ("aberta", .6), 3.1: ("aberta", .6), 3.4: ("relaxada", 1)},
+            "l": {0: ("relaxada", 1), .1: ("punho", 1), 1.25: ("punho", 1), 1.45: ("aponta", 1), 3.1: ("aponta", 1), 3.4: ("relaxada", 1)}}
+    return plano("GolAponta", 3.6, steps, pel, prot, crot, head, arms, ik=ik, maos=maos)
 
 def gol_corrida():
-    """Corre comemorando em arco, braços de corrida alternados, desacelera, ergue os dois punhos e relaxa."""
-    Y = 55; A, sd, c = caminho(Y)
-    d = [.55, 1.20, 1.85, 2.45, 2.95, 3.25, 3.35]                     # passadas crescem e depois encurtam (desaceleração)
-    tt = [(.15, .40), (.40, .66), (.66, .92), (.92, 1.20), (1.20, 1.50), (1.55, 1.85), (1.95, 2.25)]
-    feet = ["r", "l", "r", "l", "r", "l", "r"]; steps = {"r": [], "l": []}; prev = {"r": END_R, "l": END_L}
-    for i, (f, (a, b)) in enumerate(zip(feet, tt)):
-        p = sd(d[i], -1 if f == "r" else 1); steps[f].append((a, b, prev[f], p, Y if i > 0 else Y/2)); prev[f] = p
-    pel = {0: (0, 0, .93), .15: (0, .02, .91)}
-    for i, (a, b) in enumerate(tt): pel[b] = c(d[i] - .08, .885 if i < 5 else .91); pel[(a + b)/2 + .02] = c(d[i] - .38 if i else .25, .935 if i < 5 else .925)
-    pel.update({2.5: c(3.30, .924), 3.4: c(3.32, .926)})
-    prot = {0: (0, 6, 0), .4: (Y/2, 12, 0), .9: (Y, 14, 0), 1.5: (Y, 10, 0), 2.0: (Y, 5, 0), 3.4: (Y, 3, 0)}
-    crot = {0: (0, 10, 0), .4: (Y/2 + 4, 14, 0), .66: (Y - 6, 15, 0), .92: (Y + 6, 15, 0), 1.2: (Y - 6, 13, 0), 1.5: (Y + 4, 10, 0), 2.1: (Y, -6, 0), 2.7: (Y, -4, 0), 3.4: (Y, 5, 0)}
-    head = {0: (20, 0), .4: (4, 0), 1.5: (2, 0), 2.1: (-16, 0), 2.7: (-10, 0), 3.4: (14, 0)}
-    arms = {"l": {0: HANG(1)}, "r": {0: HANG(-1)}}
-    for (a, b), f in zip(tt[:6], feet[:6]):                          # braço oposto à perna que avança
-        fl, bl = ("l", "r") if f == "r" else ("r", "l"); arms[fl][b] = RFWD(1 if fl == "l" else -1); arms[bl][b] = RBCK(1 if bl == "l" else -1)
-    for s, g in (("l", 1), ("r", -1)): arms[s].update({2.08: ((g*.3, -.5, -.8), (g*.2, -.85, .1)), 2.38: ((g*.32, -.1, .94), (g*.2, -.18, .96)), 2.65: ((g*.34, -.12, .93), (g*.22, -.2, .95)), 3.1: ((g*.3, -.1, -.88), (g*.2, -.4, -.85)), 3.4: HANG(g)})
-    maos = {s: {0: ("relaxada", 1), .4: ("punho", .5), 1.9: ("punho", 1), 2.8: ("punho", 1), 3.2: ("relaxada", 1)} for s in "lr"}
-    return plano("GolCorrida", 3.4, steps, pel, prot, crot, head, arms, maos=maos)
+    """Arranca numa corrida de comemoração em arco (seis passadas, braços de velocista, gritando), freia com um pulo de chegada nos dois pés com os
+    braços abertos para o alto, mostra os punhos cerrados à frente do peito (cotovelos abertos, "força!") e se acalma."""
+    Y = 55; ds = [.55, 1.22, 1.92, 2.62, 3.28, 3.80]; tts = [(.16, .40), (.40, .64), (.64, .88), (.88, 1.12), (1.12, 1.38), (1.38, 1.66)]
+    steps, pel, rarms, (A, sd, c) = corrida(Y, ds, tts, ["r", "l", "r", "l", "r", "l"])
+    steps["r"].append((1.46, 2.14, steps["r"][-1][3], sd(4.30, -1.5), Y + 10, .14)); steps["l"].append((1.80, 2.14, steps["l"][-1][3], sd(4.32, 1.5), Y + 10, .14))
+    steps["r"].append((3.0, 3.3, sd(4.30, -1.5), sd(4.36, -1), Y + 10))
+    pel.update({0: (0, 0, .93), .12: (0, .01, .87), 1.76: c(3.95, .86), 1.97: c(4.15, 1.02), 2.14: c(4.30, .84), 2.3: c(4.31, .82), 2.6: c(4.31, .87), 2.85: c(4.31, .84),
+                3.1: c(4.32, .90), 3.3: c(4.34, .92), 3.8: c(4.35, .926)})
+    prot = {0: (0, 6, 0), .12: (0, 16, 0), .4: (Y/2, 14, 0), .88: (Y, 16, 0), 1.66: (Y + 6, 12, 0), 1.97: (Y + 10, -4, 0), 2.3: (Y + 10, 18, 0), 2.85: (Y + 10, 20, 0), 3.3: (Y + 10, 6, 0), 3.8: (Y + 10, 3, 0)}
+    crot = {0: (0, 10, 0), .12: (0, 26, 0), .4: (Y/2 + 6, 16, 0), .64: (Y - 6, 18, 0), .88: (Y + 6, 18, 0), 1.12: (Y - 6, 18, 0), 1.38: (Y + 6, 16, 0), 1.66: (Y, 12, 0),
+            1.97: (Y + 10, -16, 0), 2.3: (Y + 10, 8, 0), 2.6: (Y + 10, 22, 0), 2.85: (Y + 10, 26, 0), 3.1: (Y + 10, 6, 0), 3.4: (Y + 10, 10, 0), 3.8: (Y + 10, 5, 0)}
+    head = {0: (20, 0), .12: (26, 0), .4: (-6, 0), .9: (-16, 0), 1.4: (-8, 0), 1.97: (-30, 0), 2.3: (-10, 0), 2.6: (-18, 0), 2.85: (-24, 0), 3.2: (0, 0), 3.8: (12, 0)}
+    arms = {s: {0: HANG(g), .12: CRO(g)} for s, g in (("l", 1), ("r", -1))}
+    for s in "lr": arms[s].update(rarms[s])
+    FOR = lambda g: ((g*.75, -.25, -.6), (-g*.35, -.85, .4))         # "força!": cotovelos abertos, punhos cerrados à frente do peito
+    for s, g in (("l", 1), ("r", -1)): arms[s].update({1.78: CRO(g), 1.97: ((g*.55, -.2, .8), (g*.45, -.25, .86)), 2.2: ((g*.65, -.2, .72), (g*.55, -.25, .8)),
+                                                      2.5: FOR(g), 2.75: ((g*.8, -.15, -.5), (-g*.3, -.9, .3)), 3.0: FOR(g), 3.35: ((g*.3, -.05, -.9), (g*.2, -.4, -.85)), 3.8: HANG(g)})
+    maos = {s: {0: ("relaxada", 1), .1: ("punho", .7), 1.7: ("punho", .7), 1.95: ("aberta", .8), 2.3: ("punho", 1), 3.2: ("punho", 1), 3.5: ("relaxada", 1)} for s in "lr"}
+    return plano("GolCorrida", 3.8, steps, pel, prot, crot, head, arms, maos=maos)
 
 # ======================= 5 REAÇÕES DE COBRANÇA PERDIDA =======================
 def perdeu_cabeca_baixa():
@@ -279,9 +313,15 @@ def build(plan, out_name, mirror):
         return yw
     def arc(d): h1 = .10 + .13*min(1, d/.7); return h1, min(1, h1/.30)**1.5
     def foot_state(s, tc):                                           # (tornozelo, pitch, yaw, no chão)
-        for (t_off, t_on, P0_, P1_, yw) in STEPS[s]:
+        for e_ in STEPS[s]:
+            t_off, t_on, P0_, P1_, yw = e_[:5]
             if t_off <= tc <= t_on:
                 u = (tc - t_off)/(t_on - t_off); h1, kp = arc((P1_ - P0_).length)
+                if len(e_) > 5:                                       # SALTO: o calcanhar sai primeiro e o pé sobe junto com o corpo (altura do plano), quase sem apontar a ponta para baixo
+                    h1 = e_[5]; y0 = yw_prev(s, t_off); ys = y0 + (yw - y0)*min(1, u/.6)
+                    path = pchip({0: tuple(ankle_at(s, P0_, y0, 22)), .3: tuple(P0_.lerp(P1_, .3) + Vector((0, 0, AN + h1))), .7: tuple(P0_.lerp(P1_, .75) + Vector((0, 0, AN + .75*h1))),
+                                  1: tuple(P1_ + Vector((0, 0, AN + .015)))})
+                    return Vector(path(u)), pchip({0: 22, .3: 12, .7: 2, 1: -4})(u), ys, False
                 path = pchip({0: tuple(ankle_at(s, P0_, yw_prev(s, t_off), 30*kp)), .38: tuple(P0_.lerp(P1_, .25) + Vector((0, 0, h1))),
                               .75: tuple(P0_.lerp(P1_, .80) + Vector((0, 0, .6*h1))), 1: tuple(P1_ + Vector((0, 0, AN + .015)))})
                 y0 = yw_prev(s, t_off); uu = min(1, u/.6); ys = y0 + (yw - y0)*uu*uu*(3 - 2*uu)
@@ -332,14 +372,16 @@ def build(plan, out_name, mirror):
         d = Wv - Sv; L_ = min(d.length, LU + LF - 1e-3); n = d.normalized(); a_ = (LU*LU - LF*LF + L_*L_)/(2*L_); h_ = math.sqrt(max(0, LU*LU - a_*a_))
         p_ = pole - Sv; p_ = (p_ - n*p_.dot(n)).normalized(); E_ = Sv + n*a_ + p_*h_; return E_, Sv + n*L_
     def alvo(kind, s, P, Rp, Rc, Sv, HC, Rh):
-        """punho, polo do cotovelo e direção dos dedos para cada gesto de contato (alvos afastados da cabeça/tronco para não atravessar a geometria)"""
+        """punho, polo do cotovelo, direção dos dedos e direção da PALMA para cada gesto de contato (a palma virada para o que a mão toca)"""
         sg = 1 if s == "l" else -1
-        if kind == "cintura": return P + Rp @ Vector((sg*.20, -.01, .14)), P + Rp @ Vector((sg*.8, .25, .30)), Rp @ Vector((-sg*.25, -.85, -.45))   # punho ao lado da cintura (meia-largura 0,16 m); dedos à frente e para baixo, contornando o quadril
-        if kind == "peito":   return P + Rc @ Vector((-sg*.02, -.20, .40)), Sv + Rc @ Vector((sg*.5, -.2, -.6)), Rc @ Vector((-sg*.8, -.2, .3))
-        if kind == "rosto":   return HC + Rh @ Vector((sg*.03, -(HAX.y*.75 + .04), -.11)), Sv + Rc @ Vector((sg*.12, -.55, -.6)), Rh @ Vector((-sg*.2, -.2, .95))   # acompanha a cabeça
-        return HC + Rh @ Vector((sg*(HAX.x + .055), .04, .02)), Sv + Rc @ Vector((sg*.9, -.1, .45)), Rh @ Vector((-sg*.58, .15, .80))   # cabeca: palmas nas laterais, dedos sobre o topo
+        if kind == "cintura": return P + Rp @ Vector((sg*.20, -.01, .14)), P + Rp @ Vector((sg*.8, .25, .30)), Rp @ Vector((-sg*.25, -.85, -.45)), Rp @ Vector((-sg, .1, 0))   # palma no quadril; dedos à frente e para baixo
+        if kind == "peito":   return P + Rc @ Vector((-sg*.02, -.20, .40)), Sv + Rc @ Vector((sg*.5, -.2, -.6)), Rc @ Vector((-sg*.8, -.2, .3)), Rc @ Vector((0, 1, 0))   # palma no peito
+        if kind == "rosto":
+            W_ = HC + Rh @ Vector((sg*.03, -(HAX.y*.75 + .04), -.11)); return W_, Sv + Rc @ Vector((sg*.12, -.55, -.6)), Rh @ Vector((-sg*.2, -.2, .95)), Rh @ Vector((0, 1, 0))   # palma no rosto
+        W_ = HC + Rh @ Vector((sg*(HAX.x*.78 + .03), .02, HAX.z*.62 + .035))   # cabeca: punho sobre a lateral alta da cabeça, palma no TOPO, dedos para o centro; cotovelos abertos
+        return W_, Sv + Rc @ Vector((sg*.9, .05, .5)), Rh @ Vector((-sg*.6, .6, .3)), Rh @ Vector((-sg*.45, 0, -.9))
     FWD = BR.FWD0
-    MARGEM, PUSH = BR.MARGEM, {"l": 0.0, "r": 0.0}
+    MARGEM, PUSH, TWP = BR.MARGEM, {"l": 0.0, "r": 0.0}, {}
     sc.frame_start, sc.frame_end = 0, N
     PUSHF = {s: [Vector()]*(N + 1) for s in "lr"}
     for passo in (1, 2):                                             # 1º passe mede o empurrão anticolisão por quadro; ele é suavizado no tempo e o 2º passe é o definitivo
@@ -355,16 +397,16 @@ def build(plan, out_name, mirror):
           set_rot("neck_01", qc.slerp(Rh.to_quaternion(), .5).to_matrix()); key("neck_01", f); set_rot("Head", Rh); key("Head", f)
           vl.update(); HC = arm.pose.bones["Head"].matrix @ HC_LOCAL
           def pose_braco(s, push):                                      # braço, mão e dedos de um lado; push = deslocamento do alvo do punho (colisão)
-              v = ARMF[s](tc); ua, fa = Rc @ Vector(v[:3]), Rc @ Vector(v[3:]); w = IKW[s](tc)[0] if s in IKW else 0; hd = None
+              v = ARMF[s](tc); ua, fa = Rc @ Vector(v[:3]), Rc @ Vector(v[3:]); w = IKW[s](tc)[0] if s in IKW else 0; hd = None; pdir = None
               if w > 1e-3:                                             # gesto de contato: IK analítico até o alvo, misturado com o braço livre
-                  vl.update(); Sv = arm.pose.bones[f"upperarm_{s}"].head.copy(); W_, pole, hd = alvo(IKK[s], s, P, Rp, Rc, Sv, HC, Rh)
+                  vl.update(); Sv = arm.pose.bones[f"upperarm_{s}"].head.copy(); W_, pole, hd, pdir = alvo(IKK[s], s, P, Rp, Rc, Sv, HC, Rh)
                   E_, W2 = arm_ik(Sv, W_, pole); ua = ua.normalized().lerp((E_ - Sv).normalized(), w); fa = fa.normalized().lerp((W2 - E_).normalized(), w)
                   hd = (fa.normalized().lerp(hd.normalized(), w)) if hd is not None else None
               if push.length > 1e-6:                                   # encostando no corpo: o punho final (gesto + braço livre já misturados) é empurrado para fora (cotovelo no mesmo plano)
                   vl.update(); Sv = arm.pose.bones[f"upperarm_{s}"].head.copy(); E0 = Sv + ua.normalized()*LU; W0 = E0 + fa.normalized()*LF
                   E_, W2 = arm_ik(Sv, W0 + push, E0 + (E0 - (Sv + W0)/2)*2); ua, fa = E_ - Sv, W2 - E_
-              Ru, Rf = BR.arm_world(REST, s, ua, fa, Rc @ FWD)
-              set_rot(f"upperarm_{s}", Ru); set_rot(f"lowerarm_{s}", Rf); set_rot(f"hand_{s}", BR.hand_world(REST, s, Rf, hd))
+              Ru, Rf, Hw, TWP[s] = BR.arm_hand(REST, s, ua, fa, Rc @ FWD, hd, pdir, w, TWP.get(s))   # palma virada para o que a mão toca (pronação dividida cotovelo/punho)
+              set_rot(f"upperarm_{s}", Ru); set_rot(f"lowerarm_{s}", Rf); set_rot(f"hand_{s}", Hw)
               pose_, k_ = mao(s, tc)                                   # dedos (bracos.py): pose do gesto misturada com a mão relaxada
               for nm, q in BR.finger_quats(REST, s, pose_, k_).items(): arm.pose.bones[nm].rotation_quaternion = q
               return w
@@ -423,11 +465,12 @@ def build(plan, out_name, mirror):
             offs = [e[0] for e in STEPS[s] if e[0] > t_on]; a_ = math.ceil(max(0, t_on + .06)*FPS); b_ = math.floor((min(offs) if offs else T)*FPS)
             if b_ > a_: worst = max(worst, max((fr[i][f"ball_{sname}"].translation - fr[a_][f"ball_{sname}"].translation).xy.length for i in range(a_, b_ + 1)))
         return round(worst*1000, 1)
-    low = min(min(m["ball_l"].translation.z, m["ball_r"].translation.z, (m["ball_l"] @ Vector((0, arm.data.bones["ball_l"].length, 0))).z, (m["ball_r"] @ Vector((0, arm.data.bones["ball_r"].length, 0))).z) for m in fr)
+    lows = [(min(m["ball_l"].translation.z, m["ball_r"].translation.z, (m["ball_l"] @ Vector((0, arm.data.bones["ball_l"].length, 0))).z, (m["ball_r"] @ Vector((0, arm.data.bones["ball_r"].length, 0))).z), i) for i, m in enumerate(fr)]
+    low, low_f = min(lows)
     # mãos x corpo: menor distância (com sinal) das juntas e pontas dos dedos à pele (cabeça, pescoço, tronco, quadril, coxas); negativa = atravessou
     hd_min, hd_onde = min(((lambda r: (r[0], f"mão {s}→{r[2]}@{i/FPS:.2f}s"))(BR.colisao_mao(arm, CORPO, s, m)) for i, m in enumerate(fr) for s in "lr"), key=lambda r: r[0])
     pv = [(fr[i]["pelvis"].translation - fr[i - 1]["pelvis"].translation).length*FPS for i in range(1, N + 1)]
-    rep = {"clipe": out_name, "duracao_s": T, "deriva_apoio_mm": {s: apoio_deriva(s) for s in "lr"}, "pe_mais_baixo_z_m": round(low, 3), "pelve_abaixada_cm": round(-min(DZ)*100, 1),
+    rep = {"clipe": out_name, "duracao_s": T, "deriva_apoio_mm": {s: apoio_deriva(s) for s in "lr"}, "pe_mais_baixo_z_m": round(low, 3), "pe_mais_baixo_t": round(low_f/FPS, 2), "pelve_abaixada_cm": round(-min(DZ)*100, 1), "pelve_abaixada_t": round(DZ.index(min(DZ))/FPS, 2),
            "vel_pelve_max_m_s": round(max(pv), 2), "vel_pelve_fim_m_s": round(pv[-1], 3), "pelve_fim": [round(c, 3) for c in fr[N]["pelvis"].translation],
            "torcao_max_graus": BR.max_twist(arm, REST, range(0, N + 1, 2), sc, vl), "dedos_pele_min_mm": round(hd_min*1000, 1), "colisao_empurrao_max_cm": {k: round(v*100, 1) for k, v in PUSH.items()}, "dedos_pele_onde": hd_onde, "cranio_semi_eixos_m": [round(c, 3) for c in HAX]}
     zs = [m["pelvis"].translation.z for m in fr]; rep["subida_pelve_m"] = round(max(zs) - zs[0], 3)

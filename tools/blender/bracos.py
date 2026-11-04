@@ -7,7 +7,8 @@
 # Regras anatômicas aplicadas aqui:
 #  1) COTOVELO É DOBRADIÇA: o braço é orientado para que a flexão do cotovelo caia no seu plano (a face anterior do braço aponta para o antebraço);
 #     o antebraço é o braço girado em torno desse eixo de dobradiça. Torção extra (pronação/supinação) só quando pedida, limitada a ±70°.
-#  2) PUNHO NÃO GIRA EM TORNO DO PRÓPRIO EIXO: a mão só dobra (flexão/extensão e desvio), no máximo 75°.
+#  2) PUNHO NÃO GIRA EM TORNO DO PRÓPRIO EIXO: a mão só dobra (flexão/extensão e desvio), no máximo 75°. Quando um gesto exige a palma virada
+#     (mão na cabeça, no rosto, no quadril, no peito), arm_hand procura a pronação e a divide entre cotovelo e punho (≤ ~45° cada).
 #  3) DEDOS: cada falange flexiona em torno do SEU eixo de dobradiça, medido no repouso (perpendicular ao dedo e à normal da palma); o polegar fecha
 #     ATRAVESSANDO a palma (não no plano dos outros dedos). Poses: relaxada, punho, aponta (indicador estendido), aberta, apoio, luva (goleiro).
 #  4) MÃO NÃO ENTRA NO CORPO: Corpo (abaixo) mede a distância dos dedos à pele; quem anima empurra o alvo do punho para fora pela normal.
@@ -59,12 +60,33 @@ def hand_world(REST, s, Rf, hand_dir=None, max_deg=75.0):
     return Matrix.Rotation(min(ang, math.radians(max_deg)), 3, ax.normalized()) @ Rf
 
 
+def arm_hand(REST, s, ua, fa, body_fwd, hand_dir=None, palm_dir=None, w=1.0, tw_prev=None, max_tw=88.0):
+    """Braço + mão com a PALMA virada para palm_dir (ex.: para a cabeça, para o quadril). Sem girar o antebraço a palma só aponta para onde a
+    dobradiça do cotovelo deixa (mãos "na cabeça" ficavam viradas para a frente, em pose de rendição). A pronação/supinação necessária é procurada
+    em ±max_tw graus em torno do antebraço (continuidade: em empate fica a mais perto de tw_prev) e DIVIDIDA: metade no antebraço (cotovelo), metade
+    no punho — sem ossos de torção, nenhuma das duas articulações passa de ~45°. w (0..1) mistura com a pose sem pronação.
+    Devolve (Ru, Rf_osso, Hw, tw)."""
+    Ru, Rf0 = arm_world(REST, s, ua, fa, body_fwd); fa = Vector(fa).normalized()
+    if palm_dir is None or w <= 1e-4: return Ru, Rf0, hand_world(REST, s, Rf0, hand_dir), 0.0
+    pd = Vector(palm_dir).normalized()
+    def score(a):
+        Rf = Matrix.Rotation(math.radians(a), 3, fa) @ Rf0; return (hand_world(REST, s, Rf, hand_dir) @ PALM0).dot(pd)
+    cand = [a for a in range(-int(max_tw), int(max_tw) + 1, 4)]; best = max(score(a) for a in cand)
+    near = [a for a in cand if score(a) >= best - .02]; a0 = min(near, key=lambda a: abs(a - (tw_prev if tw_prev is not None else 0)))
+    for st in (2, 1, .5):                                            # refino local
+        a0 = max((a0 - st, a0, a0 + st), key=lambda a: score(max(-max_tw, min(max_tw, a))))
+    tw = max(-max_tw, min(max_tw, a0))*w
+    Rf_full = Matrix.Rotation(math.radians(tw), 3, fa) @ Rf0; Rf_bone = Matrix.Rotation(math.radians(-tw/2), 3, fa) @ Rf_full
+    return Ru, Rf_bone, hand_world(REST, s, Rf_full, hand_dir), tw
+
+
 FINGERS = ("index", "middle", "ring", "pinky")
+PUNHO_POLEGAR = ((-30, 5, 0), (0, 0, 10), (0, 0, 60))                  # (base: palma°, rumo ao mínimo°) e flexão das falanges 2 e 3 — busca em grade no esqueleto real
 # graus por falange (01, 02, 03): relaxada = mão solta de jogador; punho = fechado sem atravessar a palma; aberta = dedos quase estendidos;
 # cintura = mão no quadril: polegar ABERTO para trás (negativo = para o dorso da mão), contornando a cintura em vez de entrar nela;
 # apoio = mão pousada numa superfície (cabeça): dedos levemente curvos e polegar AFASTADO da palma (negativo = abdução), para não entrar no que a palma toca
 POSES = {"relaxada": (14, 20, 14), "punho": (68, 88, 52), "aberta": (4, 6, 4), "luva": (10, 14, 10), "apoio": (8, 12, 8), "cintura": (8, 14, 10)}
-THUMB = {"relaxada": (8, 10, 8), "punho": (22, 30, 22), "aberta": (-14, 0, 2), "luva": (6, 8, 6), "apoio": (24, 12, 6), "cintura": (-34, -6, 0), "aponta": (22, 30, 22)}
+THUMB = {"relaxada": (8, 10, 8), "aberta": (-14, 0, 2), "luva": (6, 8, 6), "apoio": (24, 12, 6), "cintura": (-34, -6, 0)}
 
 
 def finger_quats(REST, s, pose="relaxada", k=1.0):
@@ -85,9 +107,14 @@ def finger_quats(REST, s, pose="relaxada", k=1.0):
             out[nm] = Quaternion((R0.inverted() @ ax).normalized(), math.radians(a))
     tb = THUMB["relaxada"]; tt = THUMB.get(pose, tb); tang = [b + (t - b)*k for b, t in zip(tb, tt)]
     for i, a in enumerate(tang, 1):                                   # polegar: fecha para a palma E atravessando-a (em direção ao mínimo)
-        nm = f"thumb_0{i}_{s}"; R0 = REST[nm].to_3x3(); d = R0.col[1].normalized(); tgt_dir = (PALM0 + knuck*.8).normalized(); ax = d.cross(tgt_dir)
+        nm = f"thumb_0{i}_{s}"; R0 = REST[nm].to_3x3(); d = R0.col[1].normalized(); ax = d.cross((PALM0 + knuck*.8).normalized())
         if ax.length < 1e-4: continue
-        out[nm] = Quaternion((R0.inverted() @ ax).normalized(), math.radians(a))
+        out[nm] = Quaternion((R0.inverted() @ ax).normalized(), math.radians(a)) if pose not in ("punho", "aponta") else None
+        if pose in ("punho", "aponta"):                               # punho: polegar POUSADO sobre o indicador e o médio fechados (pose resolvida por geometria,
+            a1, b1, c = PUNHO_POLEGAR[i - 1]                          # tools/blender: ponta a ~2 mm do alvo, sem atravessar os dedos), misturado com o relaxado por k
+            axp, axk = ((R0.inverted() @ d.cross(v)).normalized() for v in (PALM0, knuck))
+            qf = Quaternion(axp, math.radians(a1)) @ Quaternion(axk, math.radians(b1)) if i == 1 else Quaternion(axp, math.radians(c*.5)) @ Quaternion(axk, math.radians(c))
+            qr = Quaternion((R0.inverted() @ ax).normalized(), math.radians(THUMB["relaxada"][i - 1])); out[nm] = qr.slerp(qf, k)
     return out
 
 

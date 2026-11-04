@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import { KICK_CLIPS } from './js/kickClips.js';
 import { ENTRY_S, GOAL_REACTIONS, MISS_REACTIONS, reactionBag, kickSpec, waitSpec, forceFromAim, typeFromForce, FORCE_BANDS, styleOf, footOf, supportedTypes, clipStart, clipEnd, KICK_TYPES, STAR_STYLES } from './js/kicks.js';
-import { characters, ballWorld, flightTime, kickerState, chargeOf, widthOf } from './js/frame.js';
+import { characters, ballWorld, flightTime, kickerState, chargeOf, widthOf, camTarget } from './js/frame.js';
 import { AIM_LIM, AIM_BASE } from './js/aim.js';
 import { kickerPose, mirrorPose, goalToWorld, BALL0, BALL_R } from './js/rig.js';
 import { PLAYERS, squad } from './js/players.js';
@@ -182,12 +182,13 @@ for (const [n, dur] of [['entrada', ENTRY_S], ...Object.entries(GOAL_REACTIONS),
   const qc = q => [-q[0], -q[1], -q[2], q[3]], qv = (q, v) => qm(qm(q, [...v, 0]), qc(q)).slice(0, 3), node = n => O.nodes.find(x => x.name === n);
   const PAIRS = ['l', 'r'].flatMap(s => [[`lowerarm_${s}`], [`hand_${s}`]]);   // osso filho (o pai é o anterior da cadeia)
   const AX = Object.fromEntries(PAIRS.map(([c]) => [c, qv(node(c).rotation || [0, 0, 0, 1], [0, 1, 0])]));   // eixo do osso (+Y local) no referencial do pai
-  const files = fs.readdirSync('assets/models/anim').filter(f => /^(cobranca_|repouso_|entrada_|gol_|perdeu_)[a-z_]+\.glb$/.test(f) && !/^(gol|perdeu)_[rl]\.glb$/.test(f)); let worst = 0, wn = '';
+  const files = fs.readdirSync('assets/models/anim').filter(f => /^(cobranca_|repouso_|entrada_|gol_|perdeu_)[a-z_]+\.glb$/.test(f) && !/^(gol|perdeu)_[rl]\.glb$/.test(f)); let worst = 0, wn = '', worstP = 0, wnP = ''; const PALMA = /^(perdeu_maos_cabeca|perdeu_mao_rosto|perdeu_maos_cintura|gol_aponta)_/;   // gestos com a palma virada (pronação dividida cotovelo/punho)
   for (const f of files) { const C = readModel('assets/models/anim/' + f), cj = C.json, A = cj.animations[0];
     for (const [c] of PAIRS) { const ch = A.channels.find(x => x.target.path === 'rotation' && cj.nodes[x.target.node].name === c); if (!ch) continue; const L0 = node(c).rotation || [0, 0, 0, 1];
       for (const q of readAccessor(C, A.samplers[ch.sampler].output)) { const r = qm(q, qc(L0)), p = r[0]*AX[c][0] + r[1]*AX[c][1] + r[2]*AX[c][2]; let g = Math.abs(2*Math.atan2(p, r[3])*180/Math.PI); g = g > 180 ? 360 - g : g;
-        if (g > worst) { worst = g; wn = `${f} ${c}`; } } } }
-  t(`mãos: ${files.length} clipes (15 cobranças, repouso, entrada, 10 reações × destro/canhoto), torção do antebraço e do punho ≤ 2° (pior ${worst.toFixed(2)}° — ${wn})`, files.length >= 39 && worst <= 2); }
+        if (PALMA.test(f)) { if (g > worstP) { worstP = g; wnP = `${f} ${c}`; } } else if (g > worst) { worst = g; wn = `${f} ${c}`; } } } }
+  t(`mãos: ${files.length} clipes (15 cobranças, repouso, entrada, 10 reações × destro/canhoto); sem gesto de palma, torção do antebraço e do punho ≤ 2° (pior ${worst.toFixed(2)}° — ${wn})`, files.length >= 39 && worst <= 2);
+  t(`mãos: gestos com a palma virada (cabeça, rosto, cintura, peito): pronação dividida, ≤ 48° por articulação (pior ${worstP.toFixed(1)}° — ${wnP}; antes da correção: 159°)`, worstP > 5 && worstP <= 48); }
 // ---- 5 comemorações e 5 frustrações: sacola sem repetição imediata, sorteio UMA vez por cobrança ----
 t('pelo menos 5 comemorações e 5 reações de frustração, todas distintas', Object.keys(GOAL_REACTIONS).length >= 5 && Object.keys(MISS_REACTIONS).length >= 5 && new Set([...Object.keys(GOAL_REACTIONS), ...Object.keys(MISS_REACTIONS)]).size === 10);
 for (const [nm, tab] of [['gol', GOAL_REACTIONS], ['frustração', MISS_REACTIONS]]) { let seed = 7; const rnd = () => (seed = (seed*16807) % 2147483647)/2147483647, bag = reactionBag(Object.keys(tab), rnd), seq = Array.from({ length: 200 }, bag);
@@ -202,6 +203,21 @@ for (const [nm, tab] of [['gol', GOAL_REACTIONS], ['frustração', MISS_REACTION
   const ok_ = (v, tab) => v.every(x => x in tab) && v.every((x, i) => !i || x !== v[i - 1]);
   t(`partida: cada cobrança recebeu UMA reação, nunca trocada (${vistos.gol.length} gols, ${vistos.perdeu.length} perdidas)`, end !== null && sem === 0 && troca === 0);
   t(`partida: reações do tipo certo e sem repetição imediata (gol: ${vistos.gol.join(', ')} | perdeu: ${vistos.perdeu.join(', ')})`, ok_(vistos.gol, GOAL_REACTIONS) && ok_(vistos.perdeu, MISS_REACTIONS)); }
+// ---- reação coletiva: goleiro e os dois times no círculo central (js/frame.js → teamReaction, js/kicks.js) ----
+{ GS.equipes = [TEAMS.find(x => x.key === 'vasco'), TEAMS[0]]; GS.cobrador = 0; GS.cobranca = 2; GS.cobrancasRealizadas = 3;
+  const ks = kickSpec(comum.id, 'medio'), g = { m: {}, fin: null, escolha: [null, null], hum: () => true, kick: ks, t: 6 }, KP = { x: .5, tx: .2, th: .4, t0: 0 };
+  const fr = (res, d) => { const b = { gx: .2, gy: .3, t: ks.tf + d, t0: ks.t0, tf: ks.tf, res, reacao: res === 'gol' ? 'gol_salto' : 'perdeu_maos_cabeca' }; return characters(g, 5, b, KP, res, d, BALL0); };
+  for (const res of ['gol', 'defesa', 'fora', 'trave']) {
+    const L = fr(res, 3.2).list, cheer = L.filter(c => c.state === 'teamCheer'), sad = L.filter(c => c.state === 'teamSad'), win = res === 'gol' ? 0 : 1;
+    t(`${res}: 3 jogadores do time beneficiado vibram (${win === 0 ? 'o do cobrador' : 'o do goleiro'}) e 3 do outro lamentam`, cheer.length === 3 && sad.length === 3 && cheer.every(c => c.kit.key === GS.equipes[win].key) && sad.every(c => c.kit.key === GS.equipes[1 - win].key));
+    t(`${res}: quem vibra usa comemorações e quem lamenta usa frustrações (clipes reais)`, cheer.every(c => c.anim.clip in GOAL_REACTIONS) && sad.every(c => c.anim.clip in MISS_REACTIONS));
+    t(`${res}: reações variadas e desencontradas (clipes e tempos diferentes)`, new Set(cheer.map(c => c.anim.clip + c.anim.pe)).size === 3 && new Set(cheer.map(c => c.anim.t.toFixed(2))).size >= 2);
+    const kp = fr(res, 2.0).list.find(c => c.role === 'keeper');
+    t(`${res}: goleiro ${res === 'gol' ? 'lamenta' : 'comemora'} depois de levantar`, kp.anim && (res === 'gol' ? kp.anim.clip in MISS_REACTIONS : kp.anim.clip in GOAL_REACTIONS) && !fr(res, 1.0).list.find(c => c.role === 'keeper').anim);
+    const kk = fr(res, 3.2).list[0]; t(`${res}: o cobrador mantém a própria reação (${res === 'gol' ? 'comemoração' : 'frustração'}), sem trocar com o time`, kk.anim.clip === (res === 'gol' ? 'gol_salto' : 'perdeu_maos_cabeca')); }
+  t('times só aparecem no corte do círculo central (não antes do resultado)', fr('defesa', 1.0).list.length === 2 && fr('defesa', 3).list.length === 8);
+  const cam = d => camTarget(g, { gx: .2, gy: .3, t: ks.tf + d, tf: ks.tf, res: 'defesa' }, BALL0, 'defesa', d);
+  t('câmera: corte seco para o círculo central e volta depois', cam(1.5).cut == null && cam(3).cut === 'times' && Math.abs(cam(3).tgt[2] - 52.5) < 1 && cam(5.3).cut == null); }
 // repetição: várias cobranças seguidas, a vez seguinte sempre recomeça pela entrada e o jogo segue
 { let end = null; Game.start(TEAMS.find(x => x.key === 'vasco'), TEAMS[0], w => end = w); const st = () => kickerState(Game, Game.ball); let turns = 0, entr = 0, both = 0, last = null;
   for (let g = 0; g < 9000 && end === null; g++) { if (GS.estado === 'AGUARDANDO_COBRANCA' && Game.t >= ENTRY_S) { Game.down(null); for (let i = 0; i < 50; i++) Game.update(.01); Game.up(); turns++; }

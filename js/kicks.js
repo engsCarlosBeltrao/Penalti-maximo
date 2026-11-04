@@ -38,11 +38,18 @@ export const waitSpec = playerId => kickSpec(playerId, 'medio');
 // Clipes de reação do cobrador (tools/blender/reacoes.py): ENTRADA (caminhada até o ponto de partida), 5 comemorações de gol e 5 reações de cobrança perdida
 // (duração em s, igual ao clipe — conferida em test_kicks.mjs). Arquivos: assets/models/anim/<nome>_<r|l>.glb.
 export const ENTRY_S = 2.7;
-export const GOAL_REACTIONS = { gol_bracos_abertos: 3.2, gol_punhos: 2.8, gol_salto: 3.0, gol_aponta: 3.0, gol_corrida: 3.4 };
+export const GOAL_REACTIONS = { gol_bracos_abertos: 3.6, gol_punhos: 3.4, gol_salto: 3.6, gol_aponta: 3.6, gol_corrida: 3.8 };
 export const MISS_REACTIONS = { perdeu_cabeca_baixa: 2.8, perdeu_maos_cintura: 3.0, perdeu_mao_rosto: 2.8, perdeu_maos_cabeca: 3.0, perdeu_olha_chao: 3.0 };
 export const REACTION_NAMES = { gol_bracos_abertos: 'Braços abertos', gol_punhos: 'Punhos cerrados', gol_salto: 'Pequeno salto', gol_aponta: 'Apontando para cima', gol_corrida: 'Corrida comemorativa',
   perdeu_cabeca_baixa: 'Cabeça baixa', perdeu_maos_cintura: 'Mãos na cintura', perdeu_mao_rosto: 'Mão no rosto', perdeu_maos_cabeca: 'Mãos na cabeça', perdeu_olha_chao: 'Olhar para o chão' };
 export const GOAL_S = Math.max(...Object.values(GOAL_REACTIONS)), MISS_S = Math.max(...Object.values(MISS_REACTIONS));
+// REAÇÃO COLETIVA depois de cada cobrança (d = segundos desde que a bola chegou ao gol): o goleiro se levanta e reage (comemora a defesa ou o erro do
+// cobrador; lamenta o gol), e a câmera corta para o círculo central, onde 3 jogadores de cada time esperam: o time BENEFICIADO pela cobrança (o do
+// cobrador se for gol; o do goleiro se for defesa, trave ou fora) vibra com reações variadas e desencontradas; o outro mostra decepção.
+export const KEEPER_REACT_D = 1.35, TEAM_SHOT = [2.6, 5.2], RESULT_WAIT = 5.4, CENTER_Z = 52.5;
+export const benefited = (res, cobrador) => res === 'gol' ? cobrador : 1 - cobrador;   // índice do time que vibra com o resultado da cobrança
+export const KEEPER_CHEER = ['gol_punhos', 'gol_salto', 'gol_bracos_abertos'], KEEPER_SAD = ['perdeu_maos_cintura', 'perdeu_cabeca_baixa', 'perdeu_maos_cabeca'];
+export const TEAM_CHEER = ['gol_salto', 'gol_punhos', 'gol_aponta']   /* sem as corridas longas: ninguém invade o outro grupo */, TEAM_SAD = ['perdeu_maos_cabeca', 'perdeu_cabeca_baixa', 'perdeu_maos_cintura', 'perdeu_mao_rosto'];
 // SACOLA embaralhada: cada reação sai uma vez antes de qualquer uma repetir, e a primeira de uma sacola nova nunca é a última da anterior (sem repetição
 // imediata). Sorteada UMA vez por cobrança, quando o resultado é confirmado (game.js), e guardada na bola: o mesmo chute nunca troca de reação.
 export function reactionBag(names, rnd = Math.random) {
