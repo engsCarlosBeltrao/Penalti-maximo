@@ -203,21 +203,15 @@ for (const [nm, tab] of [['gol', GOAL_REACTIONS], ['frustração', MISS_REACTION
   const ok_ = (v, tab) => v.every(x => x in tab) && v.every((x, i) => !i || x !== v[i - 1]);
   t(`partida: cada cobrança recebeu UMA reação, nunca trocada (${vistos.gol.length} gols, ${vistos.perdeu.length} perdidas)`, end !== null && sem === 0 && troca === 0);
   t(`partida: reações do tipo certo e sem repetição imediata (gol: ${vistos.gol.join(', ')} | perdeu: ${vistos.perdeu.join(', ')})`, ok_(vistos.gol, GOAL_REACTIONS) && ok_(vistos.perdeu, MISS_REACTIONS)); }
-// ---- reação coletiva: goleiro e os dois times no círculo central (js/frame.js → teamReaction, js/kicks.js) ----
+// ---- goleiro: comemora a defesa/erro ou lamenta o gol; nenhum outro jogador entra em cena durante a disputa ----
 { GS.equipes = [TEAMS.find(x => x.key === 'vasco'), TEAMS[0]]; GS.cobrador = 0; GS.cobranca = 2; GS.cobrancasRealizadas = 3;
   const ks = kickSpec(comum.id, 'medio'), g = { m: {}, fin: null, escolha: [null, null], hum: () => true, kick: ks, t: 6 }, KP = { x: .5, tx: .2, th: .4, t0: 0 };
   const fr = (res, d) => { const b = { gx: .2, gy: .3, t: ks.tf + d, t0: ks.t0, tf: ks.tf, res, reacao: res === 'gol' ? 'gol_salto' : 'perdeu_maos_cabeca' }; return characters(g, 5, b, KP, res, d, BALL0); };
   for (const res of ['gol', 'defesa', 'fora', 'trave']) {
-    const L = fr(res, 3.2).list, cheer = L.filter(c => c.state === 'teamCheer'), sad = L.filter(c => c.state === 'teamSad'), win = res === 'gol' ? 0 : 1;
-    t(`${res}: 3 jogadores do time beneficiado vibram (${win === 0 ? 'o do cobrador' : 'o do goleiro'}) e 3 do outro lamentam`, cheer.length === 3 && sad.length === 3 && cheer.every(c => c.kit.key === GS.equipes[win].key) && sad.every(c => c.kit.key === GS.equipes[1 - win].key));
-    t(`${res}: quem vibra usa comemorações e quem lamenta usa frustrações (clipes reais)`, cheer.every(c => c.anim.clip in GOAL_REACTIONS) && sad.every(c => c.anim.clip in MISS_REACTIONS));
-    t(`${res}: reações variadas e desencontradas (clipes e tempos diferentes)`, new Set(cheer.map(c => c.anim.clip + c.anim.pe)).size === 3 && new Set(cheer.map(c => c.anim.t.toFixed(2))).size >= 2);
     const kp = fr(res, 2.0).list.find(c => c.role === 'keeper');
     t(`${res}: goleiro ${res === 'gol' ? 'lamenta' : 'comemora'} depois de levantar`, kp.anim && (res === 'gol' ? kp.anim.clip in MISS_REACTIONS : kp.anim.clip in GOAL_REACTIONS) && !fr(res, 1.0).list.find(c => c.role === 'keeper').anim);
-    const kk = fr(res, 3.2).list[0]; t(`${res}: o cobrador mantém a própria reação (${res === 'gol' ? 'comemoração' : 'frustração'}), sem trocar com o time`, kk.anim.clip === (res === 'gol' ? 'gol_salto' : 'perdeu_maos_cabeca')); }
-  t('times só aparecem no corte do círculo central (não antes do resultado)', fr('defesa', 1.0).list.length === 2 && fr('defesa', 3).list.length === 8);
-  const cam = d => camTarget(g, { gx: .2, gy: .3, t: ks.tf + d, tf: ks.tf, res: 'defesa' }, BALL0, 'defesa', d);
-  t('câmera: corte seco para o círculo central e volta depois', cam(1.5).cut == null && cam(3).cut === 'times' && Math.abs(cam(3).tgt[2] - 52.5) < 1 && cam(5.3).cut == null); }
+    t(`${res}: só cobrador e goleiro em cena (sem jogadores no meio de campo)`, [1, 2, 3, 3.9].every(d => fr(res, d).list.length === 2));
+    const cam = camTarget(g, { gx: .2, gy: .3, t: ks.tf + 3, tf: ks.tf, res }, BALL0, res, 3); t(`${res}: a câmera continua no gol (sem corte para o meio de campo)`, !cam.cut && cam.tgt[2] < 2); } }
 // repetição: várias cobranças seguidas, a vez seguinte sempre recomeça pela entrada e o jogo segue
 { let end = null; Game.start(TEAMS.find(x => x.key === 'vasco'), TEAMS[0], w => end = w); const st = () => kickerState(Game, Game.ball); let turns = 0, entr = 0, both = 0, last = null;
   for (let g = 0; g < 9000 && end === null; g++) { if (GS.estado === 'AGUARDANDO_COBRANCA' && Game.t >= ENTRY_S) { Game.down(null); for (let i = 0; i < 50; i++) Game.update(.01); Game.up(); turns++; }

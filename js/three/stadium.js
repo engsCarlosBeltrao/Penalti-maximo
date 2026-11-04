@@ -10,7 +10,6 @@ function pitchTexture() {                                             // 80x80 m
   for (let i = 0; i < 16; i++) { g.fillStyle = i % 2 ? '#2e9446' : '#277f3b'; g.fillRect(0, i*S/16, S, S/16 + 1); }
   g.strokeStyle = '#fff'; g.lineWidth = 7; g.strokeRect(X(-34), Z(0), X(34) - X(-34), Z(64) - Z(0)); g.strokeRect(X(-20.16), Z(0), X(20.16) - X(-20.16), Z(16.5) - Z(0)); g.strokeRect(X(-9.16), Z(0), X(9.16) - X(-9.16), Z(5.5) - Z(0));
   g.beginPath(); g.arc(X(0), Z(SPOT_Z), 9.15*S/80, .62, Math.PI - .62); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(X(0), Z(SPOT_Z), 7, 0, 7); g.fill();
-  g.beginPath(); g.moveTo(X(-34), Z(52.5)); g.lineTo(X(34), Z(52.5)); g.stroke(); g.beginPath(); g.arc(X(0), Z(52.5), 9.15*S/80, 0, 7); g.stroke(); g.beginPath(); g.arc(X(0), Z(52.5), 6, 0, 7); g.fill();   // linha do meio e círculo central (onde os times esperam a disputa)
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
 }
 function ballTexture() {

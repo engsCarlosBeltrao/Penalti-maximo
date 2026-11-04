@@ -100,7 +100,7 @@ export const Game = {
     const [a, c] = m.taken, [sa, sc] = GS.placar, ra = Math.max(0, 5 - a), rc = Math.max(0, 5 - c);
     if (a <= 5 || c <= 5) m.fim = sa > sc + rc || sc > sa + ra;
     if (a > 5 || c > 5 || (a >= 5 && c >= 5)) m.fim = a === c && sa !== sc;
-    this.wait = RESULT_WAIT; this.after = true;   // reação do cobrador e do goleiro, depois o corte para os dois times no círculo central b.decisiva = m.taken[q] >= 5; GS.estado = 'RESULTADO';
+    this.wait = RESULT_WAIT; this.after = true;   // tempo para a reação do cobrador e do goleiro b.decisiva = m.taken[q] >= 5; GS.estado = 'RESULTADO';
   },
   next() {
     const m = this.m;

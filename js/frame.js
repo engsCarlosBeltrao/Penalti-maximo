@@ -5,7 +5,7 @@ import { pickKicker, keeperOf } from './players.js';
 import { lerp } from './vec.js';
 import { kickerPose, keeperPose, cheerPose, dejectedPose, goalToWorld, BALL0, BALL_R, SPOT_Z, KICK_T0, CLIP_END, GOAL_W, sm } from './rig.js';
 import { faceOf, SKINS, HAIRC } from './face.js';
-import { clipStart, clipEnd, ENTRY_S, KEEPER_REACT_D, TEAM_SHOT, CENTER_Z, benefited, KEEPER_CHEER, KEEPER_SAD, TEAM_CHEER, TEAM_SAD } from './kicks.js';
+import { clipStart, clipEnd, ENTRY_S, KEEPER_REACT_D, KEEPER_CHEER, KEEPER_SAD } from './kicks.js';
 // MÁQUINA DE ESTADOS do cobrador: entering (clipe de entrada: caminha e para no ponto de partida) → idle (clipe de repouso) → charging (segurando a barra:
 // o repouso se mistura à pose inicial da cobrança) → runUp → kick (do plantio ao contato) → followThrough → recovery (fim do clipe) →
 // goalCelebration (só se o resultado CONFIRMADO for gol) ou missReaction (defesa, trave ou fora). O estado é função do tempo e do resultado: não se
@@ -41,7 +41,6 @@ export function ballWorld(b, k) {
 }
 export function camTarget(game, b, bw, res, d) {
   if (game.fin) return { pos: [0, 2.3, 15], tgt: [0, 1.4, 4], fov: 38 };
-  if (b && res && d >= TEAM_SHOT[0] && d < TEAM_SHOT[1]) { const sx = benefited(res, GS.cobrador) === 0 ? -1 : 1; return { pos: [4.5*sx, 4.6, CENTER_Z + 13], tgt: [.8*sx, .95, CENTER_Z - .5], fov: 40, cut: 'times' }; }   // câmera do lado do time que vibra   // do meio-campo para o gol: o estádio e a torcida ao fundo   // CORTE: os dois times no círculo central
   if (b && res && d > 0) { const T = goalToWorld(b.gx, b.gy); return { pos: [T[0]*.3 + 1.2, 2.7, 19.5], tgt: [T[0]*.5, 1.2, 0], fov: 31 }; }                // gol / defesa: aproxima do gol e da torcida
   if (b && b.t > 0) return { pos: [bw[0]*.15, 3.1, 24], tgt: [bw[0]*.5, bw[1]*.5 + .6, Math.min(1, bw[2]*.3)], fov: 25 };                                  // acompanha a bola
   if (!b && game.t < .9) { const u = sm(game.t/.9); return { pos: lerp([5, 4.2, 29], [0, 3.3, 25], u), tgt: [0, 1.0, 1], fov: 31 - 4*u }; }                    // apresentação / preparação
@@ -60,17 +59,7 @@ const withFace = L => L.ap ? { ...L, face: faceFor(L) } : L;
 export const widthOf = lk => { const f = lk.face || faceOf((lk.nome || '') + (lk.num ?? ''), { hair: lk.hair }); return (f.build || 1)*(f.height || 1); };
 const keeperLook = (t, mood) => { const g = keeperOf(t); return g ? { ...withFace(g), mood } : { skin: t.id % 4, hair: HS[t.id % 4], nome: 'GOL', num: 1, face: faceOf('gk' + t.id), mood }; };   // goleiro do clube (nome/número/aparência próprios) ou genérico se o clube não tiver dados
 const gkKit = t => ({ c1: kcol(t), c2: '#141414', c3: '#fff', pat: 'p', sh: '#1b1b1b', keeper: true, long: true, glove: true, key: 'gk' + t.id });
-// Reação dos dois times no círculo central (só durante o corte de câmera TEAM_SHOT): 3 jogadores de cada lado da linha do meio, virados para a câmera.
-// O time beneficiado vibra (clipes de comemoração diferentes, espelhados alternadamente e desencontrados até 0,4 s); o outro mostra decepção.
-export function teamReaction(game, res, d, nk) {
-  const win = benefited(res, GS.cobrador), out = [];
-  for (const ti of [0, 1]) { const T = GS.equipes[ti], happy = ti === win, base = ti === GS.cobrador ? GS.cobranca : 0;
-    for (let i = 0; i < 3; i++) { const pool = happy ? TEAM_CHEER : TEAM_SAD, clip = pool[(i + nk + ti) % pool.length], stag = [0, .22, .4][(i + nk) % 3], x = (ti === 0 ? -1 : 1)*(2.6 + i*2.3);
-      out.push({ role: happy ? 'mate' : 'loser', P: cheerPose(0, i, [x, 0, CENTER_Z], Math.PI), state: happy ? 'teamCheer' : 'teamSad', kit: { ...T, variant: ti === 1 ? 'away' : 'home', sh: T.c2 }, look: withFace(pickKicker(T, base + 1 + i, null)),
-        anim: { clip, pe: (i + ti) % 2 ? 'l' : 'r', t: Math.max(0, d - (TEAM_SHOT[0] - .35) - stag), pos: [x, 0, CENTER_Z], yaw: 0, blend: 0 } });   /* virados para a câmera do corte */ } }
-  return out;
-}
-// Personagens do quadro: [{ role, P (pose do rig), kit, look, anim? }]. role: kicker | keeper | mate | loser
+// Personagens do quadro: [{ role, P (pose do rig), kit, look }]. role: kicker | keeper | mate | loser
 export function characters(game, now, b, k, res, d, bw) {
   const [ta, tb] = GS.equipes; if (!ta || !game.m) return null;
   if (game.fin) {                                                                                   // FIM CONFIRMADO: só o vencedor comemora; o derrotado mostra decepção
@@ -95,6 +84,5 @@ export function characters(game, now, b, k, res, d, bw) {
   const kAnim = res && d >= KEEPER_REACT_D ? { clip: (res === 'gol' ? KEEPER_SAD : KEEPER_CHEER)[nk % 3], pe: nk % 2 ? 'l' : 'r', t: d - KEEPER_REACT_D, pos: [(k.x - .5)*GOAL_W*(1 - sm((KEEPER_REACT_D - 1)/.7)), 0, .55], yaw: 0, blend: .45, state: res === 'gol' ? 'keeperSad' : 'keeperCheer' } : null;
   const list = [{ role: 'kicker', P: kickerPose(m), anim, state, kit: { ...kt, sh: kt.c2, variant: GS.cobrador === 1 ? 'away' : 'home' }, look: lk },
     { role: 'keeper', P: kp.P, anim: kAnim, kit: gkKit(dt2), look: keeperLook(dt2, kp.info.happy ? 'happy' : kp.info.sad ? 'sad' : 'neutral') }];
-  if (res && d >= TEAM_SHOT[0] - .3) list.push(...teamReaction(game, res, d, nk));
   return { final: false, list };
 }

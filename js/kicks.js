@@ -43,13 +43,10 @@ export const MISS_REACTIONS = { perdeu_cabeca_baixa: 2.8, perdeu_maos_cintura: 3
 export const REACTION_NAMES = { gol_bracos_abertos: 'Braços abertos', gol_punhos: 'Punhos cerrados', gol_salto: 'Pequeno salto', gol_aponta: 'Apontando para cima', gol_corrida: 'Corrida comemorativa',
   perdeu_cabeca_baixa: 'Cabeça baixa', perdeu_maos_cintura: 'Mãos na cintura', perdeu_mao_rosto: 'Mão no rosto', perdeu_maos_cabeca: 'Mãos na cabeça', perdeu_olha_chao: 'Olhar para o chão' };
 export const GOAL_S = Math.max(...Object.values(GOAL_REACTIONS)), MISS_S = Math.max(...Object.values(MISS_REACTIONS));
-// REAÇÃO COLETIVA depois de cada cobrança (d = segundos desde que a bola chegou ao gol): o goleiro se levanta e reage (comemora a defesa ou o erro do
-// cobrador; lamenta o gol), e a câmera corta para o círculo central, onde 3 jogadores de cada time esperam: o time BENEFICIADO pela cobrança (o do
-// cobrador se for gol; o do goleiro se for defesa, trave ou fora) vibra com reações variadas e desencontradas; o outro mostra decepção.
-export const KEEPER_REACT_D = 1.35, TEAM_SHOT = [2.6, 5.2], RESULT_WAIT = 5.4, CENTER_Z = 52.5;
-export const benefited = (res, cobrador) => res === 'gol' ? cobrador : 1 - cobrador;   // índice do time que vibra com o resultado da cobrança
+// Depois de cada cobrança o goleiro se levanta e reage: comemora a defesa (ou o erro do cobrador) ou lamenta o gol (js/frame.js). RESULT_WAIT: tempo
+// entre o resultado e a próxima vez, suficiente para a reação do cobrador terminar.
+export const KEEPER_REACT_D = 1.35, RESULT_WAIT = 4.0;
 export const KEEPER_CHEER = ['gol_punhos', 'gol_salto', 'gol_bracos_abertos'], KEEPER_SAD = ['perdeu_maos_cintura', 'perdeu_cabeca_baixa', 'perdeu_maos_cabeca'];
-export const TEAM_CHEER = ['gol_salto', 'gol_punhos', 'gol_aponta']   /* sem as corridas longas: ninguém invade o outro grupo */, TEAM_SAD = ['perdeu_maos_cabeca', 'perdeu_cabeca_baixa', 'perdeu_maos_cintura', 'perdeu_mao_rosto'];
 // SACOLA embaralhada: cada reação sai uma vez antes de qualquer uma repetir, e a primeira de uma sacola nova nunca é a última da anterior (sem repetição
 // imediata). Sorteada UMA vez por cobrança, quando o resultado é confirmado (game.js), e guardada na bola: o mesmo chute nunca troca de reação.
 export function reactionBag(names, rnd = Math.random) {
