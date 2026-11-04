@@ -10,7 +10,7 @@
  "fps": 60,
  "toque": [
   0.0284,
-  0.1021,
+  0.0992,
   -0.1049
  ],
  "plantio": -0.13,
@@ -25,15 +25,15 @@
  "fim": {
   "pelve": [
    0.05,
-   -1.3
+   -1.46
   ],
   "apoio": [
    0.22,
-   -1.36
+   -1.535
   ],
   "chute": [
    -0.1,
-   -1.3
+   -1.46
   ]
  },
  "vel_pe_contato_m_s": 26.5,
@@ -46,15 +46,15 @@
   "frames": 239,
   "contact_frame": 169,
   "contato": {
-   "chuteira_bola_mm": -1.0,
+   "chuteira_bola_mm": -0.8,
    "material": "Sole",
    "ponto_local_pe": [
     0.013,
     0.131,
     -0.051
    ],
-   "quadro_antes_mm": 419.4,
-   "menor_antes_mm": 419.4,
+   "quadro_antes_mm": 418.9,
+   "menor_antes_mm": 418.9,
    "recuo_tornozelo_m": 0.0227,
    "tecnica": "peito"
   },
@@ -143,7 +143,7 @@
    [
     "r",
     0.53,
-    0.74,
+    0.686,
     0.0
    ],
    [
@@ -169,9 +169,9 @@
    "pelve_parada_desde_tc": 1.083,
    "pelve_menos_meio_dos_pes_m": [
     -0.01,
-    0.03
+    0.037
    ],
-   "base_pes_m": 0.326
+   "base_pes_m": 0.329
   },
   "torcao_max_graus": {
    "antebraco_l": 0.1,
@@ -182,39 +182,39 @@
   "anticolisao": {
    "empurrao_cm": {
     "l": 3.1,
-    "r": 1.6
+    "r": 1.7
    },
    "ciclos": 2,
    "pior_mm": 14.6
   },
   "dedos_pele_min_mm": 14.9,
-  "pe_mais_baixo_z_m": 0.004,
+  "pe_mais_baixo_z_m": 0.001,
   "pe_mais_baixo_tc": 0.0,
   "pe_mais_baixo_qual": "toe_r",
   "aceleracao_max_m_s2": {
    "pelvis": [
-    115.5,
+    127.3,
     -0.133
    ],
    "Head": [
-    91.8,
-    0.133
-   ],
-   "hand_l": [
-    174.2,
-    -0.117
-   ],
-   "hand_r": [
-    215.4,
-    -0.117
-   ],
-   "calf_l": [
-    399.2,
+    85.8,
     -0.133
    ],
+   "hand_l": [
+    364.0,
+    -0.2
+   ],
+   "hand_r": [
+    210.0,
+    0.0
+   ],
+   "calf_l": [
+    387.4,
+    -0.2
+   ],
    "calf_r": [
-    237.8,
-    -0.067
+    368.4,
+    -0.233
    ]
   },
   "passos_aproximacao": 8,

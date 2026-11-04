@@ -383,9 +383,13 @@ for f, tc, st in TOES:
             set_rot(f"ball_{s}", rot(yw_prev(s, tc + 1e-3) if not ground else fy)); q = pb.rotation_quaternion.copy()
             pb.rotation_quaternion = Quaternion((1, 0, 0, 0)).slerp(q, w)
         key(f"ball_{s}", f)
-for f in (0, END):                                                   # mão relaxada (bracos.py: cada falange no seu eixo; polegar atravessa a palma)
+# mãos (bracos.py: cada falange no seu eixo): relaxadas na corrida; a do braço de CONTRAPESO (oposto à perna de chute) abre quando ele é lançado
+# para o lado (penúltima passada → acompanhamento) e volta a relaxar — como na referência de captura de movimento
+ABRE = {"chapada": .45, "medio": .7, "bomba": .85}[TIPO]
+for f, k_ in sorted({0: 0, round(F(PLANT - .24)): 0, round(F(PLANT - .08)): ABRE, round(F(.18)): ABRE, round(F(.45)): 0, END: 0}.items()):
     for s in "lr":
-        for nm, q in BR.finger_quats(REST, s, "relaxada").items(): pb = arm.pose.bones[nm]; pb.rotation_quaternion = q; pb.keyframe_insert("rotation_quaternion", frame=f, group=nm)
+        for nm, q in BR.finger_quats(REST, s, "aberta" if (s == "l" and k_ > 0) else "relaxada", k_ if s == "l" and k_ > 0 else 1).items():
+            pb = arm.pose.bones[nm]; pb.rotation_quaternion = q; pb.keyframe_insert("rotation_quaternion", frame=f, group=nm)
 act = arm.animation_data.action; act.name = "Chute"; act.use_fake_user = True
 
 sys.path.insert(0, os.path.join(SKILLS, "blender-animation", "scripts")); import bake_action

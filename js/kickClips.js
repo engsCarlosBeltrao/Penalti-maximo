@@ -26,20 +26,20 @@ export const KICK_CLIPS = {
   "fim": {
    "pelve": [
     0.05,
-    -1.3
+    -1.46
    ],
    "apoio": [
     0.22,
-    -1.36
+    -1.535
    ],
    "chute": [
     -0.1,
-    -1.3
+    -1.46
    ]
   },
   "velPe": 25.3,
   "folgaContatoMm": -1,
-  "derivaApoioMm": 0
+  "derivaApoioMm": 1.6
  },
  "arrascaeta_chapada": {
   "estilo": "arrascaeta",
@@ -66,15 +66,15 @@ export const KICK_CLIPS = {
   "fim": {
    "pelve": [
     0.08,
-    -0.65
+    -0.7145
    ],
    "apoio": [
     0.18,
-    -0.68
+    -0.749
    ],
    "chute": [
     -0.1,
-    -0.64
+    -0.703
    ]
   },
   "velPe": 12.9,
@@ -106,15 +106,15 @@ export const KICK_CLIPS = {
   "fim": {
    "pelve": [
     0.05,
-    -0.95
+    -1.1285
    ],
    "apoio": [
     0.2,
-    -0.98
+    -1.169
    ],
    "chute": [
     -0.1,
-    -0.92
+    -1.088
    ]
   },
   "velPe": 20.1,
@@ -146,15 +146,15 @@ export const KICK_CLIPS = {
   "fim": {
    "pelve": [
     0.05,
-    -1.3
+    -1.46
    ],
    "apoio": [
     0.22,
-    -1.36
+    -1.535
    ],
    "chute": [
     -0.1,
-    -1.3
+    -1.46
    ]
   },
   "velPe": 26.5,
@@ -186,15 +186,15 @@ export const KICK_CLIPS = {
   "fim": {
    "pelve": [
     0.08,
-    -0.65
+    -0.7145
    ],
    "apoio": [
     0.18,
-    -0.68
+    -0.749
    ],
    "chute": [
     -0.1,
-    -0.64
+    -0.703
    ]
   },
   "velPe": 14,
@@ -226,15 +226,15 @@ export const KICK_CLIPS = {
   "fim": {
    "pelve": [
     0.05,
-    -0.95
+    -1.1285
    ],
    "apoio": [
     0.2,
-    -0.98
+    -1.169
    ],
    "chute": [
     -0.1,
-    -0.92
+    -1.088
    ]
   },
   "velPe": 21.2,
@@ -266,15 +266,15 @@ export const KICK_CLIPS = {
   "fim": {
    "pelve": [
     0.05,
-    -1.3
+    -1.46
    ],
    "apoio": [
     0.22,
-    -1.36
+    -1.535
    ],
    "chute": [
     -0.1,
-    -1.3
+    -1.46
    ]
   },
   "velPe": 26.7,
@@ -306,15 +306,15 @@ export const KICK_CLIPS = {
   "fim": {
    "pelve": [
     0.08,
-    -0.65
+    -0.7145
    ],
    "apoio": [
     0.18,
-    -0.68
+    -0.749
    ],
    "chute": [
     -0.1,
-    -0.64
+    -0.703
    ]
   },
   "velPe": 14,
@@ -346,15 +346,15 @@ export const KICK_CLIPS = {
   "fim": {
    "pelve": [
     0.05,
-    -0.95
+    -1.1285
    ],
    "apoio": [
     0.2,
-    -0.98
+    -1.169
    ],
    "chute": [
     -0.1,
-    -0.92
+    -1.088
    ]
   },
   "velPe": 21.4,
@@ -386,15 +386,15 @@ export const KICK_CLIPS = {
   "fim": {
    "pelve": [
     0.05,
-    -1.3
+    -1.46
    ],
    "apoio": [
     0.22,
-    -1.36
+    -1.535
    ],
    "chute": [
     -0.1,
-    -1.3
+    -1.46
    ]
   },
   "velPe": 26.6,
@@ -426,15 +426,15 @@ export const KICK_CLIPS = {
   "fim": {
    "pelve": [
     0.08,
-    -0.65
+    -0.7145
    ],
    "apoio": [
     0.18,
-    -0.68
+    -0.749
    ],
    "chute": [
     -0.1,
-    -0.64
+    -0.703
    ]
   },
   "velPe": 14,
@@ -466,15 +466,15 @@ export const KICK_CLIPS = {
   "fim": {
    "pelve": [
     0.05,
-    -0.95
+    -1.1285
    ],
    "apoio": [
     0.2,
-    -0.98
+    -1.169
    ],
    "chute": [
     -0.1,
-    -0.92
+    -1.088
    ]
   },
   "velPe": 21.3,
@@ -491,7 +491,7 @@ export const KICK_CLIPS = {
   "contato": 2.816666666666667,
   "toque": [
    0.0284,
-   0.1021,
+   0.0992,
    -0.1049
   ],
   "plantio": -0.13,
@@ -506,19 +506,19 @@ export const KICK_CLIPS = {
   "fim": {
    "pelve": [
     0.05,
-    -1.3
+    -1.46
    ],
    "apoio": [
     0.22,
-    -1.36
+    -1.535
    ],
    "chute": [
     -0.1,
-    -1.3
+    -1.46
    ]
   },
   "velPe": 26.5,
-  "folgaContatoMm": -1,
+  "folgaContatoMm": -0.8,
   "derivaApoioMm": 0
  },
  "neymar_chapada": {
@@ -546,15 +546,15 @@ export const KICK_CLIPS = {
   "fim": {
    "pelve": [
     0.08,
-    -0.65
+    -0.7145
    ],
    "apoio": [
     0.18,
-    -0.68
+    -0.749
    ],
    "chute": [
     -0.1,
-    -0.64
+    -0.703
    ]
   },
   "velPe": 14,
@@ -571,7 +571,7 @@ export const KICK_CLIPS = {
   "contato": 3.35,
   "toque": [
    0.0284,
-   0.1068,
+   0.1069,
    -0.1052
   ],
   "plantio": -0.117,
@@ -586,15 +586,15 @@ export const KICK_CLIPS = {
   "fim": {
    "pelve": [
     0.05,
-    -0.95
+    -1.1285
    ],
    "apoio": [
     0.2,
-    -0.98
+    -1.169
    ],
    "chute": [
     -0.1,
-    -0.92
+    -1.088
    ]
   },
   "velPe": 21.2,

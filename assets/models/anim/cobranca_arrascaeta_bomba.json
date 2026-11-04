@@ -25,15 +25,15 @@
  "fim": {
   "pelve": [
    0.05,
-   -1.3
+   -1.46
   ],
   "apoio": [
    0.22,
-   -1.36
+   -1.535
   ],
   "chute": [
    -0.1,
-   -1.3
+   -1.46
   ]
  },
  "vel_pe_contato_m_s": 25.3,
@@ -102,12 +102,12 @@
     "r",
     -0.38,
     -0.26,
-    0.0
+    1.6
    ],
    [
     "r",
     0.53,
-    0.74,
+    0.686,
     0.0
    ],
    [
@@ -117,15 +117,15 @@
     0.0
    ]
   ],
-  "max_deriva_apoio_mm": 0.0,
+  "max_deriva_apoio_mm": 1.6,
   "erro_ik_apoio": {
    "l": [
     0.0,
     134
    ],
    "r": [
-    0.0,
-    134
+    0.004,
+    49
    ]
   },
   "fim": {
@@ -133,9 +133,9 @@
    "pelve_parada_desde_tc": 1.083,
    "pelve_menos_meio_dos_pes_m": [
     -0.01,
-    0.03
+    0.037
    ],
-   "base_pes_m": 0.326
+   "base_pes_m": 0.329
   },
   "torcao_max_graus": {
    "antebraco_l": 0.1,
@@ -145,40 +145,40 @@
   },
   "anticolisao": {
    "empurrao_cm": {
-    "l": 3.2,
+    "l": 3.6,
     "r": 1.4
    },
    "ciclos": 2,
-   "pior_mm": 15.9
+   "pior_mm": 15.7
   },
-  "dedos_pele_min_mm": 16.4,
+  "dedos_pele_min_mm": 16.1,
   "pe_mais_baixo_z_m": 0.004,
   "pe_mais_baixo_tc": 0.0,
   "pe_mais_baixo_qual": "toe_r",
   "aceleracao_max_m_s2": {
    "pelvis": [
-    100.4,
+    113.4,
     -0.133
    ],
    "Head": [
-    91.8,
-    0.133
+    82.7,
+    -0.183
    ],
    "hand_l": [
-    261.9,
-    -0.117
+    364.3,
+    -0.2
    ],
    "hand_r": [
-    258.6,
+    238.2,
     -0.117
    ],
    "calf_l": [
-    252.9,
-    -0.217
+    268.9,
+    -0.233
    ],
    "calf_r": [
-    305.3,
-    0.0
+    481.0,
+    -0.233
    ]
   },
   "passos_aproximacao": 2,

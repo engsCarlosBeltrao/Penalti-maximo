@@ -23,7 +23,35 @@ TIPOS_SUPORTADOS = {e: ("chapada", "medio", "bomba") for e in ("comum", "neymar"
 PE = {"comum": "r", "neymar": "r", "gabigol": "l", "jorginho": "r", "arrascaeta": "r"}   # pé de chute (Transfermarkt / elenco do jogo)
 
 
+# AJUSTES A PARTIR DA REFERÊNCIA VISUAL "Penalty" (Centroid Motion Capture, Sketchfab): o modelo NÃO é baixável e não tem licença declarada, então
+# nada foi copiado — só observado no visualizador oficial (vista lateral e frontal, 10,2–12,0 s). Princípios aplicados, com intensidade por tipo:
+#  1) penúltima passada em "salto" (voo antes do plantio): a pelve sobe no ar entre a saída do pé de chute e o pouso do pé de apoio;
+#  2) braço oposto à perna de chute vai para a frente e para fora JÁ na penúltima passada (contrapeso), e não só no plantio;
+#  3) tronco mais ereto no contato (menos inclinado para a frente) e mais inclinado para o lado do pé de apoio;
+#  4) depois do contato o jogador NÃO trava: pousa sobre a perna de chute e segue andando para a frente (mais deslocamento na recuperação).
+REF = {"chapada": dict(voo=.010, braco=.6, ereto=3, lado=1, segue=1.15), "medio": dict(voo=.035, braco=1.0, ereto=10, lado=4, segue=1.35),
+       "bomba": dict(voo=.045, braco=1.15, ereto=13, lado=5, segue=1.25)}
+
+
+def _referencia(nome, d):
+    r = REF[nome]; d = dict(d)
+    k0 = min(d["pre_pel"]); a_, n_, z = d["pre_pel"][k0]; d["pre_pel"] = d["pre_pel"] | {k0: (a_, n_, z + r["voo"])}                    # 1) voo
+    l = dict(d["pre_arms"]["l"]); g = r["braco"]                                                                                        # 2) contrapeso cedo
+    l[min(l)] = ((.55*g, -.45, -.70), (.5*g, -.75, -.1)); l[-.12] = ((.78*g, -.30, -.40 + .2*(g - 1)), (.80*g, -.50, .05))
+    d["pre_arms"] = d["pre_arms"] | {"l": l}
+    d["crot"] = {t: (v[0], v[1] - r["ereto"]*(1 if -.07 <= t <= .13 else .5 if t <= .3 else 0), v[2] + r["lado"]*(1 if -.07 <= t <= .13 else 0)) for t, v in d["crot"].items()}   # 3)
+    kl = d["kick_land"]; yl = d["pel"][min(d["pel"], key=lambda t: abs(t - kl))][1]; f = r["segue"]                                     # 4) segue em frente
+    d["pel"] = {t: (v[0], (yl + (v[1] - yl)*f) if t > kl else v[1], v[2]) for t, v in d["pel"].items()}
+    rec = dict(d["rec"]); rec["L5"] = (rec["L5"][0], yl + (rec["L5"][1] - yl)*f); rec["R5"] = (rec["R5"][0], yl + (rec["R5"][1] - yl)*f)
+    rec["r_step"] = (kl + (rec["r_step"][0] - kl)/f, rec["r_step"][1]); d["rec"] = rec                                                # com mais avanço o pé de chute sai antes
+    return d
+
+
 def tipo(nome):
+    return _referencia(nome, _tipo(nome))
+
+
+def _tipo(nome):
     """Parâmetros do chute. Posições de chave são relativas ao pé de apoio PL e à direção da corrida (A = frente, N = esquerda), salvo as do contato em diante."""
     if nome == "medio":
         return dict(
