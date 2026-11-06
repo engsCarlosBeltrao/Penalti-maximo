@@ -46,8 +46,8 @@ CLIPES = {
     "gk_dir_curta_alta": ("Goalkeeper Catch.fbx", True, ("lateral", dict(h=2.05, salto=True))),   # agarrada com SALTO real (mocap) levada para o lado
     "gk_esq_baixa":    ("Goalkeeper Body Block.fbx", False, BAIXO),
     "gk_dir_baixa":    ("Goalkeeper Body Block (1).fbx", False, BAIXO),
-    "gk_esq_media":    ("Goalkeeper Diving Save (1).fbx", False, None),
-    "gk_dir_media":    ("Goalkeeper Diving Save (1).fbx", True, None),
+    "gk_esq_media":    ("Goalkeeper Diving Save (1).fbx", False, ("bracos", {})),   # o mocap abre os braços em "T" antes da impulsão: mãos à frente
+    "gk_dir_media":    ("Goalkeeper Diving Save (1).fbx", True, ("bracos", {})),
     "gk_dir_alta":     ("Goalkeeper Diving Save.fbx", False, ALTO),
     "gk_esq_alta":     ("Goalkeeper Diving Save.fbx", True, ALTO),
     "gk_centro_baixa": ("Goalkeeper Catch (1).fbx", False, ("agacha", {})),
@@ -262,6 +262,22 @@ def centraliza(tgt, sc, vl, N):
             PO[s].location = Pw + Vector((sg*.2, -.9, -.3)); PO[s].keyframe_insert("location", frame=f)
     _assa(tgt)
 
+def bracos(tgt, sc, vl, N):
+    """Mergulho médio: na captura original, entre ~0,15 e 0,45 s, o goleiro joga os dois braços para trás e para os lados (pose em "T") antes de
+    impulsionar. Aqui as mãos ficam À FRENTE do peito, prontas (IK), nessa fase, e voltam ao mocap antes da extensão (o mergulho em si não muda)."""
+    pb = tgt.pose.bones; sm = lambda u: (lambda v: v*v*(3 - 2*v))(min(1, max(0, u)))
+    w = lambda t: sm((t - .04)/.16)*(1 - sm((t - .42)/.2))
+    MA = {s: _vazio(sc, f"ma_{s}") for s in "lr"}; PB = {s: _vazio(sc, f"pb_{s}") for s in "lr"}
+    for s in "lr": _ik(pb, f"lowerarm_{s}", MA[s], PB[s])
+    for f in range(1, N + 2):
+        t = (f - 1)/FPS; k = w(t); sc.frame_set(f); vl.update(); Pw = pb["pelvis"].head.copy()
+        for s in "lr":
+            sg = 1 if s == "l" else -1; livre = pb[f"hand_{s}"].head.copy(); pronto = Vector((Pw.x + sg*.3, Pw.y - .45, Pw.z + .2))
+            MA[s].location = livre.lerp(pronto, k); MA[s].keyframe_insert("location", frame=f)
+            PB[s].location = Pw + Vector((sg*.8, .2, -.3)); PB[s].keyframe_insert("location", frame=f)
+            c = pb[f"lowerarm_{s}"].constraints[-1]; c.influence = min(1, k*1.2); c.keyframe_insert("influence", frame=f)
+    _assa(tgt)
+
 def build(nome, fbx, espelho, adapta=None):
     bpy.ops.wm.read_factory_settings(use_empty=True); sc = bpy.context.scene; sc.render.fps = FPS; vl = bpy.context.view_layer
     assert bpy.ops.import_scene.gltf(filepath=SRC) == {"FINISHED"}
@@ -295,6 +311,7 @@ def build(nome, fbx, espelho, adapta=None):
     if adapta and adapta[0] == "lateral": lateral(tgt, sc, vl, N, **adapta[1])
     if adapta and adapta[0] == "agacha": agacha(tgt, sc, vl, N, **adapta[1])
     if adapta and adapta[0] == "centraliza": centraliza(tgt, sc, vl, N)
+    if adapta and adapta[0] == "bracos": bracos(tgt, sc, vl, N)
     if adapta and adapta[0] == "estende": estende(tgt, sc, vl, N, **adapta[1])
     if nome.startswith(("gk_esq_", "gk_dir_", "gk_centro_alta")) and "curta" not in nome: frente(tgt, sc, vl, N, **FRENTE)   # avanço limitado (mergulhos e salto)
     if espelho:
