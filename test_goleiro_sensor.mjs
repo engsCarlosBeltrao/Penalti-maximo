@@ -127,8 +127,9 @@ console.log('centro com ajuste de passos:');
   const casos = [[.15, 'dir'], [.5, 'centro'], [.85, 'esq'], [.4, 'centro'], [.3, 'dir']]; let okA = true;
   for (const [gx, a] of casos) { const r = cobra({ gx, gy: .5, lado: 'centro', tipo: 'medio', rng: semente(77) }); okA &&= r.sens.at(-1).area === a && r.sens.at(-1).areaReal === a; }
   t('sensor: identifica a área (terço) em que a bola vai chegar, mantendo as coordenadas exatas', okA);
-  const r = cobra({ gx: .45, gy: .4, lado: 'esq', tipo: 'medio', rng: semente(5) }), k = r.k, p = k.plano;
-  t('escolha esquerda e bola no meio: prepara para a esquerda (área escolhida ≠ área da bola)', k.lado === 'esq' && r.sens.at(-1).area === 'centro');
+  const r0 = cobra({ gx: .45, gy: .4, lado: 'esq', tipo: 'medio', rng: semente(5) });
+  t('escolha esquerda e bola no meio: prepara para a esquerda (área escolhida ≠ área da bola)', r0.k.lado === 'esq' && r0.sens.at(-1).area === 'centro' && r0.k.plano.lado === 'esq');
+  const r = cobra({ gx: .6, gy: .45, lado: 'centro', tipo: 'medio', rng: semente(5) }), k = r.k, p = k.plano;   // troca de clipe (preparação → passo): há transição
   if (p.foto) { const ini = GK.colisoresPlano({ plano: { ...p, ajuste: null } }, p.tIni), fim = GK.colisoresPlano({ plano: { ...p, ajuste: null } }, p.tIni + (p.blend + .05)/(p.ritmo || 1)), puro = GK.colisores(p.clip, GK.ctDe({ plano: p }, p.tIni + (p.blend + .05)/(p.ritmo || 1)));
     const d = (A, B, n) => { const a = A.find(c => c.nome === n).a, b = B.find(c => c.nome === n).a; return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]); };
     t('transição: no início da ação a física parte da pose que estava na tela (foto)', d(ini, p.foto, 'mao_l') < .01 && d(ini, p.foto, 'mao_r') < .01);
@@ -146,9 +147,9 @@ console.log('decisão inicial × trajetória (30 chutes médios cada; desloc = t
   resumo('1. escolhe esquerda, bola na esquerda', s1); resumo('2. escolhe esquerda, bola no meio', s2); resumo('3. escolhe direita, bola na direita', s3); resumo('4. escolhe direita, bola no meio', s4);
   resumo('5. escolhe meio, bola um pouco à esquerda', s5); resumo('6. escolhe meio, bola um pouco à direita', s6);
   t('1. esquerda → esquerda: vai para a esquerda e defende na maioria', s1.every(r => r.k.plano.lado === 'esq' && r.dx > .3) && s1.filter(r => r.res === 'defesa').length >= 18);
-  t('2. esquerda → meio: NÃO fica no centro — move-se para a esquerda e tenta a bola', s2.every(r => r.k.plano.lado === 'esq' && r.k.plano.tipo !== 'centro' && r.dx > .05) && s2.filter(r => r.c).length >= 24);
+  t('2. esquerda → meio: NÃO fica no centro — vai para a esquerda; segue o mergulho (salvo leitura errada do lado)', s2.every(r => r.k.plano.lado === 'esq' && r.k.plano.tipo !== 'centro' && r.dx > .1) && s2.filter(r => r.k.plano.tipo === 'mergulho' && r.dx > .4).length >= 27);
   t('3. direita → direita: vai para a direita e defende na maioria', s3.every(r => r.k.plano.lado === 'dir' && r.dx < -.3) && s3.filter(r => r.res === 'defesa').length >= 18);
-  t('4. direita → meio: NÃO fica no centro — move-se para a direita e tenta a bola', s4.every(r => r.k.plano.lado === 'dir' && r.k.plano.tipo !== 'centro' && r.dx < -.05) && s4.filter(r => r.c).length >= 24);
+  t('4. direita → meio: NÃO fica no centro — vai para a direita; segue o mergulho (salvo leitura errada do lado)', s4.every(r => r.k.plano.lado === 'dir' && r.k.plano.tipo !== 'centro' && r.dx < -.1) && s4.filter(r => r.k.plano.tipo === 'mergulho' && r.dx < -.4).length >= 27);
   t('5. meio → um pouco à esquerda: passos para a esquerda, defende', s5.filter(r => r.dx > .15).length >= 24 && s5.filter(r => r.res === 'defesa').length >= 25);
   t('6. meio → um pouco à direita: passos para a direita, defende', s6.filter(r => r.dx < -.15).length >= 24 && s6.filter(r => r.res === 'defesa').length >= 25);
   t('lado escolhido nunca vira "ficar no centro" (candidatos de esquerda/direita sem ação de centro)', !GK.candidatos('esq').some(c => c.tipo === 'centro') && !GK.candidatos('dir').some(c => c.tipo === 'centro'));

@@ -12,6 +12,7 @@ export const KEEPER_CFG = {
   // PREPARAÇÃO: começa 1,5 s antes do instante PREVISTO em que o pé do cobrador atinge a bola (recalculado a cada passo; se o chute vier antes,
   // começa na hora). Nesse instante o lado escolhido TRAVA (sem escolha → centro) e o goleiro começa os ajustes de pés, flexão, braços e o split-step.
   decisaoAntes: 1.5,
+  compromisso: .45,   // m: com lado escolhido, bola lida a menos disso para dentro do lado → segue o mergulho (não troca por passo curto)
   raiz: [0, 0, .2],                               // posição inicial: centro do gol, pés sobre a linha (a pelve a 20 cm do plano do gol)
   zonas: { centroX: .9, baixaY: .6, altaY: 1.45 },  // classificação no plano do gol (m): |x| < centroX = centro; y < baixaY = baixa; y > altaY = alta
   // preparação (gk_prepara, 1,5 s) e, com lado escolhido, o peso indo para aquele pé: o começo do mergulho (t) misturado com peso w, em `rampa` s
@@ -282,7 +283,11 @@ export function planejar(k, b, { dif = 'normal', sc = [1, 1], rng = Math.random 
     const dm = (best.d + extras.reduce((a, v) => a + folga(v, c.clip, off, tIni, C.raiz, sc, tf + .02, null, rt).d, 0))/3;
     return { ...c, off, rt, best, dm, tIni, custo: E[c.tipo] + E.altura*Math.abs(H.indexOf(c.altura) - H.indexOf(lido.altura)) + .03*(rt/r0 - 1)/.1 };
   };
-  const av = candidatos(k.lado).map(c => sincroniza(atual && !atual.pre ? { ...c, atraso: Math.max(0, c.atraso - (b.t - atual.tIni)) } : c)), cobre = av.filter(a => a.dm <= E.alvo);
+  // COMPROMISSO COM O LADO: com esquerda/direita escolhida e a bola lida fora desse lado (no meio ou do outro lado), o goleiro NÃO troca o deslocamento
+  // por um passinho que o deixa no meio: segue o mergulho para o lado escolhido (a saída já começou) e tenta a bola com o que ficar no caminho — pernas,
+  // pés, a mão de trás. O passo curto para o lado escolhido fica para a bola que vem desse lado, perto do corpo.
+  const sg = k.lado === 'esq' ? 1 : k.lado === 'dir' ? -1 : 0, comprometido = sg !== 0 && px*sg < C.compromisso;
+  const av = candidatos(k.lado).filter(c => !(comprometido && c.tipo === 'curta')).map(c => sincroniza(atual && !atual.pre ? { ...c, atraso: Math.max(0, c.atraso - (b.t - atual.tIni)) } : c)), cobre = av.filter(a => a.dm <= E.alvo);
   // nota = folga média prevista (limitada ao alvo: cobrir com sobra não vale mais) + custo do movimento (+ altura diferente da lida, + pressa): a menor vence
   const nota = a => Math.max(a.dm, E.alvo) + a.custo, esc0 = av.slice().sort((a, b_) => nota(a) - nota(b_) || a.dm - b_.dm)[0];
   // NENHUMA ação alcança a bola lida: o goleiro não fica parado nem faz um gesto pequeno à toa. Se já pôs o peso num lado, MERGULHA para esse lado
