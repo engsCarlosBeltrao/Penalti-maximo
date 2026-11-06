@@ -8,6 +8,8 @@ import { pickKicker } from './players.js';
 import { kickSpec, waitSpec, forceFromAim, typeFromForce, ENTRY_S, GOAL_REACTIONS, MISS_REACTIONS, reactionBag, RESULT_WAIT } from './kicks.js';
 import * as GK from './keeper.js';
 import { keeperScale } from './frame.js';
+import { memoriaDe, sortear, registrar, probabilidades } from './goleiroMemoria.js';
+import { keeperOf } from './players.js';
 export const cfg = { hs: 0.9, vs: 0.6, diff: 'normal', sound: true, vol: 0.5, volCrowd: 0.5 };
 // GOLEIRO: js/keeper.js (decisão antecipada, previsão, colisores dos ossos, contato e física). A dificuldade muda o tempo de reação e o erro de leitura
 // do goleiro da CPU; quando o goleiro é do jogador, ela vale para o cobrador da CPU (no fácil o goleiro do jogador reage mais rápido).
@@ -75,7 +77,7 @@ export const Game = {
     this.rating = p.rating;
     level(1); Events.emit('chute', { equipe: GS.cobrador, tipoCobranca: ks.tipo, estilo: ks.estilo, forca: +forca.toFixed(3) });
     // goleiro da CPU (o jogador cobra): sorteia o lado AGORA, sem olhar a mira; se a corrida começar depois do limite, o lado trava logo em seguida
-    if (this.hum()) GK.escolherLado(this.keeper, null, this.forcar?.lado || GK.sorteiaLado(this.rng || Math.random), 'CPU', this.t);
+    if (this.hum()) GK.escolherLado(this.keeper, null, this.forcar?.lado || sortear(this.memGoleiro(), this.rng || Math.random), 'CPU', this.t);   // memória do goleiro (js/goleiroMemoria.js)
     else if (this.forcar?.lado && !this.keeper.lado) GK.escolherLado(this.keeper, null, this.forcar.lado, 'cena de teste', this.t);
     if (this.forcar && !this.forcar.manter) this.forcar = null;
   },
@@ -88,6 +90,9 @@ export const Game = {
     const p = pickKicker(GS.equipes[GS.cobrador], GS.cobranca, this.escolha[GS.cobrador]), ks = kickSpec(p.id, typeFromForce(forceFromAim(gy)));
     return this.t + Math.max(0, this.wait) - ks.t0;                                    // espera da CPU + duração da corrida (t0 < 0) do clipe que ela vai usar
   },
+  // goleiro que está defendendo agora (o do time que NÃO cobra) e a memória das escolhas dele
+  idGoleiro() { const t = GS.equipes[1 - GS.cobrador]; if (!t) return 'gk'; return keeperOf(t)?.id || 'gk-' + (t.key || t.id); },
+  memGoleiro() { return memoriaDe(this.idGoleiro()); },
   gkOpts() { return { dif: this.hum() ? cfg.diff : INV[cfg.diff], sc: keeperScale(this), rng: this.rng || Math.random, craque: this.rating || 75 }; },
   keeperChoose(x) {                                                // goleiro do jogador: escolhe o canto ANTES do limite (1,5 s antes do chute); depois, ignorado
     if (this.hum() || GS.estado !== 'DEFESA_DO_GOLEIRO' || !this.m) return false;
@@ -142,6 +147,7 @@ export const Game = {
     // instante exato (contato = agora − b.t); antes disso, só a CPU tem o momento da corrida definido (espera + duração da corrida do clipe escolhido).
     if (k && k.log && this.forcar?.lado && !k.lado && !this.hum()) GK.escolherLado(k, b, this.forcar.lado, "cena de teste", this.t);   // cena de teste: lado do goleiro do jogador
     if (k && k.log && !(b && b.t >= 0)) GK.agendar(k, this.t, this.contatoPrevisto());
+    if (k && k.log && k.travado && !k.memorizado) { const m = this.memGoleiro(); k.probAntes = probabilidades(m); registrar(m, k.lado); k.memorizado = true; k.idGoleiro = this.idGoleiro(); k.probDepois = probabilidades(m); k.historico = m.historico.slice(); }   // a escolha travada entra na memória deste goleiro
     if (b && !b.res) {
       const tA = b.t; b.t += dt; if (b.t >= 0 && !b.som) { b.som = true; sfx('chute'); GK.registraChute(k, this.t - b.t); }   // som (e registro do goleiro) no instante do contato
       const o = this.gkOpts();

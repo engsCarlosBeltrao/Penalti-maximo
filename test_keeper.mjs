@@ -137,8 +137,8 @@ for (const id of ['comum_medio', 'gabigol_medio', 'neymar_medio', 'jorginho_medi
 { Game.rng = semente(9); Game.start(TEAMS[0], TEAMS[1], () => {}); Game.next(); if (GS.cobrador !== 1) Game.setTurn(1); Game.testeGoleiro({ gx: .8, gy: .4, lado: 'esq' });
   const estados = []; let mergulhoAntes = false;
   for (let i = 0; i < 2400 && !(Game.ball && Game.ball.res); i++) { Game.update(1/120); if (i % 6) continue; const fr = characters(Game, Game.t, Game.ball, Game.keeper, Game.ball?.res, 0, [0, 0, 0]), kp = fr.list.find(c => c.role === 'keeper');
-    const st = kp.anim.state; if (estados[estados.length - 1] !== st) estados.push(st); if (st === 'keeperDive' && Game.ball && Game.ball.t < 0) mergulhoAntes = true; }
-  t(`estados do goleiro em ordem: ${estados.join(' → ')}`, estados.join() === 'keeperWait,keeperPrep,keeperDive'); t('nenhum mergulho antes do chute', !mergulhoAntes); }
+    const st = kp.anim.state; if (estados[estados.length - 1] !== st) estados.push(st); if (st === 'keeperDive' && Game.ball && Game.ball.t < 0 && (Game.ball.t < -.21 || !Game.keeper.plano.pre || GK.ctDe(Game.keeper, Game.ball.t) > .4)) mergulhoAntes = true; }
+  t(`estados do goleiro em ordem: ${estados.join(' → ')}`, estados.join() === 'keeperWait,keeperPrep,keeperDive'); t('antes do chute só a SAÍDA (≤ 0,2 s antes, fase inicial do movimento), nunca o mergulho completo', !mergulhoAntes); }
 // reação depois de terminar a ação (onde ele terminou, já de pé)
 { const r = cobra({ gx: .82, gy: .45, lado: 'esq', tipo: 'chapada', rng: semente(4) }), k = r.k, info = GK.CLIP_INFO[k.plano.clip], tFim = k.plano.tIni + (info.dur - .35 - k.plano.off)/k.plano.ritmo;
   for (const res of ['gol', 'defesa']) { const b = { ...r.b, res }; const g = GK.animGoleiro(k, { ...b, t: tFim + .2 }, { cheer: KEEPER_CHEER, sad: KEEPER_SAD }), d = GK.animGoleiro(k, { ...b, t: tFim - .5 }, { cheer: KEEPER_CHEER, sad: KEEPER_SAD });
