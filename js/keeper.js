@@ -180,10 +180,10 @@ export function planejar(k, b, { dif = 'normal', sc = [1, 1], rng = Math.random 
   const prev = via(px, py), extras = [via(px, py + .5*e), via(px, py - .5*e)];            // e a incerteza da leitura (mais alta / mais baixa)
   // sincroniza: o instante do clipe e o ritmo com que a bola chega na melhor posição; depois, a folga média também nas leituras vizinhas
   const mesmo = c => atual && c.clip === atual.clip, ctAgora = atual ? ctDe(k, b.t) : 0;   // na correção, a MESMA ação pode só mudar de ritmo a partir da pose atual (sem salto)
-  const sincroniza = c => { const S = C.salto, offMin = mesmo(c) ? ctAgora : c.tipo === 'mergulho' && c.preparado ? C.prep.t*.5 : 0,
+  const sincroniza = (c, semPoda = false) => { const S = C.salto, offMin = mesmo(c) ? ctAgora : c.tipo === 'mergulho' && c.preparado ? C.prep.t*.5 : 0,
       offMax = mesmo(c) ? ctAgora : c.tipo === 'centro' ? S.centro : c.tipo === 'curta' ? S.curta : c.preparado ? S.preparado : S.parado, tIni = mesmo(c) ? b.t : b.t + c.atraso, r0 = C.ritmo[c.clip] || 1;
     let off = offMin, rt = r0, best = null; const cx_ = CAIXA[c.clip];
-    if (px < cx_.x0 - .9 || px > cx_.x1 + .9 || py > cx_.y1 + .9 || py < cx_.y0 - .9) return { ...c, off, rt, best: { d: 9 }, dm: 9, tIni, custo: 9 };   // nem perto: descartada
+    if (!semPoda && (px < cx_.x0 - .9 || px > cx_.x1 + .9 || py > cx_.y1 + .9 || py < cx_.y0 - .9)) return { ...c, off, rt, best: { d: 9 }, dm: 9, tIni, custo: 9 };   // nem perto: descartada
     for (const rr of C.ritmos) for (let o = offMin; o <= offMax + 1e-9; o += .05) { const f = folga(prev, c.clip, o, tIni, C.raiz, sc, tf + .02, null, r0*rr);
       if (!best || f.d < best.d - 1e-3) { best = f; off = o; rt = r0*rr; } }
     const dm = (best.d + extras.reduce((a, v) => a + folga(v, c.clip, off, tIni, C.raiz, sc, tf + .02, null, rt).d, 0))/3;
@@ -191,7 +191,11 @@ export function planejar(k, b, { dif = 'normal', sc = [1, 1], rng = Math.random 
   };
   const av = candidatos(k.lado).map(c => sincroniza(atual ? { ...c, atraso: Math.max(0, c.atraso - (b.t - atual.tIni)) } : c)), cobre = av.filter(a => a.dm <= E.alvo);
   // nota = folga média prevista (limitada ao alvo: cobrir com sobra não vale mais) + custo do movimento (+ altura diferente da lida, + pressa): a menor vence
-  const nota = a => Math.max(a.dm, E.alvo) + a.custo, esc = av.slice().sort((a, b_) => nota(a) - nota(b_) || a.dm - b_.dm)[0];
+  const nota = a => Math.max(a.dm, E.alvo) + a.custo, esc0 = av.slice().sort((a, b_) => nota(a) - nota(b_) || a.dm - b_.dm)[0];
+  // NENHUMA ação alcança a bola lida: o goleiro não fica parado nem faz um gesto pequeno à toa. Se já pôs o peso num lado, MERGULHA para esse lado
+  // (o lance clássico de quem escolheu errado); no centro, mergulha para o lado da bola (atrasado). Só na correção o goleiro mantém o que já faz.
+  const desesperada = !atual && !cobre.length && Math.abs(px) > C.zonas.centroX, ladoDive = k.lado === 'esq' || k.lado === 'dir' ? k.lado : px > 0 ? 'esq' : 'dir';
+  const cand = desesperada && candidatos(k.lado).find(c => c.clip === clipeDe(ladoDive, lido.altura)), esc = cand ? sincroniza(cand, true) : esc0;
   if (atual) {   // correção: compara com CONTINUAR a ação atual do jeito que está, avaliada com a leitura nova
     const cont = folga(prev, atual.clip, ctAgora, b.t, C.raiz, sc, tf + .02, null, atual.ritmo).d, nCont = Math.max(cont, E.alvo) + E[atual.tipo] + E.altura*Math.abs(H.indexOf(atual.altura) - H.indexOf(lido.altura));
     if (!(nota(esc) < nCont - C.correcao.ganho)) return null;
