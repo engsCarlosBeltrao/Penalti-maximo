@@ -41,7 +41,8 @@ for (let i = 0; i < 1500; i++) {
 console.log('contatos por parte do corpo:', JSON.stringify(porRegiao)); console.log('resultados (A encaixe · B espalmada · C parcial · D rebote):', JSON.stringify(porClasse));
 const fam = f => Object.entries(porRegiao).filter(([k]) => GK.REGIAO[k]?.fam === f).reduce((a, [, v]) => a + v, 0), total = Object.entries(porRegiao).filter(([k]) => GK.REGIAO[k]).reduce((a, [, v]) => a + v, 0);
 t('prioridade das mãos: a maioria dos contatos é com as mãos', fam('mao')/total > .5, `${fam('mao')}/${total}`);
-for (const [rg, nome] of [['palma', '11/7. palma'], ['dedos', '11. ponta dos dedos'], ['peito', '12. peito'], ['ombro', '13. ombro'], ['abdomen', '14. barriga'], ['pe', '16. pé']]) t(`${nome}: acontece contato nessa parte`, (porRegiao[rg] || 0) > 0, JSON.stringify(porRegiao));
+for (const [rg, nome] of [['palma', '11/7. palma'], ['dedos', '11. ponta dos dedos'], ['peito', '12. peito'], ['abdomen', '14. barriga'], ['pe', '16. pé']]) t(`${nome}: acontece contato nessa parte`, (porRegiao[rg] || 0) > 0, JSON.stringify(porRegiao));
+t('13. braço/ombro (o ombro sozinho ficou raro: as luvas chegam antes — também conferido em test_goleiro_sensor.mjs, situação 16)', (porRegiao.ombro || 0) + (porRegiao.braco || 0) + (porRegiao.antebraco || 0) > 0);
 t('15. perna (coxa, joelho ou canela)', (porRegiao.coxa || 0) + (porRegiao.joelho || 0) + (porRegiao.canela || 0) > 0);
 t('10. passa perto da mão sem tocar', (porRegiao.quase || 0) > 0); t('17. bola fora do alcance (sem contato)', (porRegiao.longe || 0) > 0);
 for (const [cl, nome] of [['A', '19. encaixe'], ['B', '20. espalmada'], ['C', 'defesa parcial'], ['D', '18. rebote']]) t(`${nome} acontece`, (porClasse[cl] || 0) > 0, JSON.stringify(porClasse));

@@ -78,7 +78,7 @@ sit(1, 'escolhe esquerda, bola na esquerda', { gx: .8, gy: .4, lado: 'esq', tipo
 sit(2, 'escolhe esquerda, bola na direita', { gx: .2, gy: .4, lado: 'esq', tipo: 'medio' }, gol, .9);
 sit(3, 'escolhe direita, bola na esquerda', { gx: .8, gy: .4, lado: 'dir', tipo: 'medio' }, gol, .9);
 sit(4, 'escolhe centro, bola no centro', { gx: .5, gy: .4, lado: 'centro', tipo: 'medio' }, def, .85);
-sit(5, 'escolhe centro, bola no canto', { gx: .88, gy: .4, lado: 'centro', tipo: 'medio' }, r => r.k.plano.tipo === 'mergulho' && r.k.plano.lado === 'esq', .9);
+sit(5, 'escolhe centro, bola no canto (passos, sem mergulho)', { gx: .88, gy: .4, lado: 'centro', tipo: 'medio' }, r => r.k.plano.tipo !== 'mergulho' && r.k.plano.lado === 'esq', .9);
 sit(6, 'canto inferior (lado certo)', { gx: .82, gy: .08, lado: 'esq', tipo: 'chapada' }, def, .6);
 sit(7, 'canto superior (lado certo)', { gx: .82, gy: .85, lado: 'esq', tipo: 'chapada' }, def, .6);
 sit(8, 'meio', { gx: .5, gy: .45, lado: 'centro', tipo: 'medio' }, def, .85);
@@ -97,4 +97,28 @@ sit(12, 'bola fora do alcance das mãos (ângulo)', { gx: .98, gy: .93, lado: 'e
   t('20. bola que não encosta no goleiro: nunca é defesa', achar(r => !r.c && r.res === 'gol', 'bola que não encosta em nada', 20)); }
 { let falsas = 0; for (let i = 0; i < 400; i++) { const r = cobra({ gx: .1 + (i % 9)*.1, gy: .05 + (i % 6)*.15, lado: ['esq', 'dir', 'centro'][i % 3], tipo: 'medio', rng: semente(9000 + i) }); if (r.res === 'defesa' && !r.c) falsas++; }
   t('nenhuma defesa sem contato físico em 400 chutes', falsas === 0, falsas); }
+// ---------- 7. CENTRO: pequenos ajustes com passos (item 14) ----------
+console.log('centro com ajuste de passos:');
+{ const varre = (o, N = 24) => Array.from({ length: N }, (_, i) => cobra({ ...o, rng: semente(4400 + i) }));
+  const tipos = rs => { const m = {}; rs.forEach(r => { const c = r.k.plano.clip; m[c] = (m[c] || 0) + 1; }); return JSON.stringify(m); };
+  const esqPerto = varre({ gx: .6, gy: .45, lado: 'centro', tipo: 'medio' }), dirPerto = varre({ gx: .4, gy: .45, lado: 'centro', tipo: 'medio' });
+  console.log('  bola um pouco à esquerda:', tipos(esqPerto)); console.log('  bola um pouco à direita:', tipos(dirPerto));
+  t('centro + bola um pouco à esquerda: passos para a esquerda (ou fica no meio), nunca mergulho', esqPerto.every(r => r.k.plano.tipo !== 'mergulho' && r.k.plano.lado !== 'dir') && esqPerto.filter(r => r.k.plano.lado === 'esq').length >= 18);
+  t('centro + bola um pouco à direita: passos para a direita (ou fica no meio), nunca mergulho', dirPerto.every(r => r.k.plano.tipo !== 'mergulho' && r.k.plano.lado !== 'esq') && dirPerto.filter(r => r.k.plano.lado === 'dir').length >= 18);
+  t('centro + bola um pouco à esquerda/direita: defende na grande maioria', [...esqPerto, ...dirPerto].filter(r => r.res === 'defesa').length >= 42);
+  const meio = varre({ gx: .5, gy: .45, lado: 'centro', tipo: 'medio' }); t('centro + bola no centro: fica centralizado', meio.filter(r => r.k.plano.tipo === 'centro').length >= 20, tipos(meio));
+  const baixa = varre({ gx: .55, gy: .08, lado: 'centro', tipo: 'medio' }), alta = varre({ gx: .55, gy: .8, lado: 'centro', tipo: 'medio' });
+  t('centro + bola baixa: abaixa (ação baixa) na grande maioria', baixa.filter(r => /baixa/.test(r.k.plano.clip)).length >= 17, tipos(baixa));
+  t('centro + bola alta: levanta os braços (ação alta)', alta.filter(r => /alta/.test(r.k.plano.clip)).length >= 20, tipos(alta));
+  const longe = varre({ gx: .92, gy: .45, lado: 'centro', tipo: 'bomba' }); t('centro + bola muito longe: tenta com os passos, sem virar mergulho para o canto', longe.every(r => r.k.plano.tipo !== 'mergulho') && longe.every(r => r.k.plano.lado === 'esq'), tipos(longe));
+  // limites do deslocamento: corpo (tronco) não sai demais do centro, não avança/atravessa a linha e não "teleporta"
+  let maxX = 0, maxZ = 0, minZ = 9, maxV = 0;
+  for (const r of [...esqPerto, ...dirPerto, ...longe]) { let ant = null; for (let tt = r.k.plano.tIni; tt <= r.k.plano.tIni + 1.2; tt += 1/60) { const tr = GK.colisoresPlano(r.k, tt).find(c => c.nome === 'tronco').a;
+      maxX = Math.max(maxX, Math.abs(tr[0])); maxZ = Math.max(maxZ, tr[2] - GK.KEEPER_CFG.raiz[2]); minZ = Math.min(minZ, tr[2]); if (ant) maxV = Math.max(maxV, Math.hypot(tr[0] - ant[0], tr[2] - ant[2])*60); ant = tr; } }
+  console.log(`  tronco: até ${maxX.toFixed(2)} m do centro, avança até ${maxZ.toFixed(2)} m a partir da base (mínimo ${minZ.toFixed(2)} m da linha), ${maxV.toFixed(1)} m/s no máximo`);
+  t('passos não tiram o goleiro demais do centro (tronco ≤ 0,9 m)', maxX <= .9, maxX); t('passos não avançam demais (≤ 0,5 m, o passo frontal de goleiros reais) nem atravessam a linha do gol', maxZ <= .5 && minZ > 0, `${maxZ} ${minZ}`); t('sem deslocamento instantâneo (tronco ≤ 4 m/s)', maxV <= 4, maxV);
+  // com lado escolhido, nada de passos para trocar de lado
+  const lados = [...varre({ gx: .4, gy: .45, lado: 'esq', tipo: 'medio' }), ...varre({ gx: .6, gy: .45, lado: 'dir', tipo: 'medio' })];
+  t('lado escolhido: nunca usa os passos do centro nem passo para o lado oposto', lados.every(r => r.k.plano.tipo !== 'passos' && (r.k.plano.lado === r.k.lado || r.k.plano.lado === 'centro')), tipos(lados));
+  t('candidatos: passos só existem quando a escolha é centro', GK.candidatos('centro').some(c => c.tipo === 'passos') && !GK.candidatos('esq').some(c => c.tipo === 'passos') && !GK.candidatos('dir').some(c => c.tipo === 'passos') && !GK.candidatos('centro').some(c => c.tipo === 'mergulho')); }
 console.log(`SENSOR OK ${ok} | FALHAS ${bad}`); process.exit(bad ? 1 : 0);

@@ -35,6 +35,9 @@ PRONTO = ("pronto", dict(prep=False)); PREPARA = ("pronto", dict(prep=True, quad
 # primeiro, o de trás acompanha (deslize/"shuffle"), a pelve desce e vai para o lado, o tronco inclina para a bola e as mãos vão à bola e depois a trazem
 # ao peito. Ele termina em pé no lugar novo (sem pausa congelada, sem andar de ré).
 def CURTA(h): return ("lateral", dict(h=h))
+# PASSOS (só quando o goleiro escolheu o CENTRO): dois passos laterais curtos e rápidos — pé do lado, pé de trás, pé do lado, pé de trás (alternância e
+# transferência de peso reais), ~0,65 m no total, sem mergulho; termina em pé, de frente, pronto para defender com as mãos.
+def PASSOS(h): return ("lateral", dict(h=h, passos=2))
 CLIPES = {
     "gk_espera":       ("Goalkeeper Idle.fbx", False, PRONTO),             # espera em prontidão (joelhos flexionados, tronco à frente, mãos prontas)
     "gk_prepara":      ("Goalkeeper Idle.fbx", False, PREPARA),            # 1,5 s antes do contato: ajustes dos pés, flexão, braços, split-step
@@ -44,6 +47,12 @@ CLIPES = {
     "gk_dir_curta_baixa": ("Goalkeeper Catch (1).fbx", True, CURTA(.28)),
     "gk_dir_curta_media": ("Goalkeeper Catch (1).fbx", True, CURTA(1.0)),
     "gk_dir_curta_alta": ("Goalkeeper Catch.fbx", True, ("lateral", dict(h=2.05, salto=True))),   # agarrada com SALTO real (mocap) levada para o lado
+    "gk_esq_passos_baixa": ("Goalkeeper Catch (1).fbx", False, PASSOS(.28)),
+    "gk_esq_passos_media": ("Goalkeeper Catch (1).fbx", False, PASSOS(1.0)),
+    "gk_esq_passos_alta":  ("Goalkeeper Catch (1).fbx", False, PASSOS(1.75)),
+    "gk_dir_passos_baixa": ("Goalkeeper Catch (1).fbx", True, PASSOS(.28)),
+    "gk_dir_passos_media": ("Goalkeeper Catch (1).fbx", True, PASSOS(1.0)),
+    "gk_dir_passos_alta":  ("Goalkeeper Catch (1).fbx", True, PASSOS(1.75)),
     "gk_esq_baixa":    ("Goalkeeper Body Block.fbx", False, BAIXO),
     "gk_dir_baixa":    ("Goalkeeper Body Block (1).fbx", False, BAIXO),
     "gk_esq_media":    ("Goalkeeper Diving Save (1).fbx", False, ("bracos", {})),   # o mocap abre os braços em "T" antes da impulsão: mãos à frente
@@ -180,12 +189,13 @@ def pronto(tgt, sc, vl, N, prep=False):
             free = pb[f"hand_{s}"].head.copy(); rd = Pw + Vector((sg*(.3 + .06*r), -.42, .1 - .05*r)); MA[s].location = free.lerp(rd, .75); MA[s].keyframe_insert("location", frame=f)
             PB[s].location = Pw + Vector((sg*.8, .2, -.3)); PB[s].keyframe_insert("location", frame=f)
     _assa(tgt)
-def lateral(tgt, sc, vl, N, h=1.0, salto=False):
+def lateral(tgt, sc, vl, N, h=1.0, salto=False, passos=1):
     pb = tgt.pose.bones; E_ = 1.9 if salto else 1.0; sm = lambda u: (lambda v: v*v*(3 - 2*v))(min(1, max(0, u)))   # salto: o Catch chega no alto ~0,8 s, tempos esticados
     arco = lambda t, a, b: math.sin(math.pi*min(1, max(0, (t - a)/(b - a))))
     baixa, alta = h < .6, h > 1.5 and not salto
     desce, frente_, lado_ = (.36, 30, 10) if baixa else (0, 0, 16) if salto else (.04, 0, 12) if alta else (.17, 14, 14)   # queda da pelve (m), inclinação à frente e para o lado (°)
-    lat = .34 if not baixa else .4
+    lat = (.34 if not baixa else .4)*(1 if passos == 1 else 1.85)
+    dur = .38 + .26*(passos - 1)                                                            # dois passos: o corpo leva mais tempo para chegar
     feet = []; px0 = []
     for f in range(1, N + 2): sc.frame_set(f); vl.update(); feet.append({s_: pb[f"foot_{s_}"].matrix.copy() for s_ in "lr"}); px0.append(pb["pelvis"].head.x)
     deriva = [x - px0[0] for x in px0]                                                     # o clipe base anda sozinho para o lado: descontado (o passo é só o nosso)
@@ -194,9 +204,9 @@ def lateral(tgt, sc, vl, N, h=1.0, salto=False):
         _ik(pb, f"calf_{s_}", PE[s_], PO[s_]); cr = pb[f"foot_{s_}"].constraints.new("COPY_ROTATION"); cr.target = PE[s_]; _ik(pb, f"lowerarm_{s_}", MA[s_], PB[s_])
     for f in range(1, N + 2):
         t = (f - 1)/FPS/E_; sc.frame_set(f); vl.update()
-        w1 = sm((t - .04)/.38)                                                            # o corpo vai para o lado (e fica)
+        w1 = sm((t - .04)/dur)                                                            # o corpo vai para o lado (e fica)
         wb = sm((t - .04)/.32)*(1 - .55*sm((t - .75)/.4))                                 # descida/inclinação: entra, alivia um pouco no fim
-        wh = sm((t - .06)/.3)*(1 - (sm((t - .55)/.25) if salto else sm((t - .78)/.38)))                                     # mãos na bola, depois trazidas ao peito (o próprio clipe)
+        wh = sm((t - (.06 if passos == 1 else .16))/.3)*(1 - (sm((t - .55)/.25) if salto else sm((t - (.78 + .22*(passos - 1)))/.38)))                                     # mãos na bola, depois trazidas ao peito (o próprio clipe)
         P = pb["pelvis"]; M = P.matrix.copy(); M.translation.x += lat*w1 - deriva[f - 1]; M.translation.z += -desce*wb + (.14*arco(t, .3, .72) if alta else 0); P.matrix = M; P.keyframe_insert("location", frame=f, group="pelvis")
         vl.update()
         for b_, fr_, ld_ in (("spine_01", .4, .35), ("spine_02", .35, .35), ("spine_03", .25, .3)):   # tronco: à frente (eixo X) e para o lado da bola (eixo Y), no espaço da armadura
@@ -207,8 +217,12 @@ def lateral(tgt, sc, vl, N, h=1.0, salto=False):
         for s_ in "lr":
             sg = 1 if s_ == "l" else -1; lead = sg == 1; Mf = feet[f - 1][s_].copy(); Mf.translation.x = feet[0][s_].translation.x   # x do pé = o da base inicial + o NOSSO passo (o clipe base também dava passos)
             pulo = .14*arco(t, .3, .72) if alta else 0                                       # alta: pequeno salto (os dois pés saem do chão)
-            if lead: u = sm((t - .04)/.24); Mf.translation.x += (lat + .05)*u; Mf.translation.z += .07*arco(t, .04, .28) + pulo   # pé do lado: passo
-            else: u = sm((t - .2)/.26); Mf.translation.x += (lat - .02)*u; Mf.translation.z += .05*arco(t, .2, .46) + pulo     # pé de trás acompanha
+            if passos == 1:
+                if lead: u = sm((t - .04)/.24); Mf.translation.x += (lat + .05)*u; Mf.translation.z += .07*arco(t, .04, .28) + pulo   # pé do lado: passo
+                else: u = sm((t - .2)/.26); Mf.translation.x += (lat - .02)*u; Mf.translation.z += .05*arco(t, .2, .46) + pulo     # pé de trás acompanha
+            else:   # dois ciclos: lado, trás, lado, trás (um pé sempre no chão; o peso passa de um para o outro)
+                if lead: Mf.translation.x += (lat/2 + .05)*sm((t - .04)/.18) + (lat/2)*sm((t - .3)/.18); Mf.translation.z += .06*arco(t, .04, .22) + .06*arco(t, .3, .48) + pulo
+                else: Mf.translation.x += (lat/2 - .01)*sm((t - .16)/.17) + (lat/2 - .01)*sm((t - .42)/.18); Mf.translation.z += .045*arco(t, .16, .33) + .045*arco(t, .42, .6) + pulo
             PE[s_].matrix_world = Mf; PE[s_].keyframe_insert("location", frame=f); PE[s_].keyframe_insert("rotation_euler", frame=f)
             PO[s_].location = Pw + Vector((sg*.25, -.9, -.3)); PO[s_].keyframe_insert("location", frame=f)
             free = pb[f"hand_{s_}"].head.copy(); alvo = Vector((Pw.x + (.62 if lead else (.44 if salto else .3)), Pw.y - .34, h - (0 if lead else (.06 if salto else .08))))

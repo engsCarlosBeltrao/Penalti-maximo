@@ -20,7 +20,7 @@ export const KEEPER_CFG = {
   // impulsão; com a preparação feita ANTES do chute essa fase já aconteceu (até 0,45 s); parado no centro, só 0,2 s.
   // quanto do começo do clipe pode ser pulado (s). Pular muito faz a pose "saltar" (pernas travadas no meio da mistura): o resto do sincronismo vem
   // de tocar o clipe um pouco mais rápido (ritmos), como um goleiro que reage mais rápido — o movimento continua inteiro e contínuo
-  salto: { preparado: .4, parado: .18, centro: .3, curta: .08 },
+  salto: { preparado: .4, parado: .18, centro: .3, curta: .08, passos: .08 },
   ritmos: [1, 1.2, 1.4, 1.6],
   // SAÍDA ANTES DO CHUTE: com lado escolhido, nos últimos `antes` s antes do pé na bola o goleiro já começa o movimento para aquele lado (carrega o
   // peso, o primeiro passo/agachamento do mergulho); no chute ele só escolhe a altura e continua de onde está — sem recomeçar parado
@@ -30,7 +30,7 @@ export const KEEPER_CFG = {
   correcao: { apos: .1, fatorErro: .4, ganho: .08, zMin: 3 },
   // ESCOLHA DA AÇÃO pela trajetória lida depois do chute: entre as ações possíveis (defesa no centro, passo curto com extensão dos braços, mergulho)
   // o goleiro usa a MENOR que cobre a bola (folga ≤ alvo); só mergulha se precisar. custo em "m" de folga.
-  economia: { centro: 0, curta: .09, mergulho: .16, alvo: -.04, altura: .08 },   // altura: custo por nível de diferença entre a altura da ação e a lida
+  economia: { centro: 0, curta: .09, passos: .12, mergulho: .16, alvo: -.04, altura: .08 },   // altura: custo por nível de diferença entre a altura da ação e a lida
   // depois de pôr o peso num lado, voltar para uma defesa no centro custa tempo; para o lado OPOSTO só cabe um passo curto, ainda mais tarde
   atraso: { centro: .16, oposto: .18 },
   // defesas no CENTRO partem da própria base (não dependem de escolher lado) e os clipes fornecidos são lentos para elas (o Catch agacha ~0,4 s antes de
@@ -206,14 +206,17 @@ function folga(b, clip, off, tIni, raiz, sc, t1, so = null, rt = KEEPER_CFG.ritm
   return best;
 }
 const H = ['baixa', 'media', 'alta'];
-// ações possíveis a partir do lado travado: no centro tudo (mergulho tardio); com peso num lado, mergulhos só para ele, centro e passo curto do
-// lado oposto com atraso (correção limitada) — nunca um mergulho para o lado oposto
+// ações possíveis a partir do lado travado.
+//  - CENTRO: fica no meio (abaixa, levanta os braços) ou AJUSTA com passos laterais reais — um passo curto ou dois passos — para qualquer lado; nunca o
+//    mergulho completo para um canto (a escolha de ficar no meio é respeitada; bola longe: tenta com o alcance que os passos e os braços dão).
+//  - ESQUERDA/DIREITA: mergulho e passo curto só para o lado escolhido, ou ficar no centro com atraso; nunca passos para trocar de lado.
 export function candidatos(lado) {
-  const C = KEEPER_CFG, out = [], meu = s => lado === s, oposto = s => lado !== 'centro' && lado !== s;
-  for (const h of H) out.push({ clip: `gk_centro_${h}`, tipo: 'centro', lado: 'centro', altura: h, atraso: lado === 'centro' ? 0 : C.atraso.centro });
+  const C = KEEPER_CFG, out = [], meu = s => lado === s, centro = lado === 'centro';
+  for (const h of H) out.push({ clip: `gk_centro_${h}`, tipo: 'centro', lado: 'centro', altura: h, atraso: centro ? 0 : C.atraso.centro });
   for (const s of ['esq', 'dir']) {
-    for (const h of H) out.push({ clip: `gk_${s}_curta_${h}`, tipo: 'curta', lado: s, altura: h, atraso: oposto(s) ? C.atraso.oposto : 0 });
-    if (!oposto(s)) for (const h of H) out.push({ clip: `gk_${s}_${h}`, tipo: 'mergulho', lado: s, altura: h, atraso: 0, preparado: meu(s) });
+    if (centro || meu(s)) for (const h of H) out.push({ clip: `gk_${s}_curta_${h}`, tipo: 'curta', lado: s, altura: h, atraso: 0 });
+    if (centro) for (const h of H) out.push({ clip: `gk_${s}_passos_${h}`, tipo: 'passos', lado: s, altura: h, atraso: 0 });
+    if (meu(s)) for (const h of H) out.push({ clip: `gk_${s}_${h}`, tipo: 'mergulho', lado: s, altura: h, atraso: 0, preparado: true });
   }
   return out.filter(c => KEEPER_CLIPS[c.clip]);
 }
@@ -226,7 +229,7 @@ export function planejar(k, b, { dif = 'normal', sc = [1, 1], rng = Math.random 
   const mesmo = c => atual && !atual.pre && c.clip === atual.clip, ctAgora = atual ? ctDe(k, b.t) : 0;
   const continua = c => atual && atual.pre && c.tipo === 'mergulho' && c.lado === atual.lado;   // o mergulho já começou antes do chute: segue da mesma fase   // na correção, a MESMA ação pode só mudar de ritmo a partir da pose atual (sem salto)
   const sincroniza = (c, semPoda = false) => { const S = C.salto, offMin = mesmo(c) || continua(c) ? ctAgora : c.tipo === 'mergulho' && c.preparado ? C.prep.t*.5 : 0,
-      offMax = mesmo(c) ? ctAgora : continua(c) ? ctAgora + .12 : c.tipo === 'centro' ? S.centro : c.tipo === 'curta' ? S.curta : c.preparado ? S.preparado : S.parado,
+      offMax = mesmo(c) ? ctAgora : continua(c) ? ctAgora + .12 : c.tipo === 'centro' ? S.centro : c.tipo === 'curta' || c.tipo === 'passos' ? S.curta : c.preparado ? S.preparado : S.parado,
       tIni = mesmo(c) || continua(c) ? b.t : b.t + c.atraso, r0 = C.ritmo[c.clip] || 1;
     let off = offMin, rt = r0, best = null; const cx_ = CAIXA[c.clip];
     if (!semPoda && (px < cx_.x0 - .9 || px > cx_.x1 + .9 || py > cx_.y1 + .9 || py < cx_.y0 - .9)) return { ...c, off, rt, best: { d: 9 }, dm: 9, tIni, custo: 9 };   // nem perto: descartada
@@ -242,7 +245,8 @@ export function planejar(k, b, { dif = 'normal', sc = [1, 1], rng = Math.random 
   // (o lance clássico de quem escolheu errado); no centro, mergulha para o lado da bola (atrasado). Só na correção o goleiro mantém o que já faz.
   const desesperada = (!atual || forcar) && !cobre.length && Math.abs(px) > C.zonas.centroX, ladoDive = k.lado === 'esq' || k.lado === 'dir' ? k.lado : px > 0 ? 'esq' : 'dir';
   // (das três alturas de mergulho desse lado, a que leva o corpo mais perto da bola — com folga igual, a da altura lida)
-  const mergulhos = desesperada ? candidatos(k.lado).filter(c => c.tipo === 'mergulho' && c.lado === ladoDive).map(c => sincroniza(c, true)) : [];
+  const mergulhos = desesperada && k.lado !== 'centro' ? candidatos(k.lado).filter(c => c.tipo === 'mergulho' && c.lado === ladoDive).map(c => sincroniza(c, true))
+    : desesperada ? candidatos('centro').filter(c => c.lado === ladoDive && c.tipo === 'passos').map(c => sincroniza(c, true)) : [];   // centro: os passos para o lado da bola, o máximo que dá
   const esc = mergulhos.length ? mergulhos.sort((a, b_) => (a.dm + .15*Math.abs(H.indexOf(a.altura) - H.indexOf(lido.altura))) - (b_.dm + .15*Math.abs(H.indexOf(b_.altura) - H.indexOf(lido.altura))))[0] : esc0;
   if (atual && !forcar) {   // correção: compara com CONTINUAR a ação atual do jeito que está, avaliada com a leitura nova
     const cont = folga(prev, atual.clip, ctAgora, b.t, C.raiz, sc, tf + .02, null, atual.ritmo).d, nCont = Math.max(cont, E.alvo) + E[atual.tipo] + E.altura*Math.abs(H.indexOf(atual.altura) - H.indexOf(lido.altura));
@@ -250,7 +254,7 @@ export function planejar(k, b, { dif = 'normal', sc = [1, 1], rng = Math.random 
   }
   const { clip, off, best, tIni } = esc;
   k.plano = { clip, tipo: esc.tipo, lado: esc.lado, altura: esc.altura, tIni, off: +off.toFixed(3), atraso: esc.atraso, lido: { x: +px.toFixed(2), y: +py.toFixed(2), cat: lido.cat },
-    real: classificar(cx, cy).cat, folgaPrevista: +esc.dm.toFixed(3), cobria: esc.dm <= E.alvo, opcoes: av.length, ritmo: esc.rt, blend: mesmo(esc) ? atual.blend : continua(esc) ? .14 : atual ? .18 : esc.tipo === 'curta' ? .2 : .25, corrigido: !!atual && !atual.pre, saiuAntes: !!atual?.pre,
+    real: classificar(cx, cy).cat, folgaPrevista: +esc.dm.toFixed(3), cobria: esc.dm <= E.alvo, opcoes: av.length, ritmo: esc.rt, blend: mesmo(esc) ? atual.blend : continua(esc) ? .14 : atual ? .18 : esc.tipo === 'curta' || esc.tipo === 'passos' ? .2 : .25, corrigido: !!atual && !atual.pre, saiuAntes: !!atual?.pre,
     motivoEscolha: (atual && !atual.pre ? `CORREÇÃO (antes ${atual.clip}): ` : atual?.pre ? 'já em movimento desde antes do chute; ' : '') + (esc.dm <= E.alvo ? `menor ação que cobre a bola lida (${esc.tipo}, ${cobre.length} cobriam)` : cobre.length ? `${esc.tipo} quase cobre e custa bem menos que as ${cobre.length} que cobriam` : 'nenhuma ação cobre a bola lida: tentativa que chega mais perto') };
   // para a depuração: a trajetória que ele LEU, o ponto previsto de interceptação e a parte do corpo com que pretende chegar
   k.plano.leitura = { gx: prev.gx, gy: prev.gy, tf: prev.tf, curl: prev.curl };
@@ -528,7 +532,7 @@ export function motivoSemContato(k, b) {
   const falta = k.dmin ? `${Math.round(k.dmin.d*100)} cm (parte mais próxima: ${k.dmin.parte})` : '?';
   if (errado) return `lado errado: o peso estava ${k.lado}, a bola foi ${real.lado}; a ação possível (${p.clip}) não alcançou (faltaram ${falta})`;
   if (!p.cobria) return `nenhuma ação alcançava a bola lida (${p.lido.cat}); tentativa ${p.clip} — fora do alcance por ${falta}`;
-  const S = KEEPER_CFG.salto, lim = p.tipo === 'centro' ? S.centro : p.tipo === 'curta' ? S.curta : k.lado === 'centro' ? S.parado : S.preparado;
+  const S = KEEPER_CFG.salto, lim = p.tipo === 'centro' ? S.centro : p.tipo === 'curta' || p.tipo === 'passos' ? S.curta : k.lado === 'centro' ? S.parado : S.preparado;
   return `fora do alcance por ${falta}${p.off >= lim - 1e-6 ? ' (bola rápida: o movimento ainda não tinha chegado à extensão máxima)' : ''}`;
 }
 
