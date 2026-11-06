@@ -18,6 +18,8 @@ import { buildStadium } from './stadium.js';
 import { createStadiumFx } from './stadiumFx.js';
 import { DBG } from '../debug.js';
 import { colorize, clearSprites } from '../crowd.js';
+import { KEEPER_CLIPS } from '../keeperClips.js';
+import { createKeeperDebug } from './keeperDebug.js';
 const W = 960, H = 540;
 export async function start({ cv, base = 'assets/models/' }) {
   // 1) arquivos e validação ANTES de mexer na página (qualquer falha aborta sem efeito colateral)
@@ -35,6 +37,8 @@ export async function start({ cv, base = 'assets/models/' }) {
   const idle = { r: await loadClip(base + 'anim/repouso_r.glb').catch(fail), l: await loadClip(base + 'anim/repouso_l.glb').catch(fail) };   // repouso do cobrador (tools/blender/repouso.py)
   const reac = {};                                                                                  // entrada + 5 comemorações + 5 frustrações, destro e canhoto (tools/blender/reacoes.py)
   await Promise.all(['entrada', ...Object.keys(GOAL_REACTIONS), ...Object.keys(MISS_REACTIONS)].flatMap(n => ['r', 'l'].map(async pe => { reac[n + '_' + pe] = await loadClip(base + `anim/${n}_${pe}.glb`).catch(fail); })));
+  const gk = {};                                                                                    // goleiro: espera + 9 defesas (tools/blender/goleiro.py)
+  await Promise.all(Object.keys(KEEPER_CLIPS).map(async n => { gk[n] = await loadClip(base + 'anim/' + KEEPER_CLIPS[n].arquivo).catch(fail); if (gk[n] && n === 'gk_espera') { gk[n].loop = true; gk[n].clip.userData = { loop: true }; } }));
   try { tplG = await loadTemplate(base + 'goalkeeper.glb', { skeletonMap, layout }); } catch (e) { if (e.status !== 404) throw e; console.info('goalkeeper.glb ausente: o goleiro usará athlete.glb com o uniforme de goleiro.'); }
   // 2) WebGL por baixo da tela 2D (que continua desenhando o placar/HUD, transparente)
   const gl = document.createElement('canvas'); gl.id = 'gl'; Object.assign(gl.style, { position: 'absolute', left: '0', top: '0', width: '100%', height: '100%', pointerEvents: 'none' }); cv.parentNode.insertBefore(gl, cv);
@@ -43,7 +47,8 @@ export async function start({ cv, base = 'assets/models/' }) {
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; const app = cv.parentNode, resize = () => { renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.setSize(app.clientWidth, app.clientHeight, false); }; window.addEventListener('resize', resize); resize();
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, W/H, .2, 220), st = buildStadium(scene), fx = createStadiumFx(scene); DBG.fx = fx; DBG.scene = scene;
   const field = [0, 1, 2, 3, 4].map(() => { const i = instantiate(tpl); i.root.visible = false; scene.add(i.root); return i; }), keeper = instantiate(tplG, { maos: 'luva' }); keeper.root.visible = false; scene.add(keeper.root);
-  DBG.field = field;                                                                                // só para depuração (testes no navegador)
+  DBG.field = field; DBG.keeper = keeper;                                                           // só para depuração (testes no navegador)
+  const gkDbg = createKeeperDebug(scene); DBG.gkDbg = gkDbg;                                        // modo de depuração do goleiro (tecla G ou ?debug=goleiro): colisores, previsão, contato
   // 3) estado visual (câmera suavizada, tremor e reação da torcida) — igual ao motor procedural
   let cam = { pos: [0, 3.3, 25], tgt: [0, 1, 1], fov: 27 }, shake = 0, last = 0, exS = [0, 0], sad = [0, 0];
   [['gol', e => { exS[e.equipe] = 1; sad[1 - e.equipe] = 1; shake = 1; fx.burst(e.equipe); }], ['defesa', e => { exS[1 - e.equipe] = .7; sad[e.equipe] = .6; shake = .5; }], ['trave', () => { exS = exS.map(v => Math.max(v, .4)); shake = .8; }], ['fora', e => { sad[e.equipe] = .5; }], ['partida_encerrada', e => { exS[e.vencedor] = 1; sad[1 - e.vencedor] = 1; fx.burst(e.vencedor); }]].forEach(([k, f]) => Events.on(k, f));
@@ -64,16 +69,19 @@ export async function start({ cv, base = 'assets/models/' }) {
     const fr = characters(game, now, b, k, res, d, bw); let n = 0; field.forEach(i => { i.root.visible = false; }); keeper.root.visible = false;
     if (fr) fr.list.forEach(ch => { const inst = ch.role === 'keeper' ? keeper : field[n++]; if (!inst) return; inst.root.visible = true; inst.apply(ch.kit, ch.look);
       const an = ch.anim, ic = an && an.idle && idle[an.pe], rc = ic && an.ready.w > 0 && want(an.ready.clip);
-      if (ic) inst.playIdle(ic, an.t, an.pos, an.yaw, rc ? { ci: rc, w: an.ready.w, pos: [BALL0[0], 0, BALL0[2]], yaw: Math.PI } : null);   // repouso / carregando
+      if (an && an.gk && gk[an.clip]) { const r = an.ready && an.ready.w > 0 && gk[an.ready.clip];   // goleiro: espera (+ preparação para o lado escolhido) ou mergulho
+        if (an.idle) inst.playIdle(gk[an.clip], an.t, an.pos, an.yaw, r ? { ci: r, t: an.ready.t, w: an.ready.w, pos: an.pos, yaw: an.yaw } : null); else { inst.playClip(gk[an.clip], an.t, an.pos, an.yaw, an.blend); inst.ajustaBraco(an.ajuste); } }
+      else if (ic) inst.playIdle(ic, an.t, an.pos, an.yaw, rc ? { ci: rc, w: an.ready.w, pos: [BALL0[0], 0, BALL0[2]], yaw: Math.PI } : null);   // repouso / carregando
       else if (an && reac[an.clip + '_' + an.pe]) inst.playClip(reac[an.clip + '_' + an.pe], an.t, an.pos, an.yaw, an.blend);
       else { const ci = an && !an.idle && (want(an.clip) || (an.clip === 'comum_medio' ? clips.chute : null)); if (ci) inst.playClip(ci, ci.contact + an.tc, [BALL0[0], 0, BALL0[2]], Math.PI); else inst.pose(humanJoints(ch.P)); } });   // chute: clipe do Blender com o contato no instante em que a bola sai (tc = 0)
     st.ball.visible = !!fr && !fr.final; st.ball.position.set(bw[0], bw[1], bw[2]); if (b) st.ball.rotation.x -= dt*14*(b.t > 0 ? 1 : 0);
     st.updateNet(res === 'gol' && d > 0 ? Math.max(0, 1 - d/.8)*Math.cos(d*22) : 0, b ? goalToWorld(b.gx, b.gy) : [0, 1, 0]); st.updateBoards(now); st.updateCrowd(now, exS, sad); fx.update(now, dt, game);
+    gkDbg.update(game, b, now, camera);
     renderer.render(scene, camera);
     // HUD 2D por cima (a tela 2D é transparente neste modo)
     const k0 = c.canvas.width/W; c.setTransform(k0, 0, 0, k0, 0, 0); c.clearRect(0, 0, W, H);
     if (game.m && !game.fin && game.hum() && !b && (GS.estado === 'MIRANDO' || GS.estado === 'AGUARDANDO_COBRANCA')) drawAim(c, game.aim, GS.estado === 'MIRANDO');
-    hud(c, game, res, b);
+    hud(c, game, res, b); gkDbg.hud(c, game, b, camera, W, H);
   }
   const setTeams = (a, bb) => { colorize([a, bb]); clearSprites(); st.buildCrowd(); fx.setTeams(a, bb); };
   Renderer.set({ name: 'three', drawScene, setTeams });

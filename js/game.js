@@ -6,10 +6,12 @@ import { sfx, crowd, ambient, level } from './audio.js';
 import { Renderer } from './renderer.js';
 import { pickKicker } from './players.js';
 import { kickSpec, waitSpec, forceFromAim, typeFromForce, ENTRY_S, GOAL_REACTIONS, MISS_REACTIONS, reactionBag, RESULT_WAIT } from './kicks.js';
+import * as GK from './keeper.js';
+import { keeperScale } from './frame.js';
 export const cfg = { hs: 0.9, vs: 0.6, diff: 'normal', sound: true, vol: 0.5, volCrowd: 0.5 };
-// Dificuldade: tempo de reação, alcance do braço, erro de leitura, deslocamento máximo do mergulho
-const DIFF = { easy:{react:.45,reach:.09,err:.22,dive:.3,vr:.3}, normal:{react:.3,reach:.12,err:.13,dive:.36,vr:.36}, hard:{react:.2,reach:.15,err:.07,dive:.42,vr:.42} };
-const T_FLIGHT = .7, T_DIVE = .6, W = 960, H = 540;
+// GOLEIRO: js/keeper.js (decisão antecipada, previsão, colisores dos ossos, contato e física). A dificuldade muda o tempo de reação e o erro de leitura
+// do goleiro da CPU; quando o goleiro é do jogador, ela vale para o cobrador da CPU (no fácil o goleiro do jogador reage mais rápido).
+const T_FLIGHT = .7, W = 960, H = 540, INV = { easy: 'hard', normal: 'normal', hard: 'easy' };
 const G = { l:300, r:660, t:150, b:290 }, START = { x:480, y:470 };
 const gpt = (gx, gy) => ({ x: G.l + gx*(G.r-G.l), y: G.b - gy*(G.b-G.t) });  // coord. do gol → tela
 
@@ -43,7 +45,8 @@ export const Game = {
   restart() { const [a, b] = GS.equipes, cb = this.cb, t = this.two, e = this.escolha; if (!a) return; Events.emit('partida_reiniciada'); this.start(a, b, cb, t, e); },
   setTurn(k) {
     GS.cobrador = k; this.ball = null;
-    const p = pickKicker(GS.equipes[k], GS.cobranca, this.escolha[k]); this.kick = waitSpec(p.id);   /* espera no ponto de partida do estilo; o TIPO só sai da força, ao soltar */ this.aim.reset(); if (this.hum(k)) this.aim.run(); this.keeperKey = null; this.t = 0; this.keeper = { x:.5, tx:.5, t0:0 };   // a linha de mira já oscila durante a espera
+    const p = pickKicker(GS.equipes[k], GS.cobranca, this.escolha[k]); this.kick = waitSpec(p.id);   /* espera no ponto de partida do estilo; o TIPO só sai da força, ao soltar */ this.aim.reset(); if (this.hum(k)) this.aim.run(); this.keeperKey = null; this.t = 0; this.keeper = GK.novoGoleiro();   /* goleiro zerado a cada vez: nada da cobrança anterior sobra */   // a linha de mira já oscila durante a espera
+    this.cpuMira = { gx: Math.min(1.05, Math.max(-.05, .08 + Math.random() * .84)), gy: .12 + Math.random() * .8 + (Math.random() < .08 ? .3 : 0) };   /* a CPU decide a mira antes de correr: assim o instante do chute é previsível */
     this.wait = this.hum(k) ? 0 : ENTRY_S + .6;   /* a CPU espera o cobrador terminar a entrada (caminhada) */ this.dec = this.m.taken[k] >= 4; if (this.dec) sfx('decisiva'); level(this.dec ? .85 : .45);     // cobrança decisiva: 5ª ou morte súbita                       // adversário cobra após breve pausa
     GS.estado = this.hum(k) ? 'AGUARDANDO_COBRANCA' : 'DEFESA_DO_GOLEIRO';
     Events.emit('cobranca_mudou', { cobranca: GS.cobranca, cobrador: k });
@@ -52,7 +55,7 @@ export const Game = {
     if (this.paused || !this.m) return;
     if (this.t < ENTRY_S) return;     // espera o cobrador chegar ao ponto de partida (clipe de entrada)
     if (GS.estado === 'AGUARDANDO_COBRANCA') { this.aim.start(); this.aimT = this.t; GS.estado = 'MIRANDO'; level(.75); crowd('expect'); }   // só inicia aqui
-    else if (GS.estado === 'DEFESA_DO_GOLEIRO' && this.ball && e) {          // toque/clique no campo escolhe o lado e a altura do mergulho
+    else if (GS.estado === 'DEFESA_DO_GOLEIRO' && e) {                      // toque/clique: terço esquerdo/central/direito da tela escolhe o lado (só antes do limite)
       const r = this.cv.getBoundingClientRect(), nx = (e.clientX - r.left)/r.width, ny = (e.clientY - r.top)/r.height; this.keeperChoose(nx < .38 ? .15 : nx > .62 ? .85 : .5, ny < .3 ? .85 : ny > .6 ? .15 : .4);
     }
   },
@@ -67,31 +70,41 @@ export const Game = {
     const p = pickKicker(GS.equipes[GS.cobrador], GS.cobranca, this.escolha[GS.cobrador]), forca = forceFromAim(gy), ks = this.kick = kickSpec(p.id, typeFromForce(forca));
     this.ball = { gx, gy, t: ks.t0, t0: ks.t0, tf: ks.tf, curl: ks.curl, tipo: ks.tipo, forca, res: null, som: false };   // t<0: aproximação do clipe; a bola só sai no CONTATO (t=0)
     this.rating = p.rating;
-    this.keeper.t0 = null; level(1); Events.emit('chute', { equipe: GS.cobrador, tipoCobranca: ks.tipo, estilo: ks.estilo, forca: +forca.toFixed(3) });
-    if (this.hum()) {                              // goleiro CPU: decide só após o tempo de reação, vendo a bola
-      const d = DIFF[cfg.diff]; this.keeper.est = null; this.keeper.d = d;
-    }
+    level(1); Events.emit('chute', { equipe: GS.cobrador, tipoCobranca: ks.tipo, estilo: ks.estilo, forca: +forca.toFixed(3) });
+    // goleiro da CPU (o jogador cobra): sorteia o lado AGORA, sem olhar a mira; se a corrida começar depois do limite, o lado trava logo em seguida
+    if (this.hum()) GK.escolherLado(this.keeper, null, this.forcar?.lado || GK.sorteiaLado(this.rng || Math.random), 'CPU', this.t);
+    else if (this.forcar?.lado && !this.keeper.lado) GK.escolherLado(this.keeper, null, this.forcar.lado, 'cena de teste', this.t);
+    if (this.forcar && !this.forcar.manter) this.forcar = null;
   },
-  keeperChoose(x, th = .4) {                                       // goleiro do jogador: decisão nos primeiros 0,3 s do voo
-    const b = this.ball; if (this.hum() || !b || b.t > .3 || this.keeper.t0 != null) return;
-    this.keeper.tx = x; this.keeper.th = th; this.keeper.t0 = b.t;
+  // opções do goleiro nesta cobrança: dificuldade, escala do corpo (a mesma do modelo na tela), sorteio e a qualidade do cobrador
+  // instante previsto (relógio do jogo) em que o pé do cobrador atinge a bola; null enquanto o jogador ainda não soltou a barra
+  contatoPrevisto() {
+    const b = this.ball; if (b) return b.t < 0 ? this.t - b.t : null;
+    if (this.hum() || GS.estado !== 'DEFESA_DO_GOLEIRO') return null;
+    const f = this.forcar, gy = f?.gy ?? this.cpuMira?.gy; if (gy == null) return null;
+    const p = pickKicker(GS.equipes[GS.cobrador], GS.cobranca, this.escolha[GS.cobrador]), ks = kickSpec(p.id, typeFromForce(forceFromAim(gy)));
+    return this.t + Math.max(0, this.wait) - ks.t0;                                    // espera da CPU + duração da corrida (t0 < 0) do clipe que ela vai usar
   },
-  resolve() {
+  gkOpts() { return { dif: this.hum() ? cfg.diff : INV[cfg.diff], sc: keeperScale(this), rng: this.rng || Math.random, craque: this.rating || 75 }; },
+  keeperChoose(x) {                                                // goleiro do jogador: escolhe o canto ANTES do limite (1,5 s antes do chute); depois, ignorado
+    if (this.hum() || GS.estado !== 'DEFESA_DO_GOLEIRO' || !this.m) return false;
+    return GK.escolherLado(this.keeper, this.ball, x < .38 ? 'dir' : x > .62 ? 'esq' : 'centro', 'jogador', this.t);   // canto esquerdo da TELA = direita do goleiro
+  },
+  // cena de teste (console: JOGO.Game.testeGoleiro({ gx, gy, lado, manter })): a próxima cobrança da CPU vai nesse ponto e o goleiro escolhe esse lado
+  testeGoleiro(o = {}) { this.forcar = { ...o }; return this.forcar; },
+  resolve(forcado) {
     const b = this.ball, k = this.keeper; let r;
     const out = b.gx < 0 || b.gx > 1 || b.gy > 1, post = !out && (b.gx < .035 || b.gx > .965 || b.gy > .955);
-    if (out) r = 'fora'; else if (post) r = 'trave';
-    else {
-      const kx = .5 + (k.tx - .5) * Math.min(1, k.t0 == null ? 0 : ((b.tf || T_FLIGHT) - k.t0) / T_DIVE);
-      const reach = (this.hum() ? DIFF[cfg.diff].reach : .12) * (b.gy > .8 ? .6 : 1) * (1 - ((this.rating || 75) - 75) / 500);   // craque dificulta um pouco
-      const ky = .3 + ((k.th ?? .3) - .3) * Math.min(1, k.t0 == null ? 0 : ((b.tf || T_FLIGHT) - k.t0) / T_DIVE);   // altura alcançada pelo goleiro
-      r = Math.abs(kx - b.gx) < reach && Math.abs(ky - b.gy) < (this.hum() ? DIFF[cfg.diff].vr : .36) ? 'defesa' : 'gol';
-    }
+    if (forcado) r = forcado;                                       // houve contato com o goleiro: quem decidiu foi a física da bola depois do toque
+    else if (out) r = 'fora'; else if (post) r = 'trave'; else r = 'gol';   // sem contato, o goleiro não alcançou (o motivo fica em keeper.sem)
+    if (k && !k.contato && k.log) k.sem = GK.motivoSemContato(k, b);
     b.res = r; GS.estado = 'RESOLVENDO_COBRANCA';
     b.reacao = r === 'gol' ? this.bagGol() : this.bagMiss();             // reação do cobrador: sorteada UMA vez por cobrança (sacola sem repetição imediata)
     const q = GS.cobrador, m = this.m;
     m.taken[q]++; m.marks[q].push(r === 'gol' ? 'g' : r === 'defesa' ? 'd' : 'x'); GS.cobrancasRealizadas++;
-    GS.ultimaCobranca = { equipe: q, resultado: r, gx: +b.gx.toFixed(3), gy: +b.gy.toFixed(3) };
-    Events.emit(r, { equipe: q, gx: b.gx, gy: b.gy, reacao: b.reacao });                      // evento único por cobrança
+    const gk = k && k.log ? { lado: k.lado, origem: k.origem, clipe: k.plano?.clip ?? null, contato: k.contato ? { parte: k.contato.parte, tipo: k.contato.rotulo, vel: k.contato.vel, velDepois: k.contato.vOutMod } : null, motivo: k.contato ? k.contato.motivo : k.sem } : null;
+    GS.ultimaCobranca = { equipe: q, resultado: r, gx: +b.gx.toFixed(3), gy: +b.gy.toFixed(3), goleiro: gk };
+    Events.emit(r, { equipe: q, gx: b.gx, gy: b.gy, reacao: b.reacao, goleiro: gk });       // evento único por cobrança
     // sons ligados ao evento CONFIRMADO (um só resultado por cobrança)
     if (r === 'gol') { sfx('rede'); sfx('gol', .05); crowd('roar'); } else if (r === 'trave') { sfx(b.gy > .955 ? 'travessao' : 'trave'); crowd('groan'); } else if (r === 'defesa') { sfx('defesa'); crowd('groan'); } else { sfx('fora'); crowd('groan'); }
     level(r === 'gol' ? 1 : .6);
@@ -120,16 +133,20 @@ export const Game = {
     this.t += dt; this.aim.update(dt, cfg.hs, cfg.vs);
     const b = this.ball, k = this.keeper;
     if (GS.estado === 'DEFESA_DO_GOLEIRO' && !b) {                     // adversário prepara o chute
-      this.wait -= dt; if (this.wait <= 0) this.launch(Math.min(1.05, Math.max(-.05, .08 + Math.random() * .84)), .12 + Math.random() * .8 + (Math.random() < .08 ? .3 : 0));
+      this.wait -= dt; const f = this.forcar, mira = this.cpuMira; if (this.wait <= 0) this.launch(f?.gx ?? mira.gx, f?.gy ?? mira.gy);
     }
+    // PREPARAÇÃO DO GOLEIRO 1,5 s antes do instante PREVISTO do pé na bola (recalibrado a cada passo): com a bola em jogo, o relógio da cobrança dá o
+    // instante exato (contato = agora − b.t); antes disso, só a CPU tem o momento da corrida definido (espera + duração da corrida do clipe escolhido).
+    if (k && k.log && this.forcar?.lado && !k.lado && !this.hum()) GK.escolherLado(k, b, this.forcar.lado, "cena de teste", this.t);   // cena de teste: lado do goleiro do jogador
+    if (k && k.log && !(b && b.t >= 0)) GK.agendar(k, this.t, this.contatoPrevisto());
     if (b && !b.res) {
-      b.t += dt; if (b.t >= 0 && !b.som) { b.som = true; sfx('chute'); }   // som no instante do contato
-      if (this.hum() && k.t0 == null && b.t >= k.d.react) {      // CPU reage vendo a direção da bola
-        k.t0 = b.t; k.th = Math.max(0, Math.min(1, b.gy + (Math.random() * 2 - 1) * k.d.err*1.5)); const est = b.gx + (Math.random() * 2 - 1) * k.d.err; k.tx = .5 + Math.max(-k.d.dive, Math.min(k.d.dive, est - .5));
-      }
-      if (k.t0 != null) k.x = .5 + (k.tx - .5) * Math.min(1, (b.t - k.t0) / T_DIVE);
-      if (b.t >= (b.tf || T_FLIGHT)) this.resolve();   // tf: tempo de voo do tipo de cobrança (js/kicks.js); sem tipo, 0,7 s
-    } else if (b?.res) { b.t += dt; if (this.after && (this.wait -= dt) <= 0) { this.after = false; this.next(); } }
+      const tA = b.t; b.t += dt; if (b.t >= 0 && !b.som) { b.som = true; sfx('chute'); GK.registraChute(k, this.t - b.t); }   // som (e registro do goleiro) no instante do contato
+      const o = this.gkOpts();
+      if (!b.fis) GK.passo(k, b, tA, b.t, o);                                         // trava o lado no limite, planeja o mergulho, detecta o toque (contínuo)
+      else GK.passoBola(k, b, dt, o.sc);                                              // depois do toque a bola segue a física (ou fica nas luvas)
+      if (b.fis) { if (b.fis.res) this.resolve(b.fis.res); }
+      else if (b.t >= (b.tf || T_FLIGHT)) this.resolve();   // tf: tempo de voo do tipo de cobrança (js/kicks.js); sem tipo, 0,7 s
+    } else if (b?.res) { b.t += dt; if (b.fis) GK.passoBola(k, b, dt, keeperScale(this)); if (this.after && (this.wait -= dt) <= 0) { this.after = false; this.next(); } }
   },
   draw() { if (this.c) Renderer.drawScene?.(this.c, this); }   // desenho: js/three/engine.js
 };

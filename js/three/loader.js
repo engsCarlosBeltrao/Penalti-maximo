@@ -100,7 +100,14 @@ export function instantiate(tpl, { maos = 'relaxada' } = {}) {   // maos: pose d
     // repouso (laço) no ponto de partida; ready = { ci, w, pos, yaw }: "carregando" — mistura o repouso com a pose inicial do clipe da cobrança (w: 0 → 1)
     playIdle(ci, t, pos, yaw, ready) {
       api.playClip(ci, t, pos, yaw, IDLE_BLEND); if (!ready || ready.w <= 0) return;
-      const S = snapshot(); apply(ready.ci, 0, ready.pos, ready.yaw); rebase(S); blendFrom(S, ready.w);   // no fim (w = 1) o corpo já está na pose de partida: a cobrança começa sem salto
+      const S = snapshot(); apply(ready.ci, ready.t || 0, ready.pos, ready.yaw); rebase(S); blendFrom(S, ready.w);   // ready.t: instante do clipe (goleiro: início do mergulho)   // no fim (w = 1) o corpo já está na pose de partida: a cobrança começa sem salto
+    },
+    // AJUSTE LIMITADO DO BRAÇO do goleiro (js/keeper.js → ajusteAgora): depois do clipe escrever nos ossos, gira o braço (osso do úmero) no ombro, no
+    // espaço do mundo, pelo mesmo eixo/ângulo que a física usou nos colisores. Só o úmero muda; antebraço, mão e dedos seguem o clipe.
+    ajustaBraco(aj) {
+      if (!aj) return; for (const [s, a] of Object.entries(aj)) { const b = bones[s === 'l' ? 'LeftArm' : 'RightArm']; if (!b || !a) continue;
+        b.parent.updateWorldMatrix(true, false); b.updateWorldMatrix(false, false); const qw = b.getWorldQuaternion(new THREE.Quaternion()), qr = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(...a.eixo), a.ang);
+        b.parent.getWorldQuaternion(pq); b.quaternion.copy(pq.invert().multiply(qr.multiply(qw))); b.updateMatrix(); }
     },
     pose(J) {                                                                                         // aplica a pose do rig.js: quaternions de mundo → locais, de pai para filho
       if (api.clipOn) { const S = snapshot(); root.position.set(0, 0, 0); root.rotation.set(0, 0, 0); rebase(S); api.blendOut = { S, t0: performance.now() }; api.clipOn = false; api.into = null; api.mode = null; }   // saindo de um clipe: a pose procedural trabalha no espaço do mundo; transição de BLEND s

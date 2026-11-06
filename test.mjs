@@ -33,9 +33,10 @@ t('20 clubes', TEAMS.length === 20); t('elenco >=5', TEAMS.every(c => squad(c).l
 { const evs = []; Events.on('*', e => evs.push(e.tipo)); let r = null; Game.start(A, B, (w, sc) => r = { w, sc }); let sawFinMid = false, n = 0;
   while (!r && n++ < 80) { sawFinMid ||= !!Game.fin && GS.cobrancasRealizadas < 3; Game.keeper.t0 = null; Game.ball = { gx: (GS.cobrador === 1) ? -.2 : .85, gy: .5, t: .7, res: null, som: true }; Game.resolve(); Game.wait = 0; Game.next(); if (Game.fin) { t('fin só após decidir', Game.m && GS.vencedor !== null); const f1 = Game.fin; Game.update(.1); t('callback só depois da comemoração', !r && Game.fin === f1); Game.update(5); } }
   t('sem fin no meio', !sawFinMid); t('vitoria 1x após encerrar', evs.filter(x => x === 'vitoria').length === 1 && evs.indexOf('vitoria') > evs.lastIndexOf('partida_encerrada') - 1); t('decidida antes da 5ª', GS.cobrancasRealizadas < 10 && !!r); }
-// goleiro: defesa exige alcance horizontal E vertical
-{ Game.start(A, B, () => {}); const mk = (gx, gy, tx, th) => { Game.keeper = { x: tx, tx, th, t0: 0 }; Game.ball = { gx, gy, t: .7, res: null, som: true }; Game.resolve(); return Game.ball.res; };
-  t('defesa alcancavel', mk(.5, .35, .5, .35) === 'defesa'); Game.start(A, B, () => {}); t('gol canto alto', mk(.03 + .03, .9, .5, .3) !== 'defesa'); }
+// goleiro: a defesa exige CONTATO físico com os colisores dos ossos (js/keeper.js; detalhes em test_keeper.mjs)
+{ const GK = await import('./js/keeper.js'), mk = (gx, gy, tipo, seed) => { let s = seed; const rng = () => (s = (s*16807) % 2147483647)/2147483647, k = GK.novoGoleiro(), b = { gx, gy, t: -1.6, t0: -1.6, tf: tipo === 'bomba' ? .46 : .8, curl: 0, res: null };
+    while (b.t < b.tf && !b.fis) { const tA = b.t; b.t += 1/120; GK.passo(k, b, tA, b.t, { rng }); } return k; };
+  t('defesa alcancavel: bola no corpo encontra o goleiro', [1, 2, 3].every(s => !!mk(.5, .35, 'chapada', s).contato)); t('gol canto alto: sem contato', [1, 2, 3].every(s => !mk(.06, .9, 'bomba', s).contato)); }
 // elencos
 import('./js/players.js').then(({ PLAYERS, squad, pickKicker }) => {
   t('estrelas verificadas', PLAYERS.filter(p => p.isStar).length >= 5); t('todo jogador tem fonte e data', PLAYERS.every(p => p.source && p.verifiedAt && p.clubId));

@@ -121,9 +121,11 @@ for (const [team, star, tipos] of [['vasco', null, ['chapada', 'medio', 'bomba']
     t(`${est} + ${tp}: evento "chute" informa tipo e estilo`, ev.some(e => e.tipo === 'chute' && e.tipoCobranca === tp && e.estilo === (star ? est : 'comum')));
   }
 }
-// goleiro e defesa com tempos de voo diferentes: com o mesmo tempo de reação, a bomba deixa o goleiro mais longe
-{ GS.equipes = [TEAMS[0], TEAMS[1]]; Game.start(TEAMS[0], TEAMS[1], () => {}); const mk = (tf) => { Game.keeper = { x: .5, tx: .2, th: .3, t0: .3 }; Game.ball = { gx: .2, gy: .3, t: tf, tf, res: null, som: true }; Game.resolve(); return Game.ball.res; };
-  t('goleiro alcança a chapada no canto que escolheu', mk(.8) === 'defesa'); Game.start(TEAMS[0], TEAMS[1], () => {}); t('mesmo canto com bomba: goleiro não chega', mk(.46) === 'gol'); }
+// goleiro e defesa com tempos de voo diferentes: com o mesmo lado escolhido, a bomba chega antes de o mergulho estender
+{ const GK = await import('./js/keeper.js'), mk = (tf, seed) => { let s = seed; const rng = () => (s = (s*16807) % 2147483647)/2147483647, k = GK.novoGoleiro(); GK.escolherLado(k, null, 'dir', 'teste');
+    const b = { gx: .12, gy: .3, t: -1.6, t0: -1.6, tf, curl: 0, res: null }; while (b.t < tf && !b.fis) { const tA = b.t; b.t += 1/120; GK.passo(k, b, tA, b.t, { rng }); } return k.contato ? 1 : 0; };
+  const ch = [1, 2, 3, 4, 5, 6].reduce((a, s) => a + mk(.8, s), 0), bo = [1, 2, 3, 4, 5, 6].reduce((a, s) => a + mk(.46, s), 0);
+  t(`goleiro alcança a chapada no canto que escolheu (${ch}/6) mais que a bomba (${bo}/6)`, ch >= 4 && bo < ch); }
 // comemoração e lamento no fim da disputa
 { let r = null; Game.start(TEAMS[0], TEAMS[1], w => r = w); let n = 0; while (!Game.fin && n++ < 80) { Game.keeper.t0 = null; Game.ball = { gx: GS.cobrador === 0 ? .85 : -.2, gy: .5, t: .7, tf: .7, res: null, som: true }; Game.resolve(); Game.wait = 0; Game.next(); }
   const fr = characters(Game, 5, null, Game.keeper, undefined, 0, BALL0); t('fim: comemoração (mates) e lamento (loser)', Game.fin && fr.final && fr.list.some(c => c.role === 'mate') && fr.list.some(c => c.role === 'loser')); }
@@ -205,11 +207,13 @@ for (const [nm, tab] of [['gol', GOAL_REACTIONS], ['frustração', MISS_REACTION
   t(`partida: reações do tipo certo e sem repetição imediata (gol: ${vistos.gol.join(', ')} | perdeu: ${vistos.perdeu.join(', ')})`, ok_(vistos.gol, GOAL_REACTIONS) && ok_(vistos.perdeu, MISS_REACTIONS)); }
 // ---- goleiro: comemora a defesa/erro ou lamenta o gol; nenhum outro jogador entra em cena durante a disputa ----
 { GS.equipes = [TEAMS.find(x => x.key === 'vasco'), TEAMS[0]]; GS.cobrador = 0; GS.cobranca = 2; GS.cobrancasRealizadas = 3;
-  const ks = kickSpec(comum.id, 'medio'), g = { m: {}, fin: null, escolha: [null, null], hum: () => true, kick: ks, t: 6 }, KP = { x: .5, tx: .2, th: .4, t0: 0 };
+  const GK = await import('./js/keeper.js'), ks = kickSpec(comum.id, 'medio'), g = { m: {}, fin: null, escolha: [null, null], hum: () => true, kick: ks, t: 6 }, KP = GK.novoGoleiro();
+  { let s = 4; const rng = () => (s = (s*16807) % 2147483647)/2147483647, b = { gx: .2, gy: .3, t: .2, tf: ks.tf, curl: 0 }; GK.escolherLado(KP, null, 'dir', 'teste'); GK.planejar(KP, b, { rng }); }
+  const fimAcao = KP.plano.tIni + (GK.CLIP_INFO[KP.plano.clip].dur - .35 - KP.plano.off)/KP.plano.ritmo;   // o goleiro reage quando termina a ação (já de pé)
   const fr = (res, d) => { const b = { gx: .2, gy: .3, t: ks.tf + d, t0: ks.t0, tf: ks.tf, res, reacao: res === 'gol' ? 'gol_salto' : 'perdeu_maos_cabeca' }; return characters(g, 5, b, KP, res, d, BALL0); };
   for (const res of ['gol', 'defesa', 'fora', 'trave']) {
-    const kp = fr(res, 2.0).list.find(c => c.role === 'keeper');
-    t(`${res}: goleiro ${res === 'gol' ? 'lamenta' : 'comemora'} depois de levantar`, kp.anim && (res === 'gol' ? kp.anim.clip in MISS_REACTIONS : kp.anim.clip in GOAL_REACTIONS) && !fr(res, 1.0).list.find(c => c.role === 'keeper').anim);
+    const kp = fr(res, fimAcao - ks.tf + .3).list.find(c => c.role === 'keeper'), an = fr(res, .3).list.find(c => c.role === 'keeper').anim;
+    t(`${res}: goleiro ${res === 'gol' ? 'lamenta' : 'comemora'} depois de levantar`, kp.anim && (res === 'gol' ? kp.anim.clip in MISS_REACTIONS : kp.anim.clip in GOAL_REACTIONS) && an.state === 'keeperDive');
     t(`${res}: só cobrador e goleiro em cena (sem jogadores no meio de campo)`, [1, 2, 3, 3.9].every(d => fr(res, d).list.length === 2));
     const cam = camTarget(g, { gx: .2, gy: .3, t: ks.tf + 3, tf: ks.tf, res }, BALL0, res, 3); t(`${res}: a câmera continua no gol (sem corte para o meio de campo)`, !cam.cut && cam.tgt[2] < 2); } }
 // repetição: várias cobranças seguidas, a vez seguinte sempre recomeça pela entrada e o jogo segue

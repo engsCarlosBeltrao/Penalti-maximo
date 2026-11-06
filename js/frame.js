@@ -5,7 +5,8 @@ import { pickKicker, keeperOf } from './players.js';
 import { lerp } from './vec.js';
 import { kickerPose, keeperPose, cheerPose, dejectedPose, goalToWorld, BALL0, BALL_R, SPOT_Z, KICK_T0, CLIP_END, GOAL_W, sm } from './rig.js';
 import { faceOf, SKINS, HAIRC } from './face.js';
-import { clipStart, clipEnd, ENTRY_S, KEEPER_REACT_D, KEEPER_CHEER, KEEPER_SAD } from './kicks.js';
+import { clipStart, clipEnd, ENTRY_S, KEEPER_CHEER, KEEPER_SAD } from './kicks.js';
+import { animGoleiro, ballFlight } from './keeper.js';
 // MÁQUINA DE ESTADOS do cobrador: entering (clipe de entrada: caminha e para no ponto de partida) → idle (clipe de repouso) → charging (segurando a barra:
 // o repouso se mistura à pose inicial da cobrança) → runUp → kick (do plantio ao contato) → followThrough → recovery (fim do clipe) →
 // goalCelebration (só se o resultado CONFIRMADO for gol) ou missReaction (defesa, trave ou fora). O estado é função do tempo e do resultado: não se
@@ -25,14 +26,11 @@ export function chargeOf(game) {                                     // 0..1: qu
 const phaseOf = id => { let h = 0; for (const ch of String(id)) h = (h*31 + ch.charCodeAt(0)) >>> 0; return (h % 640)/100; };   // fase do laço de repouso por atleta (ninguém sincronizado)
 export const TF = .7, HS = ['short', 'long', 'bald', 'afro'], KC = ['#00c853', '#ff4fd8', '#ffd23f', '#27e1ff', '#ff7a1a'];
 export const flightTime = b => (b && b.tf) || TF;   // tempo de voo da cobrança (depende do tipo: js/kicks.js)
-const DRAG = .18;                                    // arrasto: a bola chega ao gol com ~84% da velocidade inicial
 export const kcol = t => KC[(t.id + 2) % 5] === t.c1 ? KC[0] : KC[(t.id + 2) % 5];
 export function ballWorld(b, k) {
-  if (!b || b.t <= 0) return BALL0.slice(); const T = goalToWorld(b.gx, b.gy); T[1] = Math.max(BALL_R, T[1]); const tf = flightTime(b);
-  if (b.t < tf) {                                    // voo: avanço com arrasto; altura balística (gravidade real) que passa EXATAMENTE pelo ponto da mira no instante tf;
-    const t = b.t, u = t/tf, e = (1 - Math.exp(-DRAG*u))/(1 - Math.exp(-DRAG)), h = T[1] - BALL_R, gw = 9.81*sm((h - .05)/.35), vy = (h + gw*tf*tf/2)/tf;   // chute rasteiro: rola (sem arco)
-    return [T[0]*e + (b.curl || 0)*Math.sin(Math.PI*e), BALL_R + vy*t - gw*t*t/2, SPOT_Z*(1 - e)];   // curl: efeito da parte interna do pé (chapada)
-  }
+  if (!b || b.t <= 0) return BALL0.slice(); if (b.fis) return b.fis.p.slice();   // depois do toque no goleiro: física da bola (js/keeper.js), nas luvas ou livre
+  const T = goalToWorld(b.gx, b.gy); T[1] = Math.max(BALL_R, T[1]); const tf = flightTime(b);
+  if (b.t < tf) return ballFlight(b, b.t);           // voo: avanço com arrasto; altura balística (gravidade real) que passa EXATAMENTE pelo ponto da mira no instante tf; curl da chapada
   const d = b.t - tf, g = 4.9;
   if (b.res === 'gol') return [T[0] + (T[0]/3.66)*.25*d, Math.max(BALL_R, T[1] - g*d*d*.5), -1.6*(1 - Math.exp(-d*3.5))];
   if (b.res === 'defesa') { const sg = Math.sign(k.tx - .5) || (T[0] < 0 ? -1 : 1); return [T[0] + sg*2.6*d, Math.max(BALL_R, T[1] + 2.2*d - g*d*d), 3.2*d]; }
@@ -57,6 +55,8 @@ const faceFor = L => { let f = faceCache.get(L.id); if (!f) { const a = L.ap; f 
 const withFace = L => L.ap ? { ...L, face: faceFor(L) } : L;
 // largura do atleta como o loader a aplica (root.scale x/z = build × altura): a mesma conta de js/three/loader.js → apply
 export const widthOf = lk => { const f = lk.face || faceOf((lk.nome || '') + (lk.num ?? ''), { hair: lk.hair }); return (f.build || 1)*(f.height || 1); };
+// escala do goleiro em campo (largura × altura, como o loader aplica no modelo): os colisores dos ossos usam a mesma
+export const keeperScale = game => { const [ta, tb] = GS.equipes; const t = GS.cobrador === 0 ? tb : ta; if (!t) return [1, 1]; const f = keeperLook(t).face || {}, h = f.height || 1; return [(f.build || 1)*h, h]; };
 const keeperLook = (t, mood) => { const g = keeperOf(t); return g ? { ...withFace(g), mood } : { skin: t.id % 4, hair: HS[t.id % 4], nome: 'GOL', num: 1, face: faceOf('gk' + t.id), mood }; };   // goleiro do clube (nome/número/aparência próprios) ou genérico se o clube não tiver dados
 const gkKit = t => ({ c1: kcol(t), c2: '#141414', c3: '#fff', pat: 'p', sh: '#1b1b1b', keeper: true, long: true, glove: true, key: 'gk' + t.id });
 // Personagens do quadro: [{ role, P (pose do rig), kit, look }]. role: kicker | keeper | mate | loser
@@ -81,8 +81,11 @@ export function characters(game, now, b, k, res, d, bw) {
   else if (b && b.t <= (ks ? ks.t1 : CLIP_END)) anim = { clip: ks ? ks.id : 'chute', tc: Math.max(t0, b.t), state };
   const kp = keeperPose(k, b, res, d, now, b && b.t > 0 ? bw : null), nk = GS.cobrancasRealizadas || 0;
   // goleiro: depois de levantar, comemora a defesa (ou o erro do cobrador) ou lamenta o gol — clipes do Blender, variando a cada cobrança
-  const kAnim = res && d >= KEEPER_REACT_D ? { clip: (res === 'gol' ? KEEPER_SAD : KEEPER_CHEER)[nk % 3], pe: nk % 2 ? 'l' : 'r', t: d - KEEPER_REACT_D, pos: [(k.x - .5)*GOAL_W*(1 - sm((KEEPER_REACT_D - 1)/.7)), 0, .55], yaw: 0, blend: .45, state: res === 'gol' ? 'keeperSad' : 'keeperCheer' } : null;
+  // goleiro (js/keeper.js): espera em laço (+ preparação depois de escolher o lado) → mergulho sincronizado com a bola → reação onde ele terminou o
+  // mergulho, já de pé: comemora a defesa (ou o erro do cobrador) ou lamenta o gol. Clipes do Blender; o rig.js só entra se faltar algum clipe.
+  const gk = k && k.log ? k : null, kAnim = gk ? animGoleiro(gk, b, { agora: now, tJogo: game.t ?? now, sc: keeperScale(game), nk, cheer: KEEPER_CHEER, sad: KEEPER_SAD }) : null;
+  const mood = kAnim ? (kAnim.state === 'keeperSad' ? 'sad' : kAnim.state === 'keeperCheer' ? 'happy' : 'neutral') : kp.info.happy ? 'happy' : kp.info.sad ? 'sad' : 'neutral';
   const list = [{ role: 'kicker', P: kickerPose(m), anim, state, kit: { ...kt, sh: kt.c2, variant: GS.cobrador === 1 ? 'away' : 'home' }, look: lk },
-    { role: 'keeper', P: kp.P, anim: kAnim, kit: gkKit(dt2), look: keeperLook(dt2, kp.info.happy ? 'happy' : kp.info.sad ? 'sad' : 'neutral') }];
+    { role: 'keeper', P: kp.P, anim: kAnim, kit: gkKit(dt2), look: keeperLook(dt2, mood) }];
   return { final: false, list };
 }
