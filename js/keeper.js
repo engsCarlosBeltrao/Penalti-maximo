@@ -30,7 +30,7 @@ export const KEEPER_CFG = {
   correcao: { apos: .1, fatorErro: .4, ganho: .08, zMin: 3 },
   // ESCOLHA DA AÇÃO pela trajetória lida depois do chute: entre as ações possíveis (defesa no centro, passo curto com extensão dos braços, mergulho)
   // o goleiro usa a MENOR que cobre a bola (folga ≤ alvo); só mergulha se precisar. custo em "m" de folga.
-  economia: { centro: 0, curta: .09, passos: .12, mergulho: .16, alvo: -.04, altura: .08 },   // altura: custo por nível de diferença entre a altura da ação e a lida
+  economia: { centro: 0, curta: .09, passos: .12, bloqueio: .15, mergulho: .16, alvo: -.04, altura: .08 },   // altura: custo por nível de diferença entre a altura da ação e a lida
   // depois de pôr o peso num lado, voltar para uma defesa no centro custa tempo; para o lado OPOSTO só cabe um passo curto, ainda mais tarde
   atraso: { centro: .16, oposto: .18 },
   // defesas no CENTRO partem da própria base (não dependem de escolher lado) e os clipes fornecidos são lentos para elas (o Catch agacha ~0,4 s antes de
@@ -40,7 +40,7 @@ export const KEEPER_CFG = {
   // No máximo 25 cm de deslocamento da luva e só se a luva já passaria a menos de 60 cm da bola (não é ímã). O MESMO giro vale para os colisores e para o
   // osso do braço na tela (js/three/loader.js → ajustaBraco), depois do clipe — não há dois sistemas disputando o osso.
   ajuste: { max: .3, alcance: .65, antes: .3, rampa: .18, cotovelo: .6, frentes: [0, .08, .16, .25, .35] },   // cotovelo: no máximo 0,6 rad (~34°) de extensão                                  // correção limitada: troca a altura do mergulho (no MESMO lado) só se outra cobrir a bola lida ≥ 5 cm melhor
-  reacao: { lado: { easy: .12, normal: .08, hard: .05 }, centro: { easy: .22, normal: .16, hard: .12 } },   // s depois do chute para ler a altura
+  reacao: { lado: { easy: .12, normal: .08, hard: .05 }, centro: { easy: .18, normal: .12, hard: .09 } },   // s depois do chute para ler a altura
   erro: { easy: .3, normal: .2, hard: .12, rapida: .4 },  // desvio (m) da leitura do ponto de cruzamento; cresce até +rapida (40%) na bola mais rápida (prob.vel)
   escolhaCPU: { esq: .4, dir: .4, centro: .2 },
   // PROBABILIDADES de defesa efetiva (agarrar ou desviar com firmeza) DEPOIS de confirmado o contato físico — parâmetros de balanceamento, não
@@ -241,13 +241,18 @@ const H = ['baixa', 'media', 'alta'];
 // ações possíveis a partir do lado travado.
 //  - CENTRO: fica no meio (abaixa, levanta os braços) ou AJUSTA com passos laterais reais — um passo curto ou dois passos — para qualquer lado; nunca o
 //    mergulho completo para um canto (a escolha de ficar no meio é respeitada; bola longe: tenta com o alcance que os passos e os braços dão).
-//  - ESQUERDA/DIREITA: mergulho e passo curto só para o lado escolhido, ou ficar no centro com atraso; nunca passos para trocar de lado.
+//  - ESQUERDA/DIREITA: a decisão manda no movimento — mergulho ou passo curto PARA O LADO ESCOLHIDO, mesmo com a bola no meio (o sensor só diz onde a bola
+//    passa e para onde as mãos vão; não troca a escolha). Nada de "ficar no centro" depois de escolher um lado: era essa opção (a mais barata) que fazia o
+//    goleiro cancelar a saída e esperar parado no meio. Bola no meio: passo curto para o lado escolhido e as mãos/o corpo tentam alcançá-la.
 export function candidatos(lado) {
-  const C = KEEPER_CFG, out = [], meu = s => lado === s, centro = lado === 'centro';
-  for (const h of H) out.push({ clip: `gk_centro_${h}`, tipo: 'centro', lado: 'centro', altura: h, atraso: centro ? 0 : C.atraso.centro });
+  const out = [], meu = s => lado === s, centro = lado === 'centro' || !lado;
+  if (centro) for (const h of H) out.push({ clip: `gk_centro_${h}`, tipo: 'centro', lado: 'centro', altura: h, atraso: 0 });
   for (const s of ['esq', 'dir']) {
     if (centro || meu(s)) for (const h of H) out.push({ clip: `gk_${s}_curta_${h}`, tipo: 'curta', lado: s, altura: h, atraso: 0 });
     if (centro) for (const h of H) out.push({ clip: `gk_${s}_passos_${h}`, tipo: 'passos', lado: s, altura: h, atraso: 0 });
+    // MEIO, bola rasteira na beira da área central: o bloqueio baixo lateral (o tronco vai no máximo a ~1,18 m do centro — continua DENTRO da área do meio,
+    // não é mergulho para o canto): impulso e extensão de braços e pernas quando os passos não chegam a tempo
+    if (centro) out.push({ clip: `gk_${s}_baixa`, tipo: 'bloqueio', lado: s, altura: 'baixa', atraso: 0 });
     if (meu(s)) for (const h of H) out.push({ clip: `gk_${s}_${h}`, tipo: 'mergulho', lado: s, altura: h, atraso: 0, preparado: true });
   }
   return out.filter(c => KEEPER_CLIPS[c.clip]);
@@ -259,9 +264,16 @@ export function planejar(k, b, { dif = 'normal', sc = [1, 1], rng = Math.random 
   const prev = via(px, py), extras = [via(px, py + .5*e), via(px, py - .5*e)];            // e a incerteza da leitura (mais alta / mais baixa)
   // sincroniza: o instante do clipe e o ritmo com que a bola chega na melhor posição; depois, a folga média também nas leituras vizinhas
   const mesmo = c => atual && !atual.pre && c.clip === atual.clip, ctAgora = atual ? ctDe(k, b.t) : 0;
-  const continua = c => atual && atual.pre && c.tipo === 'mergulho' && c.lado === atual.lado;   // o mergulho já começou antes do chute: segue da mesma fase   // na correção, a MESMA ação pode só mudar de ritmo a partir da pose atual (sem salto)
-  const sincroniza = (c, semPoda = false) => { const S = C.salto, offMin = mesmo(c) || continua(c) ? ctAgora : c.tipo === 'mergulho' && c.preparado ? C.prep.t*.5 : 0,
-      offMax = mesmo(c) ? ctAgora : continua(c) ? ctAgora + .12 : c.tipo === 'centro' ? S.centro : c.tipo === 'curta' || c.tipo === 'passos' ? S.curta : c.preparado ? S.preparado : S.parado,
+  const continua = c => atual && atual.pre && c.clip === atual.clip;   // o mergulho já começou antes do chute: segue do mesmo ponto do MESMO clipe
+  // EMENDA: o goleiro já saiu para o lado antes do chute e a ação nova é OUTRO clipe (passo curto, outra altura): começa no instante do clipe novo em que o
+  // tronco está onde o goleiro já está — sem voltar para o centro e sem o corpo "correr" para a pose nova
+  const tronco0 = atual && b.t >= atual.tIni ? colisoresPlano(k, b.t, sc).find(c => c.nome === 'tronco').a : null, emendas = {};
+  const mesmaFamilia = c => atual && c.lado === atual.lado && c.tipo === atual.tipo && (c.tipo === 'passos' || ((c.tipo === 'curta' || c.tipo === 'centro') && !/_alta$/.test(c.clip) && !/_alta$/.test(atual.clip)));   // mesmos pés, só muda a altura das mãos
+  const emenda = c => { if (!tronco0 || continua(c) || mesmo(c)) return null; if (mesmaFamilia(c)) return ctAgora; if (emendas[c.clip] != null) return emendas[c.clip]; let best = 0, dm = 9;
+    for (let o = 0; o <= Math.min(.7, CLIP_INFO[c.clip].dur - .1); o += .02) { const q = colisores(c.clip, o, C.raiz, sc).find(x => x.nome === 'tronco').a, d = Math.abs(q[0] - tronco0[0]) + .25*Math.hypot(q[1] - tronco0[1], q[2] - tronco0[2]) + .1*o; if (d < dm) { dm = d; best = o; } }   // o que importa é o lado (x); sem pular adiante à toa
+    return (emendas[c.clip] = best); };   // o mergulho já começou antes do chute: segue da mesma fase   // na correção, a MESMA ação pode só mudar de ritmo a partir da pose atual (sem salto)
+  const sincroniza = (c, semPoda = false) => { const S = C.salto, em = emenda(c), offMin = mesmo(c) || continua(c) ? ctAgora : em != null ? em : c.tipo === 'mergulho' && c.preparado ? C.prep.t*.5 : 0,
+      offMax = mesmo(c) ? ctAgora : continua(c) ? ctAgora + .12 : em != null ? em + (mesmaFamilia(c) ? 0 : .04) : c.tipo === 'centro' ? S.centro : c.tipo === 'curta' || c.tipo === 'passos' ? S.curta : c.preparado ? S.preparado : S.parado,
       tIni = mesmo(c) || continua(c) ? b.t : b.t + c.atraso, r0 = C.ritmo[c.clip] || 1;
     let off = offMin, rt = r0, best = null; const cx_ = CAIXA[c.clip];
     if (!semPoda && (px < cx_.x0 - .9 || px > cx_.x1 + .9 || py > cx_.y1 + .9 || py < cx_.y0 - .9)) return { ...c, off, rt, best: { d: 9 }, dm: 9, tIni, custo: 9 };   // nem perto: descartada
@@ -287,7 +299,7 @@ export function planejar(k, b, { dif = 'normal', sc = [1, 1], rng = Math.random 
   const { clip, off, best, tIni } = esc;
   const foto = fotoPara(k, clip, tIni, sc);
   k.plano = { clip, foto, tipo: esc.tipo, lado: esc.lado, altura: esc.altura, tIni, off: +off.toFixed(3), atraso: esc.atraso, lido: { x: +px.toFixed(2), y: +py.toFixed(2), cat: lido.cat },
-    real: classificar(cx, cy).cat, folgaPrevista: +esc.dm.toFixed(3), cobria: esc.dm <= E.alvo, opcoes: av.length, ritmo: esc.rt, blend: mesmo(esc) ? atual.blend : continua(esc) ? .1 : atual ? .12 : esc.tipo === 'curta' || esc.tipo === 'passos' ? .12 : .15, corrigido: !!atual && !atual.pre, saiuAntes: !!atual?.pre,
+    real: classificar(cx, cy).cat, folgaPrevista: +esc.dm.toFixed(3), cobria: esc.dm <= E.alvo, opcoes: av.length, ritmo: esc.rt, blend: mesmo(esc) ? atual.blend : continua(esc) ? .1 : atual?.pre ? .15 : atual ? .12 : esc.tipo === 'curta' || esc.tipo === 'passos' ? .12 : .15, corrigido: !!atual && !atual.pre, saiuAntes: !!atual?.pre,
     motivoEscolha: (atual && !atual.pre ? `CORREÇÃO (antes ${atual.clip}): ` : atual?.pre ? 'já em movimento desde antes do chute; ' : '') + (esc.dm <= E.alvo ? `menor ação que cobre a bola lida (${esc.tipo}, ${cobre.length} cobriam)` : cobre.length ? `${esc.tipo} quase cobre e custa bem menos que as ${cobre.length} que cobriam` : 'nenhuma ação cobre a bola lida: tentativa que chega mais perto') };
   // para a depuração: a trajetória que ele LEU, o ponto previsto de interceptação e a parte do corpo com que pretende chegar
   k.plano.leitura = { gx: prev.gx, gy: prev.gy, tf: prev.tf, curl: prev.curl };
@@ -406,7 +418,7 @@ export function resultadoContato(ct, { rng = Math.random, craque = 75 } = {}) {
   // ENCAIXE: só onde dá para segurar (palmas/duas mãos, punho, peito, abdômen); a ponta dos dedos, os braços, as pernas e os pés nunca encaixam
   // ENCAIXE: só com as DUAS mãos em contato e a bola controlada; com uma mão, peito, braço, perna ou pé nunca é encaixe (espalma, bloqueia ou rebate).
   // Mesmo com as duas mãos, a bola forte pode escapar (fica como defesa firme/rebote, nunca "presa").
-  const pAgarra = ct.duasMaos ? clamp(.85*(1 - .7*ch.s)*(1 - .4*ch.e)*(.4 + .6*fDepth)*(ct.corpoAtras ? 1.1 : 1), 0, .9) : 0;
+  const pAgarra = ct.duasMaos && ct.regiao !== 'dedos' ? clamp(.85*(1 - .7*ch.s)*(1 - .4*ch.e)*(.4 + .6*fDepth)*(ct.corpoAtras ? 1.1 : 1), 0, .9) : 0;
   const u = rng(); let tipo, e, mu, kh;
   if (u < pFirme*pAgarra) tipo = 'agarrada';
   else if (u < pFirme) { tipo = 'firme'; e = G === 'tronco' || G === 'perna' ? .3 + .1*rng() : .38 + .17*rng(); mu = .55; kh = .8; }

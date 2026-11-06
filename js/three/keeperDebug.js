@@ -3,7 +3,7 @@
 // o contato, as velocidades e o motivo de a defesa ter sido possível ou não. Desligado, nada aparece e nada muda no jogo.
 import * as THREE from 'three';
 import { DBG } from '../debug.js';
-import { colisoresAgora, cruzamento, ROTULOS, KEEPER_CFG, ballFlight, REGIAO, classe, velocidadeGoleiro, defesaNome, TERCO, areaDe, NOME_AREA } from '../keeper.js';
+import { colisoresPlano, colisoresAgora, cruzamento, ROTULOS, KEEPER_CFG, ballFlight, REGIAO, classe, velocidadeGoleiro, defesaNome, TERCO, areaDe, NOME_AREA } from '../keeper.js';
 import { GOAL_H } from '../rig.js';
 import { probabilidades } from '../goleiroMemoria.js';
 import { keeperScale, flightTime } from '../frame.js';
@@ -63,6 +63,10 @@ export function createKeeperDebug(scene) {
     if (b) { const [x, y] = cruzamento(b); L.push(`cruzamento real: x=${f(x)} y=${f(y)} m${p ? ` (${p.real})` : ''}${p ? ` · leitura do goleiro: ${p.lido.cat} (x=${f(p.lido.x)} y=${f(p.lido.y)})` : ''}`); }
     { const esc = k.lado === 'esq' || k.lado === 'dir' || k.lado === 'centro' ? k.lado : null, det = k.sensor && b && b.t > 0 ? k.sensor.area : null, nm = a => a ? NOME_AREA[a] : '—', min = a => NOME_AREA[a].toLowerCase();
       L.push(`áreas do gol (terços): goleiro escolheu ${nm(esc)} · bola detectada: ${det ? nm(det) + ` (x=${f(k.sensor.ponto[0])} y=${f(k.sensor.ponto[1])} m)` : 'ainda sem chute'}${esc && det ? (esc === det ? ' → a bola vai para a área escolhida' : esc === 'centro' ? ` → fica no meio e ajusta com passos para a ${min(det)}` : ` → prepara para a ${min(esc)}, mas a bola vai para ${det === 'centro' ? 'o meio' : 'a ' + min(det)}`) : ''}`); }
+    { const esc = k.lado === 'esq' || k.lado === 'dir' || k.lado === 'centro' ? k.lado : null, tipoNome = { centro: 'fica no meio', curta: 'passo curto', passos: 'dois passos', bloqueio: 'bloqueio baixo', mergulho: 'mergulho' };
+      let desl = '—'; if (p && b && b.t >= p.tIni) { const sc = keeperScale(game), x0 = colisoresPlano(k, p.tIni, sc).find(c => c.nome === 'tronco').a[0], x1 = colisoresPlano(k, b.t, sc).find(c => c.nome === 'tronco').a[0], dx = x1 - x0;
+        desl = `${tipoNome[p.tipo] || p.tipo} para ${p.lado === 'centro' ? 'o meio' : 'a ' + NOME_AREA[p.lado].toLowerCase()} (${p.clip}) · tronco ${Math.abs(dx) < .03 ? 'no lugar' : `${Math.abs(dx).toFixed(2)} m para a ${NOME_AREA[dx > 0 ? 'esq' : 'dir'].toLowerCase()}`}`; }
+      L.push(`decisão inicial: ${esc ? NOME_AREA[esc] : '—'} · deslocamento executado: ${desl}`); }
     { const pc = o => `E ${Math.round(o.esq*100)}% · C ${Math.round(o.centro*100)}% · D ${Math.round(o.dir*100)}%`, mem = game.memGoleiro?.(), pAgora = k.probAntes || (mem && probabilidades(mem)), hist = k.historico || mem?.historico || [];
       if (pAgora) L.push(`probabilidades da escolha (${k.idGoleiro || game.idGoleiro?.() || 'goleiro'}): ${pc(pAgora)}${k.probDepois ? ` → próxima: ${pc(k.probDepois)}` : ''}`);
       L.push(`histórico do goleiro: ${hist.length ? hist.slice(-8).map(d => ({ esq: 'E', centro: 'C', dir: 'D' })[d]).join(' ') : 'vazio'} · direção escolhida: ${k.lado || '—'}`); }

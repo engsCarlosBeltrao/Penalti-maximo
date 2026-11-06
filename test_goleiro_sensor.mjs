@@ -134,4 +134,32 @@ console.log('centro com ajuste de passos:');
     t('transição: no início da ação a física parte da pose que estava na tela (foto)', d(ini, p.foto, 'mao_l') < .01 && d(ini, p.foto, 'mao_r') < .01);
     t('transição: depois do blend a física é o clipe puro', d(fim, puro, 'mao_l') < .01 && d(fim, puro, 'mao_r') < .01); }
   else t('transição: plano tem foto da pose anterior', false); }
+// ---------- 9. decisão inicial × sensor: o lado escolhido é respeitado; no MEIO ele anda por toda a área central ----------
+console.log('decisão inicial × trajetória (30 chutes médios cada; desloc = tronco 0,45 s depois do início da ação):');
+{ const tronco = (k, t) => GK.colisoresPlano(k, t).find(c => c.nome === 'tronco').a[0];
+  const roda = (lado, gx, gy = .45, N = 30) => Array.from({ length: N }, (_, i) => { const r = cobra({ gx, gy, lado, tipo: 'medio', rng: semente(8100 + i*7) }), p = r.k.plano; let vmax = 0, xmax = 0, ant = null;
+    for (let t = p.tIni; t <= p.tIni + .8; t += 1/60) { const x = tronco(r.k, t); xmax = Math.max(xmax, Math.abs(x)); if (ant != null) vmax = Math.max(vmax, Math.abs(x - ant)*60); ant = x; }
+    return { ...r, dx: tronco(r.k, p.tIni + .45) - tronco(r.k, p.tIni), vmax, xmax }; });
+  const resumo = (nome, rs) => { const m = {}; rs.forEach(r => { m[r.k.plano.clip] = (m[r.k.plano.clip] || 0) + 1; }); const d = rs.reduce((a, r) => a + r.dx, 0)/rs.length;
+    console.log(`  ${nome.padEnd(40)} defesa ${Math.round(rs.filter(r => r.res === 'defesa').length/rs.length*100)}% · contato ${Math.round(rs.filter(r => r.c).length/rs.length*100)}% · desloc médio ${d.toFixed(2)} m · ${JSON.stringify(m)}`); };
+  const s1 = roda('esq', .82), s2 = roda('esq', .5), s3 = roda('dir', .18), s4 = roda('dir', .5), s5 = roda('centro', .6), s6 = roda('centro', .4);
+  resumo('1. escolhe esquerda, bola na esquerda', s1); resumo('2. escolhe esquerda, bola no meio', s2); resumo('3. escolhe direita, bola na direita', s3); resumo('4. escolhe direita, bola no meio', s4);
+  resumo('5. escolhe meio, bola um pouco à esquerda', s5); resumo('6. escolhe meio, bola um pouco à direita', s6);
+  t('1. esquerda → esquerda: vai para a esquerda e defende na maioria', s1.every(r => r.k.plano.lado === 'esq' && r.dx > .3) && s1.filter(r => r.res === 'defesa').length >= 18);
+  t('2. esquerda → meio: NÃO fica no centro — move-se para a esquerda e tenta a bola', s2.every(r => r.k.plano.lado === 'esq' && r.k.plano.tipo !== 'centro' && r.dx > .05) && s2.filter(r => r.c).length >= 24);
+  t('3. direita → direita: vai para a direita e defende na maioria', s3.every(r => r.k.plano.lado === 'dir' && r.dx < -.3) && s3.filter(r => r.res === 'defesa').length >= 18);
+  t('4. direita → meio: NÃO fica no centro — move-se para a direita e tenta a bola', s4.every(r => r.k.plano.lado === 'dir' && r.k.plano.tipo !== 'centro' && r.dx < -.05) && s4.filter(r => r.c).length >= 24);
+  t('5. meio → um pouco à esquerda: passos para a esquerda, defende', s5.filter(r => r.dx > .15).length >= 24 && s5.filter(r => r.res === 'defesa').length >= 25);
+  t('6. meio → um pouco à direita: passos para a direita, defende', s6.filter(r => r.dx < -.15).length >= 24 && s6.filter(r => r.res === 'defesa').length >= 25);
+  t('lado escolhido nunca vira "ficar no centro" (candidatos de esquerda/direita sem ação de centro)', !GK.candidatos('esq').some(c => c.tipo === 'centro') && !GK.candidatos('dir').some(c => c.tipo === 'centro'));
+  const c0 = roda('centro', .5), cE = roda('centro', .64), cD = roda('centro', .36), xE = roda('centro', .667), xD = roda('centro', .333);
+  resumo('meio: centro exato', c0); resumo('meio: um pouco à esquerda do centro', cE); resumo('meio: um pouco à direita do centro', cD); resumo('meio: extremidade esquerda da área central', xE); resumo('meio: extremidade direita da área central', xD);
+  t('meio, centro exato: fica centralizado e defende', c0.filter(r => Math.abs(r.dx) < .15).length >= 24 && c0.filter(r => r.res === 'defesa').length >= 27);
+  t('meio, um pouco à esquerda/direita: pés e corpo acompanham e defende', cE.filter(r => r.dx > .15).length >= 24 && cD.filter(r => r.dx < -.15).length >= 24 && [...cE, ...cD].filter(r => r.res === 'defesa').length >= 50);
+  { const mE = xE.filter(r => r.dx > .2).length, mD = xD.filter(r => r.dx < -.2).length, mao = [...xE, ...xD].filter(r => r.c && r.c.grupo === 'mao').length;
+    console.log(`  extremidades: andou ≥ 20 cm para a bola ${mE}/30 (esq.) e ${mD}/30 (dir.) · tocou com as mãos ${mao}/60`);
+    t('meio, extremidades da área central: anda para a beira (passo ou dois) e tenta com as mãos', mE >= 25 && mD >= 25 && mao >= 45, `${mE} ${mD} ${mao}`); }
+  const todos = [...c0, ...cE, ...cD, ...xE, ...xD];
+  t('meio: o tronco nunca sai da área central (|x| ≤ 1,22 m)', todos.every(r => r.xmax <= GK.TERCO), Math.max(...todos.map(r => r.xmax)));
+  t('sem teletransporte: no meio e nos passos o tronco ≤ 4 m/s; no mergulho ≤ 5,5 m/s', [...todos, ...s2, ...s4, ...s5, ...s6].every(r => r.vmax <= 4) && [...s1, ...s3].every(r => r.vmax <= 5.5), [...todos, ...s2, ...s4, ...s5, ...s6].map(r => r.vmax.toFixed(1)).sort().slice(-3).join() + ' / ' + [...s1, ...s3].map(r => r.vmax.toFixed(1)).sort().slice(-2).join()); }
 console.log(`SENSOR OK ${ok} | FALHAS ${bad}`); process.exit(bad ? 1 : 0);
