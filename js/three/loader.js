@@ -107,7 +107,10 @@ export function instantiate(tpl, { maos = 'relaxada' } = {}) {   // maos: pose d
     ajustaBraco(aj) {
       if (!aj) return; for (const [s, a] of Object.entries(aj)) { const b = bones[s === 'l' ? 'LeftArm' : 'RightArm']; if (!b || !a) continue;
         b.parent.updateWorldMatrix(true, false); b.updateWorldMatrix(false, false); const qw = b.getWorldQuaternion(new THREE.Quaternion()), qr = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(...a.eixo), a.ang);
-        b.parent.getWorldQuaternion(pq); b.quaternion.copy(pq.invert().multiply(qr.multiply(qw))); b.updateMatrix(); }
+        b.parent.getWorldQuaternion(pq); b.quaternion.copy(pq.invert().multiply(qr.multiply(qw))); b.updateMatrix();
+        const f = bones[s === 'l' ? 'LeftForeArm' : 'RightForeArm'];                          // 2ª etapa: o cotovelo estende (mesmo eixo/ângulo da física)
+        if (f && a.angC) { f.parent.updateWorldMatrix(true, false); f.updateWorldMatrix(false, false); const fw = f.getWorldQuaternion(new THREE.Quaternion()), fr = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(...a.eixoC), a.angC);
+          f.parent.getWorldQuaternion(pq); f.quaternion.copy(pq.invert().multiply(fr.multiply(fw))); f.updateMatrix(); } }
     },
     pose(J) {                                                                                         // aplica a pose do rig.js: quaternions de mundo → locais, de pai para filho
       if (api.clipOn) { const S = snapshot(); root.position.set(0, 0, 0); root.rotation.set(0, 0, 0); rebase(S); api.blendOut = { S, t0: performance.now() }; api.clipOn = false; api.into = null; api.mode = null; }   // saindo de um clipe: a pose procedural trabalha no espaço do mundo; transição de BLEND s

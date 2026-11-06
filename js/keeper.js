@@ -36,7 +36,7 @@ export const KEEPER_CFG = {
   // AJUSTE LIMITADO DO BRAÇO (seção 9 do pedido): nos últimos instantes o goleiro leva a luva em direção à bola que está VENDO, girando o braço no ombro.
   // No máximo 25 cm de deslocamento da luva e só se a luva já passaria a menos de 60 cm da bola (não é ímã). O MESMO giro vale para os colisores e para o
   // osso do braço na tela (js/three/loader.js → ajustaBraco), depois do clipe — não há dois sistemas disputando o osso.
-  ajuste: { max: .25, alcance: .6, antes: .3, rampa: .2 },                                  // correção limitada: troca a altura do mergulho (no MESMO lado) só se outra cobrir a bola lida ≥ 5 cm melhor
+  ajuste: { max: .25, alcance: .6, antes: .3, rampa: .2, cotovelo: .6 },   // cotovelo: no máximo 0,6 rad (~34°) de extensão                                  // correção limitada: troca a altura do mergulho (no MESMO lado) só se outra cobrir a bola lida ≥ 5 cm melhor
   reacao: { lado: { easy: .16, normal: .12, hard: .09 }, centro: { easy: .28, normal: .22, hard: .17 } },   // s depois do chute para ler a altura
   erro: { easy: .3, normal: .2, hard: .12, rapida: .4 },  // desvio (m) da leitura do ponto de cruzamento; cresce até +rapida (40%) na bola mais rápida (prob.vel)
   escolhaCPU: { esq: .4, dir: .4, centro: .2 },
@@ -56,6 +56,42 @@ const PARTES = { mao: 1, antebraco: .85, braco: .75, tronco: .95, cabeca: .6, pe
 // na ESCOLHA da ação, o goleiro quer a bola nas mãos/no peito: pegar só com a perna, o braço ou a cabeça "cobre" menos (m somados à folga)
 const PREFERE = { mao: 0, antebraco: .03, tronco: 0, braco: .07, perna: .1, pe: .08, cabeca: .15 };
 const PALMA = { mao: .7, antebraco: .35, braco: .3, tronco: .8, cabeca: .3, perna: .7, pe: .6 };   // corpo e pernas de frente para a bola (bloqueio): o rebote volta para o campo
+// PARTES DO CORPO (para o contato e para a depuração): cada colisor dos ossos é dividido nas regiões que o goleiro de verdade usa. Cápsulas e esferas
+// presas ao esqueleto do clipe (as mesmas posições que aparecem na tela). regiao → família (lógica geral), qualidade para defender, quanto a superfície
+// se vira para a bola (palma), se pode ENCAIXAR a bola e o nome mostrado.
+export const REGIAO = {
+  palma:     { fam: 'mao',    q: 1,   pal: .75, agarra: 1,   nome: 'palma da mão' },
+  dedos:     { fam: 'mao',    q: .8,  pal: .6,  agarra: 0,   nome: 'ponta dos dedos' },
+  punho:     { fam: 'mao',    q: .9,  pal: .6,  agarra: .45, nome: 'punho' },
+  maos:      { fam: 'mao',    q: 1,   pal: .8,  agarra: 1,   nome: 'as duas mãos' },
+  antebraco: { fam: 'braco',  q: .85, pal: .4,  agarra: 0,   nome: 'antebraço' },
+  cotovelo:  { fam: 'braco',  q: .7,  pal: .3,  agarra: 0,   nome: 'cotovelo' },
+  braco:     { fam: 'braco',  q: .75, pal: .3,  agarra: 0,   nome: 'braço' },
+  ombro:     { fam: 'braco',  q: .7,  pal: .25, agarra: 0,   nome: 'ombro' },
+  peito:     { fam: 'tronco', q: .95, pal: .85, agarra: .8,  nome: 'peito' },
+  abdomen:   { fam: 'tronco', q: .9,  pal: .8,  agarra: .35, nome: 'abdômen' },
+  lateral:   { fam: 'tronco', q: .8,  pal: .5,  agarra: 0,   nome: 'lateral do tronco' },
+  cabeca:    { fam: 'cabeca', q: .6,  pal: .3,  agarra: 0,   nome: 'cabeça' },
+  coxa:      { fam: 'perna',  q: .85, pal: .65, agarra: 0,   nome: 'coxa' },
+  joelho:    { fam: 'perna',  q: .8,  pal: .6,  agarra: 0,   nome: 'joelho' },
+  canela:    { fam: 'perna',  q: .85, pal: .7,  agarra: 0,   nome: 'canela' },
+  pe:        { fam: 'pe',     q: .8,  pal: .55, agarra: 0,   nome: 'pé' },
+};
+export const regiaoDe = n => n === 'maos' ? 'maos' : n.replace(/_[lr]$/, '');
+// divide os colisores brutos dos ossos nas partes acima (pontos e raios proporcionais ao osso)
+export function detalha(cols, sc = [1, 1]) {
+  const out = [], m = n => cols.find(c => c.nome === n), lerpP = (a, b, u) => add(a, mul(sub(b, a), u)), P = (nome, a, b, r) => out.push({ nome, grupo: REGIAO[regiaoDe(nome)].fam, regiao: regiaoDe(nome), a, b, r });
+  for (const s of ['l', 'r']) {
+    const h = m('mao_' + s), fa = m('antebraco_' + s), ua = m('braco_' + s), th = m('coxa_' + s), sh = m('canela_' + s), ft = m('pe_' + s);
+    const meio = lerpP(h.a, h.b, .42);
+    P('palma_' + s, h.a, meio, h.r); P('dedos_' + s, meio, h.b, h.r*.82); P('punho_' + s, h.a, null, h.r*.85);
+    P('antebraco_' + s, fa.a, fa.b, fa.r); P('cotovelo_' + s, fa.a, null, fa.r*1.1); P('braco_' + s, ua.a, ua.b, ua.r); P('ombro_' + s, ua.a, null, ua.r*1.2);
+    P('coxa_' + s, th.a, th.b, th.r); P('joelho_' + s, th.b, null, th.r*.8); P('canela_' + s, sh.a, sh.b, sh.r); P('pe_' + s, ft.a, ft.b, ft.r);
+  }
+  const t = m('tronco'), cint = lerpP(t.a, t.b, .45); P('abdomen', t.a, cint, t.r); P('peito', cint, t.b, t.r*.94);
+  const cb = m('cabeca'); P('cabeca', cb.a, null, cb.r); const ms = m('maos'); if (ms) P('maos', ms.a, ms.b, ms.r);
+  return out;
+}
 export const grupoDe = n => n.startsWith('mao') ? 'mao' : n.startsWith('antebraco') ? 'antebraco' : n.startsWith('braco') ? 'braco' : n === 'tronco' ? 'tronco' : n === 'cabeca' ? 'cabeca' : n.startsWith('pe_') ? 'pe' : 'perna';
 const FPS = 30, v3 = { sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]], mul: (a, k) => [a[0]*k, a[1]*k, a[2]*k],
   dot: (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2], len: a => Math.hypot(a[0], a[1], a[2]) }, { sub, add, mul, dot, len } = v3, clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -89,14 +125,19 @@ const giraEm = (p, o, e, ang) => add(o, gira(sub(p, o), e, ang));
 // peso do ajuste do braço no instante t (0 → 1 antes da chegada da bola, mantém um pouco e volta)
 export function ajusteAgora(k, t) {
   const A = k.plano && k.plano.ajuste; if (!A) return null; const C = KEEPER_CFG.ajuste, out = {};
-  for (const s of ['l', 'r']) { const a = A[s]; if (!a) continue; const w = sm((t - (a.t - C.antes))/C.rampa)*(1 - sm((t - (a.t + .25))/.3)); if (w > 1e-3) out[s] = { eixo: a.eixo, ang: a.ang*w }; }
+  for (const s of ['l', 'r']) { const a = A[s]; if (!a) continue; const w = sm((t - (a.t - C.antes))/C.rampa)*(1 - sm((t - (a.t + .25))/.3)); if (w > 1e-3) out[s] = { eixo: a.eixo, ang: a.ang*w, eixoC: a.eixoC, angC: (a.angC || 0)*w }; }
   return Object.keys(out).length ? out : null;
 }
 // colisores do PLANO de mergulho no instante t do voo (clipe sincronizado + ajuste do braço)
 export function colisoresPlano(k, t, sc = [1, 1]) {
   const cols = colisores(k.plano.clip, ctDe(k, t), KEEPER_CFG.raiz, sc), aj = ajusteAgora(k, t); if (!aj) return cols;
   for (const s of ['l', 'r']) { const a = aj[s]; if (!a) continue; const o = cols.find(c => c.nome === 'braco_' + s).a;
-    for (const c of cols) if (c.nome === 'braco_' + s || c.nome === 'antebraco_' + s || c.nome === 'mao_' + s) { c.a = giraEm(c.a, o, a.eixo, a.ang); if (c.b) c.b = giraEm(c.b, o, a.eixo, a.ang); } }
+    for (const c of cols) if (c.nome === 'braco_' + s || c.nome === 'antebraco_' + s || c.nome === 'mao_' + s) { c.a = giraEm(c.a, o, a.eixo, a.ang); if (c.b) c.b = giraEm(c.b, o, a.eixo, a.ang); }
+    if (a.angC) { const cot = cols.find(c => c.nome === 'antebraco_' + s).a;   // depois o COTOVELO estende (antebraço e mão giram em volta dele)
+      for (const c of cols) if (c.nome === 'antebraco_' + s || c.nome === 'mao_' + s) { c.a = giraEm(c.a, cot, a.eixoC, a.angC); if (c.b) c.b = giraEm(c.b, cot, a.eixoC, a.angC); } } }
+  // as luvas mudaram de lugar: refaz o colisor "as duas mãos"
+  const L = cols.find(c => c.nome === 'mao_l'), R = cols.find(c => c.nome === 'mao_r'), i = cols.findIndex(c => c.nome === 'maos'); if (i >= 0) cols.splice(i, 1);
+  const pl = add(L.a, mul(sub(L.b, L.a), .45)), pr = add(R.a, mul(sub(R.b, R.a), .45)); if (len(sub(pl, pr)) < .32*sc[0]) cols.push({ nome: 'maos', grupo: 'mao', a: pl, b: pr, r: .05*sc[0] });
   return cols;
 }
 export function pontoMaisProximo(p, a, b) { if (!b) return { c: a, s: 0 }; const ab = sub(b, a), s = clamp(dot(sub(p, a), ab)/(dot(ab, ab) || 1), 0, 1); return { c: add(a, mul(ab, s)), s }; }
@@ -195,7 +236,9 @@ export function planejar(k, b, { dif = 'normal', sc = [1, 1], rng = Math.random 
   // NENHUMA ação alcança a bola lida: o goleiro não fica parado nem faz um gesto pequeno à toa. Se já pôs o peso num lado, MERGULHA para esse lado
   // (o lance clássico de quem escolheu errado); no centro, mergulha para o lado da bola (atrasado). Só na correção o goleiro mantém o que já faz.
   const desesperada = !atual && !cobre.length && Math.abs(px) > C.zonas.centroX, ladoDive = k.lado === 'esq' || k.lado === 'dir' ? k.lado : px > 0 ? 'esq' : 'dir';
-  const cand = desesperada && candidatos(k.lado).find(c => c.clip === clipeDe(ladoDive, lido.altura)), esc = cand ? sincroniza(cand, true) : esc0;
+  // (das três alturas de mergulho desse lado, a que leva o corpo mais perto da bola — com folga igual, a da altura lida)
+  const mergulhos = desesperada ? candidatos(k.lado).filter(c => c.tipo === 'mergulho' && c.lado === ladoDive).map(c => sincroniza(c, true)) : [];
+  const esc = mergulhos.length ? mergulhos.sort((a, b_) => (a.dm + .15*Math.abs(H.indexOf(a.altura) - H.indexOf(lido.altura))) - (b_.dm + .15*Math.abs(H.indexOf(b_.altura) - H.indexOf(lido.altura))))[0] : esc0;
   if (atual) {   // correção: compara com CONTINUAR a ação atual do jeito que está, avaliada com a leitura nova
     const cont = folga(prev, atual.clip, ctAgora, b.t, C.raiz, sc, tf + .02, null, atual.ritmo).d, nCont = Math.max(cont, E.alvo) + E[atual.tipo] + E.altura*Math.abs(H.indexOf(atual.altura) - H.indexOf(lido.altura));
     if (!(nota(esc) < nCont - C.correcao.ganho)) return null;
@@ -204,6 +247,9 @@ export function planejar(k, b, { dif = 'normal', sc = [1, 1], rng = Math.random 
   k.plano = { clip, tipo: esc.tipo, lado: esc.lado, altura: esc.altura, tIni, off: +off.toFixed(3), atraso: esc.atraso, lido: { x: +px.toFixed(2), y: +py.toFixed(2), cat: lido.cat },
     real: classificar(cx, cy).cat, folgaPrevista: +esc.dm.toFixed(3), cobria: esc.dm <= E.alvo, opcoes: av.length, ritmo: esc.rt, blend: mesmo(esc) ? atual.blend : atual ? .18 : esc.tipo === 'curta' ? .2 : .25, corrigido: !!atual,
     motivoEscolha: (atual ? `CORREÇÃO (antes ${atual.clip}): ` : '') + (esc.dm <= E.alvo ? `menor ação que cobre a bola lida (${esc.tipo}, ${cobre.length} cobriam)` : cobre.length ? `${esc.tipo} quase cobre e custa bem menos que as ${cobre.length} que cobriam` : 'nenhuma ação cobre a bola lida: tentativa que chega mais perto') };
+  // para a depuração: a trajetória que ele LEU, o ponto previsto de interceptação e a parte do corpo com que pretende chegar
+  k.plano.leitura = { gx: prev.gx, gy: prev.gy, tf: prev.tf, curl: prev.curl };
+  if (esc.best && esc.best.t != null) k.plano.intercepta = { t: +esc.best.t.toFixed(3), p: ballFlight(prev, esc.best.t).map(v => +v.toFixed(2)), parte: esc.best.parte, regiao: REGIAO[regiaoDe(esc.best.parte || 'mao_l')]?.nome || esc.best.parte };
   k.plano.avaliadas = av.slice().sort((a, b_) => nota(a) - nota(b_)).slice(0, 5).map(a => `${a.clip} off ${a.off.toFixed(2)} ritmo ${a.rt.toFixed(2)} folga ${Math.round(a.dm*100)} cm nota ${nota(a).toFixed(2)}`);
   k.plano.ajuste = calculaAjuste(k, b, sc);
   k.tx = .5 + (esc.lado === 'esq' ? .3 : esc.lado === 'dir' ? -.3 : 0); k.t0 = b.t;   // campos antigos (pose procedural de reserva)
@@ -217,12 +263,20 @@ function calculaAjuste(k, b, sc) {
   for (const s of ['l', 'r']) {
     let best = null;
     for (let t = k.plano.tIni; t <= tf + .02; t += 1/120) { const p = ballFlight(b, t); if (p[2] > 4) continue;
-      const cols = colisores(k.plano.clip, ctDe(k, t), KEEPER_CFG.raiz, sc), m = cols.find(c => c.nome === 'mao_' + s), P = add(m.a, mul(sub(m.b, m.a), .5)), d = len(sub(p, P));
+      const cols = colisores(k.plano.clip, ctDe(k, t), KEEPER_CFG.raiz, sc), m = cols.find(c => c.nome === 'mao_' + s), P = add(m.a, mul(sub(m.b, m.a), .22)), d = len(sub(p, P));   // mira o CENTRO DA PALMA
       if (!best || d < best.d) best = { d, t, P, B: p, S: cols.find(c => c.nome === 'braco_' + s).a }; }
     if (!best || best.d > C.alcance) continue;
     let D = sub(best.B, best.P); const L = len(D); if (L > C.max) D = mul(D, C.max/L);
     const u = norm(sub(best.P, best.S)), v = norm(sub(add(best.P, D), best.S)), e = cross(u, v), se = len(e); if (se < 1e-6) continue;
-    out[s] = { eixo: mul(e, 1/se), ang: Math.atan2(se, dot(u, v)), t: best.t, desloc: +len(D).toFixed(3), distAntes: +best.d.toFixed(3) };
+    const eixo = mul(e, 1/se), ang = Math.atan2(se, dot(u, v)), aj = { eixo, ang, t: best.t, desloc: +len(D).toFixed(3), distAntes: +best.d.toFixed(3) };
+    // 2ª etapa, o COTOVELO: o giro no ombro mantém o braço do tamanho que está; se a luva ainda não chegou e o cotovelo está dobrado, ele estende —
+    // no máximo até o braço ficar reto (nunca dobra para trás)
+    const cols = colisores(k.plano.clip, ctDe(k, best.t), KEEPER_CFG.raiz, sc), ua = cols.find(c => c.nome === 'braco_' + s), fa = cols.find(c => c.nome === 'antebraco_' + s), m = cols.find(c => c.nome === 'mao_' + s);
+    const gS = q => giraEm(q, ua.a, eixo, ang), cot = gS(fa.a), P2 = gS(add(m.a, mul(sub(m.b, m.a), .22))), dirU = norm(sub(cot, gS(ua.a))), dirF = norm(sub(P2, cot)), resto = sub(best.B, P2);
+    const dobra = Math.acos(clamp(dot(dirU, dirF), -1, 1));                                               // 0 = braço reto
+    if (len(resto) > .02 && dobra > .05) { const alvo = norm(sub(add(P2, mul(resto, Math.min(1, C.max/len(resto)))), cot)), ec = cross(dirF, alvo), sec = len(ec);
+      if (sec > 1e-6) { aj.eixoC = mul(ec, 1/sec); aj.angC = Math.min(Math.atan2(sec, dot(dirF, alvo)), dobra*.9, C.cotovelo); } }
+    out[s] = aj;
   }
   return Object.keys(out).length ? out : null;
 }
@@ -233,7 +287,7 @@ export function detectar(k, b, tA, tB, sc = [1, 1]) {
   const C = KEEPER_CFG, pA = ballFlight(b, tA), pB = ballFlight(b, tB), n = Math.max(1, Math.ceil(len(sub(pB, pA))/C.passo));
   for (let i = 1; i <= n; i++) {
     const t = tA + (tB - tA)*i/n; if (t < k.plano.tIni) continue; const p = ballFlight(b, t), ct = ctDe(k, t); let hit = null;
-    for (const c of colisoresPlano(k, t, sc)) { const q = pontoMaisProximo(p, c.a, c.b), d = len(sub(p, q.c)) - c.r - BALL_R;
+    for (const c of detalha(colisoresPlano(k, t, sc), sc)) { const q = pontoMaisProximo(p, c.a, c.b), d = len(sub(p, q.c)) - c.r - BALL_R;
       if (k.dmin == null || d < k.dmin.d) k.dmin = { d: +d.toFixed(3), parte: c.nome };
       if (d <= 0 && (!hit || d < hit.d)) hit = { d, c, q, p, t, ct }; }
     if (hit) return descreverContato(k, b, hit, sc);
@@ -243,19 +297,24 @@ export function detectar(k, b, tA, tB, sc = [1, 1]) {
 // geometria do contato: parte, profundidade (quão no CENTRO da parte a bola vinha: 0 = raspão, 1 = em cheio), duas mãos, corpo atrás, velocidades
 function descreverContato(k, b, h, sc) {
   const C = KEEPER_CFG, vIn = ballVel(b, h.t), dir = norm(vIn), ap = {};
-  for (let s = 0; s <= .3; s += .01) { const p = add(h.p, mul(dir, s)), cols = colisoresPlano(k, h.t + s/len(vIn), sc);
+  for (let s = 0; s <= .3; s += .01) { const p = add(h.p, mul(dir, s)), cols = detalha(colisoresPlano(k, h.t + s/len(vIn), sc), sc);
     for (const c of cols) { const d = len(sub(p, pontoMaisProximo(p, c.a, c.b).c)); if (!(c.nome in ap) || d < ap[c.nome].d) ap[c.nome] = { d, r: c.r }; } }
   const prof = n => clamp(1 - ap[n].d/(ap[n].r + BALL_R), 0, 1), depth = h.c.nome === 'maos' ? Math.max(prof('maos'), .85) : prof(h.c.nome), perto = (n, folga = 0) => ap[n] && ap[n].d < ap[n].r + BALL_R + folga;   // entre as duas luvas: bola encaixada
-  const vel = t => colisoresPlano(k, t, sc).find(c => c.nome === h.c.nome), A = vel(h.t - 1/FPS), B = vel(h.t + 1/FPS);
+  const vel = t => detalha(colisoresPlano(k, t, sc), sc).find(c => c.nome === h.c.nome) || h.c, A = vel(h.t - 1/FPS), B = vel(h.t + 1/FPS);   // "as duas mãos" pode não existir no quadro vizinho
   const vHand = mul(sub(add(A.a, mul(sub(A.b || A.a, A.a), h.q.s)), add(B.a, mul(sub(B.b || B.a, B.a), h.q.s))), -FPS/2);
-  let ng = norm(sub(h.p, h.q.c)); if (dot(ng, vIn) > 0) ng = mul(ng, -1); const al = PALMA[h.c.grupo]; let n = norm(add(mul(dir, -al), mul(ng, 1 - al)));
+  let ng = norm(sub(h.p, h.q.c)); if (dot(ng, vIn) > 0) ng = mul(ng, -1); const al = REGIAO[h.c.regiao].pal; let n = norm(add(mul(dir, -al), mul(ng, 1 - al)));
   // a bola que raspa uma parte e logo depois encontra outra em cheio (a beira da luva e o peito atrás) fica na parte em cheio: o corpo atrás segura
-  let parte = h.c.nome, grupo = h.c.grupo, dep = depth;
-  for (const nm of Object.keys(ap)) { if (!perto(nm) || nm === h.c.nome) continue; const pd = nm === 'maos' ? Math.max(prof(nm), .85) : prof(nm); if (pd > dep + .2) { parte = nm; grupo = grupoDe(nm === 'maos' ? 'mao_l' : nm); dep = pd; } }
-  if (parte !== h.c.nome) { const al2 = PALMA[grupo]; n = norm(add(mul(dir, -al2), mul(ng, 1 - al2))); }
-  return { parte, grupo, primeiro: h.c.nome, t: h.t, ct: h.ct, p: h.p, ponto: h.q.c, s: h.q.s, normal: n, normalGeo: ng, depth: +dep.toFixed(3),
-    duasMaos: parte === 'maos' || (grupo === 'mao' && perto('mao_l', .12) && perto('mao_r', .12)),   // as duas luvas em volta da bola (a outra a até 12 cm)
-    corpoAtras: grupo !== 'tronco' && perto('tronco'), vIn, vMao: vHand, vel: +len(vIn).toFixed(2) };
+  let parte = h.c.nome, regiao = h.c.regiao, dep = depth;
+  for (const nm of Object.keys(ap)) { if (!perto(nm) || nm === h.c.nome) continue; const pd = nm === 'maos' ? Math.max(prof(nm), .85) : prof(nm); if (pd > dep + .2) { parte = nm; regiao = regiaoDe(nm); dep = pd; } }
+  // bola que chega CENTRADA na mão (mão apontada para ela) entra na luva: é palma. "Ponta dos dedos" é o toque de raspão, na beira dos dedos
+  if (regiao === 'dedos' && dep >= .5) { regiao = 'palma'; const ps = parte.replace('dedos', 'palma'); if (ap[ps]) parte = ps; }
+  // peito/abdômen tocados de lado (a bola chega pela lateral do corpo): lateral do tronco
+  if ((regiao === 'peito' || regiao === 'abdomen') && Math.abs(ng[0]) > .75 && Math.abs(dir[2]) < .9) regiao = 'lateral';
+  const grupo = REGIAO[regiao].fam;
+  if (parte !== h.c.nome || regiao !== h.c.regiao) { const al2 = REGIAO[regiao].pal; n = norm(add(mul(dir, -al2), mul(ng, 1 - al2))); }
+  return { parte, regiao, nomeParte: REGIAO[regiao].nome, grupo, primeiro: h.c.nome, t: h.t, ct: h.ct, p: h.p, ponto: h.q.c, s: h.q.s, normal: n, normalGeo: ng, depth: +dep.toFixed(3),
+    duasMaos: parte === 'maos' || (grupo === 'mao' && (perto('palma_l', .12) || perto('dedos_l', .12)) && (perto('palma_r', .12) || perto('dedos_r', .12))),   // as duas luvas em volta da bola (a outra a até 12 cm)
+    corpoAtras: grupo !== 'tronco' && (perto('peito') || perto('abdomen')), vIn, vMao: vHand, vel: +len(vIn).toFixed(2) };
 }
 
 // ---------- resultado do contato: (1) contato físico já confirmado → (2) probabilidade de controle pela geometria/velocidade/parte → (3) física ----------
@@ -264,21 +323,27 @@ const lerp = (a, b, u) => a + (b - a)*u, faixa = (v, [a, b]) => clamp((v - a)/(b
 export function chanceDefesa(ct, craque = 75) {
   const P = KEEPER_CFG.prob, s = faixa(ct.vel, P.vel), e = faixa(Math.abs(ct.p[0] - KEEPER_CFG.raiz[0]), P.lateral), a = faixa(ct.p[1], P.alto);
   const canto = lerp(P.fracoCanto, lerp(P.forteCanto, P.forteAlto, a), s), centro = lerp(P.centro, P.centroForte, s)*lerp(1, P.centroAlto/P.centro, a), base = lerp(centro, canto, e);
-  const fDepth = sm(ct.depth/.45), qual = (.55 + .45*fDepth)*PARTES[ct.grupo]*(ct.duasMaos ? 1.03 : 1)*(ct.corpoAtras ? 1.03 : 1)*(1 - (craque - 75)/400);
+  const fDepth = sm(ct.depth/.45), qual = (.55 + .45*fDepth)*(REGIAO[ct.regiao]?.q ?? PARTES[ct.grupo])*(ct.duasMaos ? 1.03 : 1)*(ct.corpoAtras ? 1.03 : 1)*(1 - (craque - 75)/400);
   return { p: clamp(base*qual, 0, .99), base, qual, s, e, a, fDepth };
 }
 export function resultadoContato(ct, { rng = Math.random, craque = 75 } = {}) {
   const G = ct.grupo, ch = chanceDefesa(ct, craque), { fDepth } = ch, q = ch.qual, pFirme = ch.p;
-  const pAgarra = G === 'mao' || G === 'tronco' ? clamp((ct.duasMaos || G === 'tronco' || ct.corpoAtras ? .72 : .3)*(1 - .8*ch.s)*(1 - .5*ch.e)*fDepth, 0, .8) : 0;
+  // ENCAIXE: só onde dá para segurar (palmas/duas mãos, punho, peito, abdômen); a ponta dos dedos, os braços, as pernas e os pés nunca encaixam
+  const RG = REGIAO[ct.regiao] || { agarra: G === 'mao' || G === 'tronco' ? .6 : 0 };
+  const pAgarra = RG.agarra ? clamp(RG.agarra*(ct.duasMaos || ct.regiao === 'peito' || ct.corpoAtras ? .72 : .3)*(1 - .8*ch.s)*(1 - .5*ch.e)*fDepth, 0, .8) : 0;
   const u = rng(); let tipo, e, mu, kh;
   if (u < pFirme*pAgarra) tipo = 'agarrada';
   else if (u < pFirme) { tipo = 'firme'; e = G === 'tronco' || G === 'perna' ? .3 + .1*rng() : .38 + .17*rng(); mu = .55; kh = .8; }
   else if (u < pFirme + (1 - pFirme)*(.35 + .5*fDepth)) { tipo = 'parcial'; e = .12 + .08*rng(); mu = .85; kh = .35; }
   else { tipo = 'raspao'; e = .04; mu = .97; kh = .08; }
-  const motivo = `${G}${ct.duasMaos ? ' (duas mãos)' : ''}, ${Math.round(ct.depth*100)}% no centro da parte, ${ct.vel.toFixed(1)} m/s, ${Math.abs(ct.p[0]).toFixed(2)} m do centro, ${ct.p[1].toFixed(2)} m de altura → situação ${Math.round(ch.base*100)}% × contato ${q.toFixed(2)} = defesa ${Math.round(pFirme*100)}% (agarra ${Math.round(pFirme*pAgarra*100)}%)`;
+  const motivo = `${ct.nomeParte || G}${ct.duasMaos && ct.regiao !== 'maos' ? ' (duas mãos)' : ''}, ${Math.round(ct.depth*100)}% no centro da parte, ${ct.vel.toFixed(1)} m/s, ${Math.abs(ct.p[0]).toFixed(2)} m do centro, ${ct.p[1].toFixed(2)} m de altura → situação ${Math.round(ch.base*100)}% × contato ${q.toFixed(2)} = defesa ${Math.round(pFirme*100)}% (agarra ${Math.round(pFirme*pAgarra*100)}%)`;
   if (tipo === 'agarrada') return { tipo, q, pFirme, chance: ch, motivo, vOut: [0, 0, 0] };
   // pequena variação controlada da normal (±8°): a superfície da luva/corpo não é perfeita
-  const a = (rng() - .5)*.28, n = norm(add(ct.normal, [Math.sin(a)*.5, Math.cos(a)*.1 - .05, 0]));
+  const a = (rng() - .5)*.28; let n = norm(add(ct.normal, [Math.sin(a)*.5, Math.cos(a)*.1 - .05, 0]));
+  // CONTROLE DE DESVIO (como os jogos da EA): a mão que desvia com firmeza vira a bola para FORA do gol — para o lado da trave mais próxima e, se alta,
+  // por cima do travessão. Ponta dos dedos depende mais disso (só dá para "tirar"); peito, pernas e pés não escolhem: rebote para o campo.
+  const desvio = { palma: .3, maos: .25, punho: .3, dedos: .55, antebraco: .2 }[ct.regiao] || 0;
+  if (desvio && tipo === 'firme') { const fora = norm([Math.sign(ct.p[0] || 1)*1, ct.p[1] > 1.5 ? .9 : .15, .35]); n = norm(add(mul(n, 1 - desvio), mul(fora, desvio))); }
   let vOut;
   if (tipo === 'firme') { const vRel = sub(ct.vIn, ct.vMao), vn = mul(n, dot(vRel, n)), vt = sub(vRel, vn); vOut = add(add(mul(vn, -e), mul(vt, mu)), mul(ct.vMao, kh)); }
   else {   // parcial / raspão: a luva NÃO segura a bola — ela segue em frente, mais lenta e desviada pela superfície que tocou (normal geométrica)
@@ -323,14 +388,16 @@ export function rotulo(r, prev) {
   if (r.tipo === 'parcial') return prev.fora ? 'parcial_fora' : 'parcial_campo';
   return prev.fora ? 'espalmada' : 'rebatida_' + prev.dir;
 }
-export const ROTULOS = { agarrada: 'A · agarrada', espalmada: 'B · espalmada para fora', rebatida_esquerda: 'C · rebatida para a esquerda', rebatida_direita: 'C · rebatida para a direita',
-  rebatida_frente: 'C · rebatida para a frente', parcial_gol: 'D · parcial: entrou', parcial_fora: 'D · parcial: foi para fora', parcial_campo: 'D · parcial: continua em jogo',
-  raspao_gol: 'E · raspão: entrou', raspao_fora: 'E · raspão: foi para fora', raspao_campo: 'E · raspão: continua em jogo' };
+export const ROTULOS = { agarrada: 'A · encaixe', espalmada: 'B · espalmada para fora', rebatida_esquerda: 'D · rebote para a esquerda', rebatida_direita: 'D · rebote para a direita',
+  rebatida_frente: 'D · rebote para a frente', parcial_gol: 'C · defesa parcial: entrou', parcial_fora: 'C · defesa parcial: foi para fora', parcial_campo: 'C · defesa parcial: continua em jogo',
+  raspao_gol: 'C · raspão: entrou', raspao_fora: 'C · raspão: foi para fora', raspao_campo: 'C · raspão: continua em jogo' };
+// os quatro resultados principais (A encaixe · B espalmada · C defesa parcial · D rebote) a partir do rótulo detalhado
+export const classe = r => r === 'agarrada' ? 'A' : r === 'espalmada' ? 'B' : r.startsWith('rebatida') ? 'D' : 'C';
 
 // ponto em que a bola agarrada fica: entre as duas luvas (ou junto da parte que segurou)
 export function ancora(k, sc = [1, 1], t) {
-  const cols = colisoresPlano(k, t, sc), m = n => cols.find(c => c.nome === n), ponta = c => add(c.a, mul(sub(c.b, c.a), .55));
-  const c = k.contato; if (c.grupo === 'mao' && c.duasMaos) { const a = ponta(m('mao_l')), b = ponta(m('mao_r')); return add(mul(add(a, b), .5), mul(c.normal, BALL_R*.6)); }
+  const cols = detalha(colisoresPlano(k, t, sc), sc), m = n => cols.find(c => c.nome === n), ponta = c => c.b ? add(c.a, mul(sub(c.b, c.a), .55)) : c.a;
+  const c = k.contato; if (c.grupo === 'mao' && c.duasMaos) { const a = ponta(m('palma_l')), b = ponta(m('palma_r')); return add(mul(add(a, b), .5), mul(c.normal, BALL_R*.6)); }
   const p = m(c.parte), q = p.b ? add(p.a, mul(sub(p.b, p.a), c.s)) : p.a; return add(q, mul(c.normal, p.r + BALL_R*.9));
 }
 
@@ -394,6 +461,6 @@ export function animGoleiro(k, b, { agora = 0, tJogo = 0, sc = [1, 1], nk = 0, c
 }
 // colisores do instante atual (depuração): os do mergulho, ou os da espera
 export function colisoresAgora(k, b, agora, sc = [1, 1]) {
-  if (b && k && k.plano && b.t >= k.plano.tIni) return colisoresPlano(k, b.t, sc);
-  return colisores('gk_espera', agora, KEEPER_CFG.raiz, sc);
+  if (b && k && k.plano && b.t >= k.plano.tIni) return detalha(colisoresPlano(k, b.t, sc), sc);
+  return detalha(colisores('gk_espera', agora, KEEPER_CFG.raiz, sc), sc);
 }
