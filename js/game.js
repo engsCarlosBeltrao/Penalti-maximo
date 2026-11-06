@@ -34,14 +34,17 @@ export const Game = {
   },
   start(a, b, onEnd, two = false, escolha = [null, null]) {
     this.two = two; this.escolha = escolha;                       // a = jogador, b = adversário
-    this.cb = onEnd; this.paused = false; this.fin = null; Renderer.setTeams?.(a, b); ambient(true);
+    this.cb = onEnd; this.paused = false; GS.pausado = false; this.fin = null; Renderer.setTeams?.(a, b); ambient(true);
     GS.equipes = [a, b]; GS.placar = [0,0]; GS.cobranca = 1; GS.cobrancasRealizadas = 0; GS.vencedor = null; GS.ultimaCobranca = null;
     this.m = { taken:[0,0], marks:[[],[]], fim:false };
     Events.emit('partida_iniciada', { equipes: GS.equipes });
     this.setTurn(0);
   },
   hum(k = GS.cobrador) { return this.two || k === 0; },     // este chute é de um humano? (no modo 2 pessoas, sempre)
-  stop() { ambient(false); this.fin = null; this.m = null; this.ball = null; GS.estado = 'MENU'; },
+  // PAUSA: congela a simulação (bola, cobrador, goleiro, mira e cronômetros não avançam); retomar continua exatamente de onde parou
+  pausar() { if (!this.m || this.fin || this.paused) return false; this.paused = true; GS.pausado = true; Events.emit('pausa', { placar: [...GS.placar] }); return true; },
+  retomar() { if (!this.paused) return false; this.paused = false; GS.pausado = false; Events.emit('retomada', { placar: [...GS.placar] }); return true; },
+  stop() { this.paused = false; GS.pausado = false; ambient(false); this.fin = null; this.m = null; this.ball = null; GS.estado = 'MENU'; },
   restart() { const [a, b] = GS.equipes, cb = this.cb, t = this.two, e = this.escolha; if (!a) return; Events.emit('partida_reiniciada'); this.start(a, b, cb, t, e); },
   setTurn(k) {
     GS.cobrador = k; this.ball = null;
@@ -60,7 +63,7 @@ export const Game = {
     }
   },
   up() {
-    if (GS.estado !== 'MIRANDO') return;                  // ignora soltar fora de contexto → sem disparo duplo
+    if (GS.estado !== 'MIRANDO' || this.paused) return;                  // ignora soltar fora de contexto → sem disparo duplo
     const p = this.aim.release(); this.launch(p.gx, p.gy);
   },
   cancel() { if (GS.estado === 'MIRANDO') { this.aim.reset(); this.aim.run(); GS.estado = 'AGUARDANDO_COBRANCA'; } },  // perda de foco: cancela mira

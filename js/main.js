@@ -12,6 +12,7 @@ import { AM } from './audioManager.js';
 import { Store } from './settingsStore.js';
 import { openMusicPanel } from './musicPanel.js';
 import { sfx, ambient } from './audio.js';
+import { telaArcade } from './hardware/painel.js';
 const ui = document.getElementById('ui'), cv = document.getElementById('cv'), app = document.getElementById('app'), back = document.getElementById('back');
 let sel = { a: null, b: null }, escolha = [null, null], cup = null, mode = 'solo', me = null;
 // --- layout: UI lógica 960x540 escalada; canvas com resolução interna × devicePixelRatio ---
@@ -24,17 +25,31 @@ const show = h => { ui.className = window.innerWidth < 820 ? 'flow' : ''; ui.inn
 const hide = () => { ui.className = 'off'; back.hidden = false; };
 const on = (id, f) => { const e = document.getElementById(id); if (e) e.onclick = f; };
 const T = i => TEAMS[i];
-Store.load(); AM.init(); Game.init(cv); Music.init(); Arduino.registrarComandos({ iniciar: () => Game.restart(), pausar: () => Game.paused = !Game.paused, reiniciar: () => Game.restart() }); Arduino.iniciar();
-back.onclick = () => { Game.stop(); Music.setMode('menu'); menu(); };
+Store.load(); AM.init(); Game.init(cv); Music.init();
+// ---- PAUSA (botão AVANÇAR/VOLTAR do arcade, tecla P ou Esc): congela a partida; SAIR exige confirmação ----
+const pz = document.createElement('div'); pz.id = 'pausa'; pz.hidden = true; app.appendChild(pz);
+const pausa = {
+  aberta: () => !pz.hidden,
+  abrir() { if (!Game.pausar()) return; pz.hidden = false; pausa.tela(); },
+  tela(conf = false) { pz.innerHTML = conf ? `<h1>SAIR DA PARTIDA?</h1><p>O resultado desta partida será perdido.</p><button id="pz-sim">SIM, SAIR</button><button id="pz-nao" class="sec" data-voltar>NÃO, VOLTAR</button>`
+      : `<h1>JOGO PAUSADO</h1><p>${GS.equipes[0]?.nome || ''} ${GS.placar[0]} x ${GS.placar[1]} ${GS.equipes[1]?.nome || ''}</p><button id="pz-cont">CONTINUAR</button><button id="pz-sair" class="sec">SAIR DA PARTIDA</button>`;
+    on('pz-cont', () => pausa.fechar()); on('pz-sair', () => pausa.tela(true)); on('pz-nao', () => pausa.tela(false));
+    on('pz-sim', () => { pausa.fechar(false); Game.stop(); Music.setMode('menu'); menu(); }); },
+  fechar(retomar = true) { pz.hidden = true; pz.innerHTML = ''; if (retomar) Game.retomar(); },
+  voltar() { if (pz.querySelector('#pz-nao')) pausa.tela(false); else pausa.fechar(); }   // VOLTAR na pausa: sai da confirmação ou volta ao jogo
+};
+window.addEventListener('keydown', e => { if ((e.key === 'p' || e.key === 'P' || e.key === 'Escape') && Game.m && !Game.fin && ui.className === 'off') { e.preventDefault(); pausa.aberta() ? pausa.fechar() : pausa.abrir(); } });
+Arduino.iniciar({ game: Game, pausa, raizes: () => [pz, ui], emMenu: () => ui.className !== 'off' });
+back.onclick = () => { if (pausa.aberta()) pausa.fechar(false); Game.stop(); Music.setMode('menu'); menu(); };
 document.addEventListener('pointerdown', () => AM.userGesture(), { once: true });   // áudio só depois da 1ª interação (política dos navegadores)
 document.addEventListener('pointerdown', () => { if (!Music.playing && !Music.msg && Music.tracks.length && !GS.equipes[0]?.jogando) Music.play(); }, { once: true });
 
 function menu() { GS.estado = 'MENU'; Music.onChange = null; AM.onChange = null; Music.setMode('menu'); if (AM.gestured) AM.enterMenu();
   show(`<h1>PÊNALTI MÁXIMO</h1><p>${sel.a != null ? `${T(sel.a).nome} x ${sel.b != null ? T(sel.b).nome : 'sorteio'}` : 'Segure, mire no tempo certo e solte.'}</p><div class="menu">
   <button id="solo">JOGAR SOZINHO</button><button id="duo">JOGAR COM ALGUÉM</button><button id="tm" class="sec">ESCOLHER TIMES</button><button id="pj" class="sec">ESCOLHER JOGADORES</button>
-  <button id="cp" class="sec">CAMPEONATO</button><button id="pl" class="sec">MÚSICAS E TORCIDAS</button><button id="cf" class="sec">CONFIGURAÇÕES</button><button id="hw" class="sec">COMO JOGAR</button></div>`);
+  <button id="cp" class="sec">CAMPEONATO</button><button id="pl" class="sec">MÚSICAS E TORCIDAS</button><button id="cf" class="sec">CONFIGURAÇÕES</button><button id="hw" class="sec">COMO JOGAR</button><button id="ar" class="sec">ARCADE / ARDUINO</button></div>`);
   on('solo', () => need('solo')); on('duo', () => need('duo')); on('tm', () => pickTeam('a', 'Time do Jogador 1', () => pickTeam('b', 'Time do Jogador 2 / adversário', menu))); on('pj', pickPlayers);
-  on('cp', () => need('copa')); on('pl', () => openMusicPanel({ ui, show, TEAMS, crest, back: menu })); on('cf', settings); on('hw', how); }
+  on('cp', () => need('copa')); on('pl', () => openMusicPanel({ ui, show, TEAMS, crest, back: menu })); on('cf', settings); on('hw', how); on('ar', () => telaArcade({ show, on, voltar: menu, Arduino })); }
 function need(m) { mode = m; const go = () => m === 'duo' && sel.b == null ? pickTeam('b', 'Time do Jogador 2', go) : launch(); sel.a == null ? pickTeam('a', m === 'duo' ? 'Time do Jogador 1' : 'Escolha seu time', go) : go(); }
 function pickTeam(slot, title, next) { GS.estado = 'SELECAO_EQUIPE';
   show(`<h2>${title}</h2><div class="grid">${TEAMS.map(t => `<div class="card" data-i="${t.id}">${crest(t)}<br>${t.nome}</div>`).join('')}</div><button id="b" class="sec">VOLTAR</button>`);
@@ -75,4 +90,4 @@ function engineError(err) {
 }
 import('./three/engine.js').then(m => m.start({ cv })).then(() => console.info('Motor 3D (Three.js/GLB) ativo.')).catch(err => { console.error('Motor 3D indisponível:', err); engineError(err); });
 menu();
-window.JOGO = { GS, Events, Game, DBG };   // depuração/integração: JOGO.GS.placar, JOGO.Events.on('gol', ...)
+window.JOGO = { GS, Events, Game, DBG, Arduino, pausa };   // depuração/integração: JOGO.GS.placar, JOGO.Events.on('gol', ...)

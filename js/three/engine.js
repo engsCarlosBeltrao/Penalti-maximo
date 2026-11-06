@@ -50,6 +50,7 @@ export async function start({ cv, base = 'assets/models/' }) {
   DBG.field = field; DBG.keeper = keeper;                                                           // só para depuração (testes no navegador)
   const gkDbg = createKeeperDebug(scene); DBG.gkDbg = gkDbg;                                        // modo de depuração do goleiro (tecla G ou ?debug=goleiro): colisores, previsão, contato
   // 3) estado visual (câmera suavizada, tremor e reação da torcida) — igual ao motor procedural
+  let relogio = 0;                                                                                  // relógio das animações dos jogadores: PARA durante a pausa
   let cam = { pos: [0, 3.3, 25], tgt: [0, 1, 1], fov: 27 }, shake = 0, last = 0, exS = [0, 0], sad = [0, 0];
   [['gol', e => { exS[e.equipe] = 1; sad[1 - e.equipe] = 1; shake = 1; fx.burst(e.equipe); }], ['defesa', e => { exS[1 - e.equipe] = .7; sad[e.equipe] = .6; shake = .5; }], ['trave', () => { exS = exS.map(v => Math.max(v, .4)); shake = .8; }], ['fora', e => { sad[e.equipe] = .5; }], ['partida_encerrada', e => { exS[e.vencedor] = 1; sad[1 - e.vencedor] = 1; fx.burst(e.vencedor); }]].forEach(([k, f]) => Events.on(k, f));
   const rng = () => Math.random() - .5, J = a => new THREE.Vector3(...a);
@@ -62,11 +63,12 @@ export async function start({ cv, base = 'assets/models/' }) {
   }
   function drawScene(c, game) {
     const now = performance.now()/1000, dt = Math.min(.05, now - last || .016); last = now; exS = exS.map(v => Math.max(0, v - dt*.5)); sad = sad.map(v => Math.max(0, v - dt*.4)); shake = Math.max(0, shake - dt*2.2);
+    if (!game.paused) relogio += dt;
     const b = game.fin ? null : game.ball, k = game.keeper, res = b?.res, d = b ? b.t - flightTime(b) : 0, bw = ballWorld(b, k), T = camTarget(game, b, bw, res, d), f = 1 - Math.exp(-3*dt);
     cam.pos = lerp(cam.pos, T.pos, f); cam.tgt = lerp(cam.tgt, T.tgt, f); cam.fov += (T.fov - cam.fov)*f; if (DBG.cam) cam = { pos: DBG.cam.pos.slice(), tgt: DBG.cam.tgt.slice(), fov: DBG.cam.fov };
     camera.fov = cam.fov; camera.updateProjectionMatrix(); camera.position.set(cam.pos[0] + (shake ? rng()*shake*.12 : 0), cam.pos[1] + (shake ? rng()*shake*.12 : 0), cam.pos[2]); camera.lookAt(J(cam.tgt));
     // personagens: o rig.js define as poses; o GLB as recebe por retargeting
-    const fr = characters(game, now, b, k, res, d, bw); let n = 0; field.forEach(i => { i.root.visible = false; }); keeper.root.visible = false;
+    const fr = characters(game, relogio, b, k, res, d, bw); let n = 0; field.forEach(i => { i.root.visible = false; }); keeper.root.visible = false;
     if (fr) fr.list.forEach(ch => { const inst = ch.role === 'keeper' ? keeper : field[n++]; if (!inst) return; inst.root.visible = true; inst.apply(ch.kit, ch.look);
       const an = ch.anim, ic = an && an.idle && idle[an.pe], rc = ic && an.ready.w > 0 && want(an.ready.clip);
       if (an && an.gk && gk[an.clip]) { const r = an.ready && an.ready.w > 0 && gk[an.ready.clip];   // goleiro: espera (+ preparação para o lado escolhido) ou mergulho
@@ -74,9 +76,9 @@ export async function start({ cv, base = 'assets/models/' }) {
       else if (ic) inst.playIdle(ic, an.t, an.pos, an.yaw, rc ? { ci: rc, w: an.ready.w, pos: [BALL0[0], 0, BALL0[2]], yaw: Math.PI } : null);   // repouso / carregando
       else if (an && reac[an.clip + '_' + an.pe]) inst.playClip(reac[an.clip + '_' + an.pe], an.t, an.pos, an.yaw, an.blend);
       else { const ci = an && !an.idle && (want(an.clip) || (an.clip === 'comum_medio' ? clips.chute : null)); if (ci) inst.playClip(ci, ci.contact + an.tc, [BALL0[0], 0, BALL0[2]], Math.PI); else inst.pose(humanJoints(ch.P)); } });   // chute: clipe do Blender com o contato no instante em que a bola sai (tc = 0)
-    st.ball.visible = !!fr && !fr.final; st.ball.position.set(bw[0], bw[1], bw[2]); if (b) st.ball.rotation.x -= dt*14*(b.t > 0 ? 1 : 0);
+    st.ball.visible = !!fr && !fr.final; st.ball.position.set(bw[0], bw[1], bw[2]); if (b && !game.paused) st.ball.rotation.x -= dt*14*(b.t > 0 ? 1 : 0);
     st.updateNet(res === 'gol' && d > 0 ? Math.max(0, 1 - d/.8)*Math.cos(d*22) : 0, b ? goalToWorld(b.gx, b.gy) : [0, 1, 0]); st.updateBoards(now); st.updateCrowd(now, exS, sad); fx.update(now, dt, game);
-    gkDbg.update(game, b, now, camera);
+    gkDbg.update(game, b, relogio, camera);
     renderer.render(scene, camera);
     // HUD 2D por cima (a tela 2D é transparente neste modo)
     const k0 = c.canvas.width/W; c.setTransform(k0, 0, 0, k0, 0, 0); c.clearRect(0, 0, W, H);
