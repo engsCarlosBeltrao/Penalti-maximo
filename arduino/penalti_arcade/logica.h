@@ -20,10 +20,15 @@ inline size_t monta(const char* corpo, char* out, size_t cap) {
 enum Evento : uint8_t { NADA = 0, APERTOU, REPETIU, SOLTOU };
 struct Botao {
   const char* nome; bool repete;          // repete = direcional (gera REPEAT segurado)
+  bool imediato = false;                  // imediato = vale NO PRIMEIRO contato (sem esperar estabilizar) e ignora os quiques seguintes: latência zero (ARCADE)
   bool estavel = false, bruto = false; uint32_t tMuda = 0, tApertou = 0, tRep = 0;
-  Botao(const char* n, bool r) : nome(n), repete(r) {}                              // construtor explícito: o avr-gcc (C++11) exige
+  Botao(const char* n, bool r, bool im = false) : nome(n), repete(r), imediato(im) {}   // construtor explícito: o avr-gcc (C++11) exige
   // apertadoAgora = leitura crua do pino (já invertida: true = apertado). Devolve no máximo UM evento por chamada.
   Evento atualiza(bool apertadoAgora, uint32_t ms, uint16_t debounce, uint16_t atraso, uint16_t intervalo) {
+    if (imediato) {                                                                  // borda aceita na hora; depois dela, `debounce` ms de trava contra o quique
+      if (apertadoAgora != estavel && (uint32_t)(ms - tMuda) >= debounce) { estavel = apertadoAgora; tMuda = ms; if (estavel) { tApertou = ms; return APERTOU; } return SOLTOU; }
+      return NADA;
+    }
     if (apertadoAgora != bruto) { bruto = apertadoAgora; tMuda = ms; }              // mudou: reinicia a contagem de estabilidade
     if (bruto != estavel && (uint32_t)(ms - tMuda) >= debounce) {                   // ficou estável o bastante: vale
       estavel = bruto;

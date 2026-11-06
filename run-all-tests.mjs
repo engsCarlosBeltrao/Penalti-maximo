@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const root = [process.cwd(), HERE, path.join(HERE, '..')].find((d) => fs.existsSync(path.join(d, 'test.mjs')) || fs.existsSync(path.join(d, 'index.html'))) || process.cwd();
-const files = ['test.mjs', 'test_music.mjs', 'test_rig.mjs', 'test_frame.mjs', 'test_retarget.mjs', 'test_glb.mjs', 'test_prepare.mjs', 'test_setup.mjs', 'test_layouts.mjs', 'test_keeper.mjs', 'test_arduino.mjs'];
+const files = ['test.mjs', 'test_music.mjs', 'test_rig.mjs', 'test_frame.mjs', 'test_retarget.mjs', 'test_glb.mjs', 'test_prepare.mjs', 'test_setup.mjs', 'test_layouts.mjs', 'test_keeper.mjs', 'test_arduino.mjs', 'test_arcade_forca.mjs'];
 console.log('Pasta do projeto: ' + path.resolve(root));
 let bad = 0, rodou = 0;
 for (const f of files) {

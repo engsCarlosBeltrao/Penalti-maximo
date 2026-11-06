@@ -95,7 +95,7 @@ Feche o Monitor Serial do IDE e a tela ARCADE do jogo antes de enviar, porque s�
 | VOLTAR | volta à tela anterior; na confirmação, cancela | abre a pausa (nunca sai direto); sair exige **SAIR DA PARTIDA → SIM, SAIR** |
 | ARCADE | confirma, como o AVANÇAR | **apertar** começa a encher a força (a mesma barra do mouse); **soltar** chuta com a força daquele instante. Toque rápido = chapada (fraca), ~0,7 s = médio, ~1,2 s = bomba (forte). Um aperto = no máximo uma cobrança. |
 
-Se o arcade for apertado antes de o cobrador chegar à bola, a carga começa assim que a cobrança for liberada, desde que o botão continue apertado.
+Como no mouse, um aperto antes de o cobrador chegar à bola não vale: solte e aperte de novo quando a mira aparecer. Assim a força é sempre o tempo real em que o botão ficou apertado.
 
 Teclado: **P** ou **Esc** também pausam.
 

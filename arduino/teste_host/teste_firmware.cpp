@@ -34,6 +34,18 @@ int main() {
   t("ARCADE: um ARCADE_UP ao soltar", conta(Serial.saida, "ARCADE_UP|") == 1, Serial.saida);
   { size_t p = Serial.saida.find("ARCADE_UP|"); int msS = atoi(Serial.saida.c_str() + p + 10); t("ARCADE_UP traz o tempo segurado (~620 ms)", msS >= 600 && msS <= 640, std::to_string(msS)); }
   t("ARCADE nunca gera PRESS/REPEAT", conta(Serial.saida, "ARCADE_PRESS") + conta(Serial.saida, "ARCADE_REPEAT") == 0);
+  // ARCADE sem atraso e com contato quicando: DOWN no 1º ms do contato, UP no 1º ms da soltura, um de cada, duração exata
+  for (uint32_t segurar : { 80u, 300u, 700u, 1200u, 1700u }) {
+    Serial.saida.clear(); corre(100);
+    _pino[PINO_ARCADE] = LOW; _ms++; loop(); bool desceuNaHora = Serial.saida.find("ARCADE_DOWN*") != std::string::npos;
+    for (int k = 0; k < 6; k++) { _pino[PINO_ARCADE] = k % 2 ? LOW : HIGH; corre(2); } _pino[PINO_ARCADE] = LOW;   // quique de 12 ms
+    corre(segurar - 13);
+    _pino[PINO_ARCADE] = HIGH; _ms++; loop(); bool subiuNaHora = Serial.saida.find("ARCADE_UP|") != std::string::npos;
+    for (int k = 0; k < 6; k++) { _pino[PINO_ARCADE] = k % 2 ? HIGH : LOW; corre(2); } _pino[PINO_ARCADE] = HIGH; corre(60);
+    size_t p = Serial.saida.find("ARCADE_UP|"); int msS = p == std::string::npos ? -1 : atoi(Serial.saida.c_str() + p + 10);
+    t(("ARCADE " + std::to_string(segurar) + " ms com quique: DOWN e UP na hora, um de cada, tempo exato (" + std::to_string(msS) + " ms)").c_str(),
+      desceuNaHora && subiuNaHora && conta(Serial.saida, "ARCADE_DOWN*") == 1 && conta(Serial.saida, "ARCADE_UP|") == 1 && msS == (int)segurar, Serial.saida);
+  }
   Serial.saida.clear();
   // mensagens do jogo
   Serial.manda(linha("PING")); corre(2); t("responde PING com PONG", Serial.saida.find("PONG*") != std::string::npos, Serial.saida);

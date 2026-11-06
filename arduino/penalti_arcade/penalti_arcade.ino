@@ -11,7 +11,7 @@
 #include "logica.h"
 using namespace arcade;
 
-Botao botoes[] = { { "UP", true }, { "DOWN", true }, { "LEFT", true }, { "RIGHT", true }, { "ADVANCE", false }, { "BACK", false }, { "ARCADE", false } };
+Botao botoes[] = { { "UP", true }, { "DOWN", true }, { "LEFT", true }, { "RIGHT", true }, { "ADVANCE", false }, { "BACK", false }, { "ARCADE", false, true } };   // ARCADE: imediato (latência zero no apertar e no soltar)
 const uint8_t PINOS[] = { PINO_CIMA, PINO_BAIXO, PINO_ESQUERDA, PINO_DIREITA, PINO_AVANCAR, PINO_VOLTAR, PINO_ARCADE };
 const uint8_t N_BOTOES = sizeof(PINOS);
 const uint8_t I_ARCADE = 6;
