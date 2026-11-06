@@ -30,17 +30,20 @@ BAIXO = ("estende", dict(mao=(.45, -.05, .1), pelve=0, janela=(.55, 1.0, 1.45)))
 # passo frontal de ~0,31–0,49 m (Monteiro et al., Sci Rep 2024, PMC11068781). FRENTE comprime a translação frontal da pelve: igual até `livre`,
 # depois tende suavemente a `max` (o alcance lateral e a altura ficam intactos).
 FRENTE = dict(livre=.2, max=.45)
-PRONTO = ("pronto", dict(prep=False)); PREPARA = ("pronto", dict(prep=True, quadros=45))
-def CURTA(h): return ("curta", dict(h=h))
+PRONTO = ("pronto", dict(prep=False)); PREPARA = ("pronto", dict(prep=True, quadros=60))   # 1,5 s até o contato + 0,5 s de base carregada (sem quadro parado até a ação começar)
+# DEFESA CURTA (bola a ~0,7–1,2 m do corpo): a agarrada de peito do Mixamo (Catch (1), mocap) com um passo lateral de verdade — o pé do lado vai
+# primeiro, o de trás acompanha (deslize/"shuffle"), a pelve desce e vai para o lado, o tronco inclina para a bola e as mãos vão à bola e depois a trazem
+# ao peito. Ele termina em pé no lugar novo (sem pausa congelada, sem andar de ré).
+def CURTA(h): return ("lateral", dict(h=h))
 CLIPES = {
     "gk_espera":       ("Goalkeeper Idle.fbx", False, PRONTO),             # espera em prontidão (joelhos flexionados, tronco à frente, mãos prontas)
     "gk_prepara":      ("Goalkeeper Idle.fbx", False, PREPARA),            # 1,5 s antes do contato: ajustes dos pés, flexão, braços, split-step
-    "gk_esq_curta_baixa": ("Goalkeeper Body Block.fbx", False, CURTA(.28)),  # passo lateral curto + extensão dos braços (bola perto do corpo)
-    "gk_esq_curta_media": ("Goalkeeper Body Block.fbx", False, CURTA(1.0)),
-    "gk_esq_curta_alta":  ("Goalkeeper Body Block.fbx", False, CURTA(1.85)),
-    "gk_dir_curta_baixa": ("Goalkeeper Body Block.fbx", True, CURTA(.28)),
-    "gk_dir_curta_media": ("Goalkeeper Body Block.fbx", True, CURTA(1.0)),
-    "gk_dir_curta_alta":  ("Goalkeeper Body Block.fbx", True, CURTA(1.85)),
+    "gk_esq_curta_baixa": ("Goalkeeper Catch (1).fbx", False, CURTA(.28)),
+    "gk_esq_curta_media": ("Goalkeeper Catch (1).fbx", False, CURTA(1.0)),
+    "gk_esq_curta_alta": ("Goalkeeper Catch.fbx", False, ("lateral", dict(h=2.05, salto=True))),   # agarrada com SALTO real (mocap) levada para o lado
+    "gk_dir_curta_baixa": ("Goalkeeper Catch (1).fbx", True, CURTA(.28)),
+    "gk_dir_curta_media": ("Goalkeeper Catch (1).fbx", True, CURTA(1.0)),
+    "gk_dir_curta_alta": ("Goalkeeper Catch.fbx", True, ("lateral", dict(h=2.05, salto=True))),   # agarrada com SALTO real (mocap) levada para o lado
     "gk_esq_baixa":    ("Goalkeeper Body Block.fbx", False, BAIXO),
     "gk_dir_baixa":    ("Goalkeeper Body Block (1).fbx", False, BAIXO),
     "gk_esq_media":    ("Goalkeeper Diving Save (1).fbx", False, None),
@@ -48,7 +51,7 @@ CLIPES = {
     "gk_dir_alta":     ("Goalkeeper Diving Save.fbx", False, ALTO),
     "gk_esq_alta":     ("Goalkeeper Diving Save.fbx", True, ALTO),
     "gk_centro_baixa": ("Goalkeeper Catch (1).fbx", False, ("agacha", {})),
-    "gk_centro_media": ("Goalkeeper Catch (1).fbx", False, None),
+    "gk_centro_media": ("Goalkeeper Catch (1).fbx", False, ("centraliza", {})),
     "gk_centro_alta":  ("Goalkeeper Catch.fbx", False, None),
 }
 LADO = {"Left": "l", "Right": "r"}
@@ -73,8 +76,8 @@ def agacha(tgt, sc, vl, N):
     inclina à frente e as mãos vão ao chão à frente dos pés (IK nos braços), entrando e saindo suavemente; depois é assado em FK (bake_action)."""
     pb = tgt.pose.bones; sm = lambda u: (lambda v: v*v*(3 - 2*v))(min(1, max(0, u)))
     w = lambda t: sm((t - .22)/.30) * (1 - sm((t - .95)/.25))         # 0 → 1 (0,22–0,52 s), segura, volta (0,95–1,20 s)
-    feet = []
-    for f in range(1, N + 2): sc.frame_set(f); vl.update(); feet.append({s: pb[f"foot_{s}"].matrix.copy() for s in "lr"})
+    feet = []; px0 = []
+    for f in range(1, N + 2): sc.frame_set(f); vl.update(); feet.append({s: pb[f"foot_{s}"].matrix.copy() for s in "lr"}); px0.append(pb["pelvis"].head.x)
     E = lambda n: (lambda e: (sc.collection.objects.link(e), e)[1])(bpy.data.objects.new(n, None))
     PE = {s: E(f"pe_{s}") for s in "lr"}; MA = {s: E(f"mao_{s}") for s in "lr"}; PO = {s: E(f"polo_{s}") for s in "lr"}; PB = {s: E(f"polo_b_{s}") for s in "lr"}
     for s in "lr":
@@ -83,15 +86,16 @@ def agacha(tgt, sc, vl, N):
         a = pb[f"lowerarm_{s}"].constraints.new("IK"); a.target = MA[s]; a.pole_target = PB[s]; a.chain_count = 2; a.pole_angle = math.radians(-90)
     for f in range(1, N + 2):
         t = (f - 1)/FPS; k = w(t); sc.frame_set(f); vl.update()
-        P = pb["pelvis"]; M = P.matrix.copy(); M.translation.z -= .36*k; P.matrix = M; P.keyframe_insert("location", frame=f, group="pelvis")
-        for b_, a_ in (("spine_01", 22), ("spine_02", 18), ("spine_03", 12)):     # rotação +X do osso = tronco à frente (medido na trilha do tronco)
+        P = pb["pelvis"]; M = P.matrix.copy(); M.translation.z -= .5*k; M.translation.x -= px0[f - 1] - px0[0]; P.matrix = M; P.keyframe_insert("location", frame=f, group="pelvis")   # sem o passo lateral do clipe base
+        for b_, a_ in (("spine_01", 36), ("spine_02", 28), ("spine_03", 16)):     # rotação +X do osso = tronco à frente (medido na trilha do tronco)
             q = pb[b_].rotation_quaternion.copy(); pb[b_].rotation_quaternion = Matrix.Rotation(math.radians(a_*k), 4, "X").to_quaternion() @ q; pb[b_].keyframe_insert("rotation_quaternion", frame=f, group=b_)
         vl.update(); Pw = pb["pelvis"].head
         for s in "lr":
             sg = 1 if s == "l" else -1
-            PE[s].matrix_world = feet[f - 1][s]; PE[s].keyframe_insert("location", frame=f); PE[s].keyframe_insert("rotation_euler", frame=f)
+            Mf = feet[f - 1][s].copy(); Mf.translation.x = feet[0][s].translation.x - sg*.2*k   # pés no lugar (sem o passo do clipe base) e pernas fechando: barreira
+            PE[s].matrix_world = Mf; PE[s].keyframe_insert("location", frame=f); PE[s].keyframe_insert("rotation_euler", frame=f)
             PO[s].location = Pw + Vector((sg*.15, -.9, -.3)); PO[s].keyframe_insert("location", frame=f)
-            free = pb[f"hand_{s}"].head.copy(); low = Vector((Pw.x + sg*.12, Pw.y - .5, .13)); MA[s].location = free.lerp(low, k); MA[s].keyframe_insert("location", frame=f)
+            free = pb[f"hand_{s}"].head.copy(); low = Vector((Pw.x + sg*.04, Pw.y - .58, .07)); MA[s].location = free.lerp(low, k); MA[s].keyframe_insert("location", frame=f)   # mãos juntas no chão, palmas para a bola
             PB[s].location = Pw + Vector((sg*.7, .3, .3)); PB[s].keyframe_insert("location", frame=f)
         for s in "lr": pb[f"lowerarm_{s}"].constraints[-1].influence = k; pb[f"lowerarm_{s}"].constraints[-1].keyframe_insert("influence", frame=f)
     sys.path.insert(0, os.path.join(SKILLS, "blender-animation", "scripts")); import bake_action
@@ -176,6 +180,42 @@ def pronto(tgt, sc, vl, N, prep=False):
             free = pb[f"hand_{s}"].head.copy(); rd = Pw + Vector((sg*(.3 + .06*r), -.42, .1 - .05*r)); MA[s].location = free.lerp(rd, .75); MA[s].keyframe_insert("location", frame=f)
             PB[s].location = Pw + Vector((sg*.8, .2, -.3)); PB[s].keyframe_insert("location", frame=f)
     _assa(tgt)
+def lateral(tgt, sc, vl, N, h=1.0, salto=False):
+    pb = tgt.pose.bones; E_ = 1.9 if salto else 1.0; sm = lambda u: (lambda v: v*v*(3 - 2*v))(min(1, max(0, u)))   # salto: o Catch chega no alto ~0,8 s, tempos esticados
+    arco = lambda t, a, b: math.sin(math.pi*min(1, max(0, (t - a)/(b - a))))
+    baixa, alta = h < .6, h > 1.5 and not salto
+    desce, frente_, lado_ = (.36, 30, 10) if baixa else (0, 0, 16) if salto else (.04, 0, 12) if alta else (.17, 14, 14)   # queda da pelve (m), inclinação à frente e para o lado (°)
+    lat = .34 if not baixa else .4
+    feet = []; px0 = []
+    for f in range(1, N + 2): sc.frame_set(f); vl.update(); feet.append({s_: pb[f"foot_{s_}"].matrix.copy() for s_ in "lr"}); px0.append(pb["pelvis"].head.x)
+    deriva = [x - px0[0] for x in px0]                                                     # o clipe base anda sozinho para o lado: descontado (o passo é só o nosso)
+    PE = {s_: _vazio(sc, f"pe_{s_}") for s_ in "lr"}; PO = {s_: _vazio(sc, f"po_{s_}") for s_ in "lr"}; MA = {s_: _vazio(sc, f"ma_{s_}") for s_ in "lr"}; PB = {s_: _vazio(sc, f"pb_{s_}") for s_ in "lr"}
+    for s_ in "lr":
+        _ik(pb, f"calf_{s_}", PE[s_], PO[s_]); cr = pb[f"foot_{s_}"].constraints.new("COPY_ROTATION"); cr.target = PE[s_]; _ik(pb, f"lowerarm_{s_}", MA[s_], PB[s_])
+    for f in range(1, N + 2):
+        t = (f - 1)/FPS/E_; sc.frame_set(f); vl.update()
+        w1 = sm((t - .04)/.38)                                                            # o corpo vai para o lado (e fica)
+        wb = sm((t - .04)/.32)*(1 - .55*sm((t - .75)/.4))                                 # descida/inclinação: entra, alivia um pouco no fim
+        wh = sm((t - .06)/.3)*(1 - (sm((t - .55)/.25) if salto else sm((t - .78)/.38)))                                     # mãos na bola, depois trazidas ao peito (o próprio clipe)
+        P = pb["pelvis"]; M = P.matrix.copy(); M.translation.x += lat*w1 - deriva[f - 1]; M.translation.z += -desce*wb + (.14*arco(t, .3, .72) if alta else 0); P.matrix = M; P.keyframe_insert("location", frame=f, group="pelvis")
+        vl.update()
+        for b_, fr_, ld_ in (("spine_01", .4, .35), ("spine_02", .35, .35), ("spine_03", .25, .3)):   # tronco: à frente (eixo X) e para o lado da bola (eixo Y), no espaço da armadura
+            B = pb[b_]; Mb = B.matrix.copy(); o = Mb.translation.copy()
+            R = Matrix.Translation(o) @ Matrix.Rotation(math.radians(-lado_*ld_*wb), 4, "Y") @ Matrix.Rotation(math.radians(frente_*fr_*wb), 4, "X") @ Matrix.Translation(-o)
+            B.matrix = R @ Mb; vl.update(); B.keyframe_insert("rotation_quaternion", frame=f, group=b_)
+        Pw = pb["pelvis"].head.copy()
+        for s_ in "lr":
+            sg = 1 if s_ == "l" else -1; lead = sg == 1; Mf = feet[f - 1][s_].copy(); Mf.translation.x = feet[0][s_].translation.x   # x do pé = o da base inicial + o NOSSO passo (o clipe base também dava passos)
+            pulo = .14*arco(t, .3, .72) if alta else 0                                       # alta: pequeno salto (os dois pés saem do chão)
+            if lead: u = sm((t - .04)/.24); Mf.translation.x += (lat + .05)*u; Mf.translation.z += .07*arco(t, .04, .28) + pulo   # pé do lado: passo
+            else: u = sm((t - .2)/.26); Mf.translation.x += (lat - .02)*u; Mf.translation.z += .05*arco(t, .2, .46) + pulo     # pé de trás acompanha
+            PE[s_].matrix_world = Mf; PE[s_].keyframe_insert("location", frame=f); PE[s_].keyframe_insert("rotation_euler", frame=f)
+            PO[s_].location = Pw + Vector((sg*.25, -.9, -.3)); PO[s_].keyframe_insert("location", frame=f)
+            free = pb[f"hand_{s_}"].head.copy(); alvo = Vector((Pw.x + (.62 if lead else (.44 if salto else .3)), Pw.y - .34, h - (0 if lead else (.06 if salto else .08))))
+            MA[s_].location = free.lerp(alvo, wh); MA[s_].keyframe_insert("location", frame=f)
+            PB[s_].location = Pw + Vector((sg*.7, .3, (-.6 if salto and not lead else -.25) if not baixa else .25)); PB[s_].keyframe_insert("location", frame=f)
+    _assa(tgt)
+
 def curta(tgt, sc, vl, N, h=1.0):
     """DEFESA CURTA: o passo lateral do Body Block (0–0,5 s, mocap) e a volta (o mesmo passo de trás para a frente), com as mãos levadas por IK até a
     altura h ao lado do corpo — para bolas a ~1–1,8 m do centro, sem mergulho completo. Pés travados (IK) quando a pelve desce para a bola baixa."""
@@ -205,6 +245,22 @@ def curta(tgt, sc, vl, N, h=1.0):
             PB[s].location = Pw + Vector((sg*.7, .3, -.2 if h > .6 else .3)); PB[s].keyframe_insert("location", frame=f)
             c = pb[f"lowerarm_{s}"].constraints[-1]; c.influence = min(1, k*1.5); c.keyframe_insert("influence", frame=f)
     _assa(tgt); return N
+
+def centraliza(tgt, sc, vl, N):
+    """Defesa no CENTRO: o Catch (1) do Mixamo dá sozinho um passo de ~0,4 m para a direita; aqui os pés ficam no lugar (só podem ir à frente) e a pelve
+    não deriva para o lado — o goleiro defende a bola que vem no corpo sem sair da frente dela."""
+    pb = tgt.pose.bones; feet = []; px0 = []
+    for f in range(1, N + 2): sc.frame_set(f); vl.update(); feet.append({s: pb[f"foot_{s}"].matrix.copy() for s in "lr"}); px0.append(pb["pelvis"].head.x)
+    PE = {s: _vazio(sc, f"pe_{s}") for s in "lr"}; PO = {s: _vazio(sc, f"po_{s}") for s in "lr"}
+    for s in "lr": _ik(pb, f"calf_{s}", PE[s], PO[s]); cr = pb[f"foot_{s}"].constraints.new("COPY_ROTATION"); cr.target = PE[s]
+    for f in range(1, N + 2):
+        sc.frame_set(f); vl.update(); P = pb["pelvis"]; M = P.matrix.copy(); M.translation.x -= px0[f - 1] - px0[0]; P.matrix = M; P.keyframe_insert("location", frame=f, group="pelvis")
+        vl.update(); Pw = pb["pelvis"].head.copy()
+        for s in "lr":
+            sg = 1 if s == "l" else -1; Mf = feet[f - 1][s].copy(); Mf.translation.x = feet[0][s].translation.x
+            PE[s].matrix_world = Mf; PE[s].keyframe_insert("location", frame=f); PE[s].keyframe_insert("rotation_euler", frame=f)
+            PO[s].location = Pw + Vector((sg*.2, -.9, -.3)); PO[s].keyframe_insert("location", frame=f)
+    _assa(tgt)
 
 def build(nome, fbx, espelho, adapta=None):
     bpy.ops.wm.read_factory_settings(use_empty=True); sc = bpy.context.scene; sc.render.fps = FPS; vl = bpy.context.view_layer
@@ -236,7 +292,9 @@ def build(nome, fbx, espelho, adapta=None):
         if adapta[1].get("quadros"): N = adapta[1]["quadros"]
         pronto(tgt, sc, vl, N, prep=adapta[1].get("prep", False))
     if adapta and adapta[0] == "curta": N = curta(tgt, sc, vl, N, **adapta[1])
+    if adapta and adapta[0] == "lateral": lateral(tgt, sc, vl, N, **adapta[1])
     if adapta and adapta[0] == "agacha": agacha(tgt, sc, vl, N, **adapta[1])
+    if adapta and adapta[0] == "centraliza": centraliza(tgt, sc, vl, N)
     if adapta and adapta[0] == "estende": estende(tgt, sc, vl, N, **adapta[1])
     if nome.startswith(("gk_esq_", "gk_dir_", "gk_centro_alta")) and "curta" not in nome: frente(tgt, sc, vl, N, **FRENTE)   # avanço limitado (mergulhos e salto)
     if espelho:

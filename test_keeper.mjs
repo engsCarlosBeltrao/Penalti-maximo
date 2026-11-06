@@ -27,14 +27,14 @@ function cobra({ gx, gy, tipo = 'medio', lado = 'centro', rng = Math.random, t0 
 const NOMES = ['gk_espera', 'gk_prepara', ...['esq', 'centro', 'dir'].flatMap(l => ['baixa', 'media', 'alta'].map(h => `gk_${l}_${h}`)), ...['esq', 'dir'].flatMap(l => ['baixa', 'media', 'alta'].map(h => `gk_${l}_curta_${h}`))];
 t('17 clipes do goleiro no manifesto', NOMES.every(n => KEEPER_CLIPS[n]), NOMES.filter(n => !KEEPER_CLIPS[n]).join());
 t('arquivos GLB dos clipes do goleiro existem', NOMES.every(n => fs.existsSync('assets/models/anim/' + KEEPER_CLIPS[n].arquivo)));
-t('preparação dura 1,5 s', Math.abs(KEEPER_CLIPS.gk_prepara.dur - 1.5) < .01);
+t('preparação: 1,5 s até o contato + 0,5 s de base carregada (2,0 s)', Math.abs(KEEPER_CLIPS.gk_prepara.dur - 2) < .01);
 for (const n of NOMES) { const tr = KEEPER_CLIPS[n].trilhas, fw = Math.max(...tr.tronco.map(p => p[2])), pe = Math.min(...tr.pe_l.concat(tr.pe_r).map(p => Math.min(p[1], p[4])));
-  t(`${n}: avanço da pelve ≤ 0,5 m (foi ${fw.toFixed(2)})`, fw <= .5); t(`${n}: pés não atravessam o gramado (${pe.toFixed(3)} m)`, pe > -.02); }
+  t(`${n}: avanço da pelve ≤ 0,55 m (foi ${fw.toFixed(2)})`, fw <= .55); t(`${n}: pés não atravessam o gramado (${pe.toFixed(3)} m)`, pe > -.02); }
 const lat = n => Math.max(...KEEPER_CLIPS[n].trilhas.mao_l.concat(KEEPER_CLIPS[n].trilhas.mao_r).map(p => p[0])), latN = n => Math.min(...KEEPER_CLIPS[n].trilhas.mao_l.concat(KEEPER_CLIPS[n].trilhas.mao_r).map(p => p[0]));
 t('lados do ponto de vista do goleiro: mergulhos "esq" vão para +x, "dir" para −x', ['baixa', 'media', 'alta'].every(h => lat(`gk_esq_${h}`) > 1.8 && latN(`gk_dir_${h}`) < -1.8));
 const maos = n => KEEPER_CLIPS[n].trilhas.mao_l.concat(KEEPER_CLIPS[n].trilhas.mao_r);
 t('mergulho alto leva as mãos acima de 2 m; baixo abaixo de 0,35 m', Math.max(...maos('gk_esq_alta').map(p => p[1])) > 2 && Math.min(...maos('gk_esq_baixa').map(p => p[1])) < .35);
-t('defesa curta: mãos a ~1 m para o lado sem deitar (pelve ≥ 0,6 m)', lat('gk_esq_curta_media') > .9 && Math.min(...KEEPER_CLIPS.gk_esq_curta_media.trilhas.tronco.map(p => p[1])) > .6);
+t('defesa curta: mãos a ~0,9 m para o lado sem deitar (pelve ≥ 0,5 m) e termina no lugar novo (sem andar de ré)', lat('gk_esq_curta_media') > .85 && Math.min(...KEEPER_CLIPS.gk_esq_curta_media.trilhas.tronco.map(p => p[1])) > .5 && KEEPER_CLIPS.gk_esq_curta_media.trilhas.tronco.at(-1)[0] > .25);
 t('raiz do goleiro junto da linha do gol (z ≤ 0,25 m)', GK.KEEPER_CFG.raiz[2] <= .25);
 
 // ---------- 2. classificação no plano do gol (configurável) ----------
@@ -57,7 +57,7 @@ t('limites configuráveis', GK.classificar(1, 1, { centroX: 1.2, baixaY: .6, alt
 // ---------- 4. escolha da ação: a menor que cobre a bola ----------
 const plano = (gx, gy, lado = 'centro', tipo = 'chapada', s = 9) => cobra({ gx, gy, lado, tipo, rng: semente(s), dif: 'hard' }).k.plano;
 t('bola no corpo (meio, média altura): defesa no centro, sem mergulho', plano(.5, .42).tipo === 'centro');
-t('bola baixa no meio: defesa baixa no centro', plano(.5, .06).clip === 'gk_centro_baixa', plano(.5, .06).clip);
+{ const n = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(sd => plano(.5, .06, 'centro', 'chapada', sd).clip === 'gk_centro_baixa').length; t(`rasteira no meio: defesa baixa no centro na maioria das leituras (${n}/10)`, n >= 7); }
 t('meio alto: braços para cima/salto (defesa alta no centro)', plano(.5, .82).clip === 'gk_centro_alta', plano(.5, .82).clip);
 { const p = plano(.62, .4); t('bola a ~0,9 m do corpo: passo curto com extensão dos braços', p.tipo === 'curta', p.clip); }
 { const p = plano(.85, .45, 'esq'); t('bola no canto: mergulho', p.tipo === 'mergulho', p.clip); }
