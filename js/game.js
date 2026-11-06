@@ -35,7 +35,7 @@ export const Game = {
     requestAnimationFrame(loop);
   },
   start(a, b, onEnd, two = false, escolha = [null, null]) {
-    this.two = two; this.escolha = escolha;                       // a = jogador, b = adversário
+    GK.aquecer(); this.two = two; this.escolha = escolha;                       // a = jogador, b = adversário
     this.cb = onEnd; this.paused = false; GS.pausado = false; this.fin = null; Renderer.setTeams?.(a, b); ambient(true);
     GS.equipes = [a, b]; GS.placar = [0,0]; GS.cobranca = 1; GS.cobrancasRealizadas = 0; GS.vencedor = null; GS.ultimaCobranca = null;
     this.m = { taken:[0,0], marks:[[],[]], fim:false };

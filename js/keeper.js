@@ -80,7 +80,8 @@ export const REGIAO = {
   canela:    { fam: 'perna',  q: .85, pal: .7,  agarra: 0,   nome: 'canela' },
   pe:        { fam: 'pe',     q: .8,  pal: .55, agarra: 0,   nome: 'pé' },
 };
-export const regiaoDe = n => n === 'maos' ? 'maos' : n.replace(/_[lr]$/, '');
+const REG_CACHE = new Map();
+export const regiaoDe = n => { let r = REG_CACHE.get(n); if (r === undefined) { r = n === 'maos' ? 'maos' : n.replace(/_[lr]$/, ''); REG_CACHE.set(n, r); } return r; };
 // divide os colisores brutos dos ossos nas partes acima (pontos e raios proporcionais ao osso)
 export function detalha(cols, sc = [1, 1]) {
   const out = [], m = n => cols.find(c => c.nome === n), lerpP = (a, b, u) => add(a, mul(sub(b, a), u)), P = (nome, a, b, r) => out.push({ nome, grupo: REGIAO[regiaoDe(nome)].fam, regiao: regiaoDe(nome), a, b, r });
@@ -163,6 +164,13 @@ export const novoGoleiro = () => ({ lado: null, origem: null, tEscolha: null, tr
   prepIni: null, prepIniBola: null, tContatoPrev: null, tContatoReal: null, x: .5, tx: .5, t0: null, log: [] });
 const registra = (k, msg) => { k.log.push(msg); if (k.log.length > 40) k.log.shift(); if (KEEPER_CFG.console) console.info('[goleiro]', msg); };
 // escolha do lado (jogador: setas/clique; CPU: sorteio). Só vale ANTES do limite; depois, é registrada como tentativa ignorada.
+// aquece o código do goleiro (a busca da ação e o ajuste das luvas) antes da 1ª cobrança: sem isso o 1º chute da partida pode custar alguns quadros
+let aquecido = false;
+export function aquecer() {
+  if (aquecido) return; aquecido = true;
+  try { for (const [lado, gx] of [['centro', .62], ['esq', .8]]) { const k = novoGoleiro(); escolherLado(k, null, lado, 'aquecimento'); const b = { gx, gy: .45, t: -.25, tf: .62, curl: 0 }; let n = 0;
+      while (b.t < .62 && n++ < 200) { const tA = b.t; b.t += 1/120; passo(k, b, tA, b.t, { rng: () => .5 }); if (b.fis) break; } } } catch (e) { /* só aquecimento */ }
+}
 export function escolherLado(k, b, lado, origem, agora = 0) {
   if (k.travado) { k.ignoradas.push({ lado, t: b ? +b.t.toFixed(2) : null }); registra(k, `escolha "${lado}" ignorada: o lado já está travado`); return false; }
   if (k.lado !== lado) { k.tPrep = agora; }
@@ -197,11 +205,18 @@ export function agendar(k, agora, tContato) {
 const gauss = rng => { let u = 0; for (let i = 0; i < 4; i++) u += rng(); return (u - 2)/.577; };   // ~N(0,1), limitado
 export const ctDe = (k, t) => k.plano.off + (t - k.plano.tIni)*(k.plano.ritmo || 1);
 // distância mínima (superfície a superfície) entre a trajetória da bola e o corpo do goleiro com o clipe começando em off
+// (só leitura: a busca da ação avalia o mesmo clipe em instantes muito próximos — pose amostrada a cada 1/240 s e guardada, sem travar o quadro do chute)
+const CACHE_POSE = new Map();
+function colisoresBusca(clip, ct, raiz, sc) {
+  const q = Math.round(ct*240), key = clip + '|' + q + '|' + raiz.join() + '|' + sc.join(); let v = CACHE_POSE.get(key);
+  if (!v) { if (CACHE_POSE.size > 40000) CACHE_POSE.clear(); v = colisores(clip, q/240, raiz, sc); CACHE_POSE.set(key, v); }
+  return v;
+}
 function folga(b, clip, off, tIni, raiz, sc, t1, so = null, rt = KEEPER_CFG.ritmo[clip] || 1) {
   let best = { d: 9, parte: null, t: null };
   for (let t = Math.max(0, tIni); t <= t1; t += 1/60) {
     const p = ballFlight(b, t); if (p[2] > 4.5) continue;
-    for (const c of colisores(clip, off + (t - tIni)*rt, raiz, sc)) { if (so && !so(c)) continue; const d = len(sub(p, pontoMaisProximo(p, c.a, c.b).c)) - c.r - BALL_R + (PREFERE[c.grupo] || 0); if (d < best.d) best = { d, parte: c.nome, t }; }
+    for (const c of colisoresBusca(clip, off + (t - tIni)*rt, raiz, sc)) { if (so && !so(c)) continue; const d = len(sub(p, pontoMaisProximo(p, c.a, c.b).c)) - c.r - BALL_R + (PREFERE[c.grupo] || 0); if (d < best.d) best = { d, parte: c.nome, t }; }
   }
   return best;
 }
@@ -307,9 +322,10 @@ const MAO_FAM = new Set(['palma', 'dedos', 'punho', 'maos']);
 function avaliaLuva(k, b, sc, s, aj, out, tm) {
   const salvo = k.plano.ajuste; k.plano.ajuste = { ...out, [s]: aj }; let primeiro = null, folga = 9, margem = 0;
   const doBraco = c => c.nome.endsWith('_' + s) || c.nome === 'maos';
-  try { for (let t = Math.max(k.plano.tIni, tm - .12); t <= Math.min((b.tf || .7) + .02, tm + .06); t += 1/180) { const p = ballFlight(b, t); let hit = null;
+  try { const zm = colisoresPlano(k, tm, sc).find(c => c.nome === 'mao_' + s).a[2];   // bola ainda bem à frente da luva: nada a conferir (poupa o quadro)
+    for (let t = Math.max(k.plano.tIni, tm - .12); t <= Math.min((b.tf || .7) + .02, tm + .06); t += 1/180) { const p = ballFlight(b, t); if (p[2] > zm + .55) continue; let hit = null;
       for (const c of detalha(colisoresPlano(k, t, sc), sc)) { if (!doBraco(c)) continue; const d = len(sub(p, pontoMaisProximo(p, c.a, c.b).c)) - c.r - BALL_R;
-        if (MAO_FAM.has(regiaoDe(c.nome))) folga = Math.min(folga, d); if (d <= 0 && (!hit || d < hit.d)) hit = { d, c }; }
+        if (MAO_FAM.has(c.regiao)) folga = Math.min(folga, d); if (d <= 0 && (!hit || d < hit.d)) hit = { d, c }; }
       if (hit) { const vIn = ballVel(b, t), dir = norm(vIn), ap = {};
         for (let u = 0; u <= .3; u += .03) { const q = add(p, mul(dir, u)); for (const c of detalha(colisoresPlano(k, t + u/len(vIn), sc), sc)) { if (!doBraco(c)) continue; const d = len(sub(q, pontoMaisProximo(q, c.a, c.b).c)); if (!(c.nome in ap) || d < ap[c.nome].d) ap[c.nome] = { d, r: c.r }; } }
         const prof = n => clamp(1 - ap[n].d/(ap[n].r + BALL_R), 0, 1); let nome = hit.c.nome, dep = prof(nome);
