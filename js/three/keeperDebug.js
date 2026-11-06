@@ -3,7 +3,8 @@
 // o contato, as velocidades e o motivo de a defesa ter sido possível ou não. Desligado, nada aparece e nada muda no jogo.
 import * as THREE from 'three';
 import { DBG } from '../debug.js';
-import { colisoresAgora, cruzamento, ROTULOS, KEEPER_CFG, ballFlight, REGIAO, classe, velocidadeGoleiro, defesaNome } from '../keeper.js';
+import { colisoresAgora, cruzamento, ROTULOS, KEEPER_CFG, ballFlight, REGIAO, classe, velocidadeGoleiro, defesaNome, TERCO, areaDe, NOME_AREA } from '../keeper.js';
+import { GOAL_H } from '../rig.js';
 import { probabilidades } from '../goleiroMemoria.js';
 import { keeperScale, flightTime } from '../frame.js';
 // cor por REGIÃO: mãos em verde (prioridade), braços em amarelo, tronco em azul, pernas e pés em laranja
@@ -21,6 +22,16 @@ export function createKeeperDebug(scene) {
   const caminhoLido = linha(0xff00ff), caminhoReal = linha(0xffffff), inter = new THREE.Mesh(new THREE.SphereGeometry(.09, 12, 8), new THREE.MeshBasicMaterial({ color: 0xff00ff, wireframe: true, depthTest: false })); inter.renderOrder = 999; g.add(inter);
   const poeCaminho = (l, b, tf) => { const a = l.geometry.attributes.position; for (let i = 0; i < 40; i++) { const p = ballFlight(b, tf*i/39); a.setXYZ(i, p[0], p[1], p[2]); } a.needsUpdate = true; };
   const sensor = ring(0x00ffff, .17), lido = ring(0xff00ff, .2), real = ring(0xffffff, .14), toque = new THREE.Mesh(new THREE.SphereGeometry(.07, 10, 8), new THREE.MeshBasicMaterial({ color: TOQUE, depthTest: false })); toque.renderOrder = 999; g.add(toque);
+  // AS TRÊS ÁREAS DO GOL (terços): divisões verticais, a área escolhida pelo goleiro (amarela) e a área em que o sensor vê a bola chegar (contorno ciano)
+  const AREAS = ['esq', 'centro', 'dir'], xArea = { esq: 2*TERCO, centro: 0, dir: -2*TERCO }, areas = {};
+  for (const a of AREAS) { const pl = new THREE.Mesh(new THREE.PlaneGeometry(2*TERCO, GOAL_H), new THREE.MeshBasicMaterial({ color: 0xffe66d, transparent: true, opacity: .06, depthTest: false, side: THREE.DoubleSide }));
+    pl.position.set(xArea[a], GOAL_H/2, .01); pl.renderOrder = 998; g.add(pl);
+    const borda = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(2*TERCO - .06, GOAL_H - .06)), new THREE.LineBasicMaterial({ color: 0x00ffff, depthTest: false, transparent: true, opacity: .95 }));
+    borda.position.set(xArea[a], GOAL_H/2, .015); borda.renderOrder = 999; g.add(borda);
+    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64; const cx = cv.getContext('2d'); cx.font = 'bold 34px ui-monospace, monospace'; cx.textAlign = 'center'; cx.fillStyle = '#ffffff'; cx.fillText(NOME_AREA[a], 128, 38); cx.font = '16px ui-monospace, monospace'; cx.fillText('(lado da tela)', 128, 60);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthTest: false, transparent: true })); sp.scale.set(1.6, .4, 1); sp.position.set(xArea[a], GOAL_H + .32, 0); sp.renderOrder = 999; g.add(sp);
+    areas[a] = { pl, borda, sp }; }
+  for (const x of [-TERCO, TERCO]) { const gl = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, 0, .02), new THREE.Vector3(x, GOAL_H, .02)]); const l = new THREE.Line(gl, new THREE.LineBasicMaterial({ color: 0xffffff, depthTest: false })); l.renderOrder = 999; g.add(l); }
   const va = new THREE.Vector3(), vb = new THREE.Vector3();
   function update(game, b, now) {
     g.visible = !!DBG.goleiro && !!game.m && !game.fin; if (!g.visible) return; const k = game.keeper; if (!k || !k.log) { g.visible = false; return; }
@@ -36,6 +47,8 @@ export function createKeeperDebug(scene) {
     real.visible = !!b; if (b) { const [x, y] = cruzamento(b); real.position.set(x, y, .03); }
     sensor.visible = !!k.sensor && !!b && b.t > 0; if (sensor.visible) sensor.position.set(k.sensor.ponto[0], k.sensor.ponto[1], .025);   // ponto que o SENSOR prevê agora (ciano)
     toque.visible = !!k.contato; if (k.contato) toque.position.set(...k.contato.ponto);
+    const escolhida = k.lado === 'esq' || k.lado === 'dir' || k.lado === 'centro' ? k.lado : null, detectada = k.sensor && b && b.t > 0 ? k.sensor.area : null;
+    for (const a of AREAS) { const A = areas[a]; A.pl.material.opacity = a === escolhida ? .22 : .05; A.borda.visible = a === detectada; A.sp.material.color.setHex(a === escolhida ? 0xffe66d : a === detectada ? 0x00ffff : 0xffffff); }
   }
   let ultimosCols = []; const cols0 = () => { const b = ultimo.b; if (!b || !ultimosCols.length) return null; const bp = ballFlight(b, b.t); let best = null;
     for (const c of ultimosCols) { if (c.grupo !== 'mao') continue; const ab = c.b ? [c.b[0] - c.a[0], c.b[1] - c.a[1], c.b[2] - c.a[2]] : [0, 0, 0], l2 = ab[0]**2 + ab[1]**2 + ab[2]**2 || 1, u = Math.max(0, Math.min(1, ((bp[0] - c.a[0])*ab[0] + (bp[1] - c.a[1])*ab[1] + (bp[2] - c.a[2])*ab[2])/l2));
@@ -48,6 +61,8 @@ export function createKeeperDebug(scene) {
     L.push(`lado: ${k.lado || 'nenhum ainda'}${k.origem ? ` (${k.origem})` : ''} · ${k.travado ? `travado a ${f(-k.travadoEm)} s do chute` : `limite: ${KEEPER_CFG.decisaoAntes} s antes do chute`}${k.ignoradas.length ? ` · ${k.ignoradas.length} tentativa(s) depois do limite ignorada(s)` : ''}`);
     L.push(`tempo até o chute: ${b ? f(Math.max(0, -b.t)) : '—'} s · até a linha do gol: ${b ? f(Math.max(0, tf - b.t)) : '—'} s${ct ? ` · contato em t=${f(ct.t)} s` : ''}`);
     if (b) { const [x, y] = cruzamento(b); L.push(`cruzamento real: x=${f(x)} y=${f(y)} m${p ? ` (${p.real})` : ''}${p ? ` · leitura do goleiro: ${p.lido.cat} (x=${f(p.lido.x)} y=${f(p.lido.y)})` : ''}`); }
+    { const esc = k.lado === 'esq' || k.lado === 'dir' || k.lado === 'centro' ? k.lado : null, det = k.sensor && b && b.t > 0 ? k.sensor.area : null, nm = a => a ? NOME_AREA[a] : '—', min = a => NOME_AREA[a].toLowerCase();
+      L.push(`áreas do gol (terços): goleiro escolheu ${nm(esc)} · bola detectada: ${det ? nm(det) + ` (x=${f(k.sensor.ponto[0])} y=${f(k.sensor.ponto[1])} m)` : 'ainda sem chute'}${esc && det ? (esc === det ? ' → a bola vai para a área escolhida' : esc === 'centro' ? ` → fica no meio e ajusta com passos para a ${min(det)}` : ` → prepara para a ${min(esc)}, mas a bola vai para ${det === 'centro' ? 'o meio' : 'a ' + min(det)}`) : ''}`); }
     { const pc = o => `E ${Math.round(o.esq*100)}% · C ${Math.round(o.centro*100)}% · D ${Math.round(o.dir*100)}%`, mem = game.memGoleiro?.(), pAgora = k.probAntes || (mem && probabilidades(mem)), hist = k.historico || mem?.historico || [];
       if (pAgora) L.push(`probabilidades da escolha (${k.idGoleiro || game.idGoleiro?.() || 'goleiro'}): ${pc(pAgora)}${k.probDepois ? ` → próxima: ${pc(k.probDepois)}` : ''}`);
       L.push(`histórico do goleiro: ${hist.length ? hist.slice(-8).map(d => ({ esq: 'E', centro: 'C', dir: 'D' })[d]).join(' ') : 'vazio'} · direção escolhida: ${k.lado || '—'}`); }
@@ -60,7 +75,9 @@ export function createKeeperDebug(scene) {
     if (ct) { L.push(`contato: ${ct.nomeParte || ct.parte} (${ct.parte}) · ${defesaNome(ct)} · ${classe(ct.rotulo)} · ${ROTULOS[ct.rotulo] || ct.rotulo} · ${f(ct.vel)} → ${f(ct.vOutMod)} m/s`); L.push(`por quê: ${ct.motivo}`); }
     else if (k.sem) L.push(`sem contato: ${k.sem}`); else if (k.dmin) L.push(`mais perto até agora: ${Math.round(k.dmin.d*100)} cm (${k.dmin.parte})`);
     if (b && b.res) L.push(`resultado: ${b.res.toUpperCase()}`);
-    c.save(); c.font = '12px ui-monospace, monospace'; const w = Math.max(...L.map(s => c.measureText(s).width)) + 16; c.fillStyle = 'rgba(0,0,0,.72)'; c.fillRect(8, 78, w, L.length*16 + 10);
+    // linhas longas quebradas (o painel fica mais estreito e não cobre o gol, onde ficam as três áreas)
+    const Q = []; for (const s0 of L) { let s1 = s0; while (s1.length > 78) { let i = s1.lastIndexOf(' ', 78); if (i < 40) i = 78; Q.push(s1.slice(0, i)); s1 = '   ' + s1.slice(i).trimStart(); } Q.push(s1); } L.length = 0; L.push(...Q);
+    c.save(); c.font = '12px ui-monospace, monospace'; const w = Math.max(...L.map(s => c.measureText(s).width)) + 16; c.fillStyle = 'rgba(0,0,0,.6)'; c.fillRect(8, 78, w, L.length*16 + 10);
     c.textAlign = 'left'; L.forEach((s, i) => { c.fillStyle = i === 0 ? '#ffe66d' : '#e8f1ff'; c.fillText(s, 16, 96 + i*16); }); c.restore();
   }
   return { update, hud, group: g };

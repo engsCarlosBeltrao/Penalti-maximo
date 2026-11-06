@@ -133,8 +133,25 @@ export function ajusteAgora(k, t) {
   return Object.keys(out).length ? out : null;
 }
 // colisores do PLANO de mergulho no instante t do voo (clipe sincronizado + ajuste do braço)
+// TRANSIÇÃO igual à da tela: ao trocar de clipe, o loader mistura a "foto" da pose anterior com o clipe novo por `blend` s (tempo do clipe, curva sm).
+// A física usa a MESMA mistura — a mão que defende é a mão que aparece (antes, nesses ~0,2 s a mão da física podia estar até ~80 cm da desenhada).
+const misturaCols = (A, B, w) => B.map(c => { const o = A.find(x => x.nome === c.nome); if (!o) return c; const l = (p, q) => p.map((v, i) => v + (q[i] - v)*w);
+  return { ...c, a: l(o.a, c.a), b: c.b && o.b ? l(o.b, c.b) : c.b }; });
+// pose que a tela mostra agora no instante t (do voo) — para a foto da transição
+function poseNaTela(k, t, sc) {
+  const C = KEEPER_CFG, R = C.raiz;
+  if (k.plano && t >= k.plano.tIni) { const info = CLIP_INFO[k.plano.clip]; if (ctDe(k, t) < info.dur) return colisoresPlano(k, t, sc); return colisores('gk_espera', 0, R, sc); }
+  const tp = k.prepIniBola != null ? t - k.prepIniBola : null, P = KEEPER_CLIPS[C.prep.anim];
+  if (tp != null && P && tp < P.dur - .05) { const cols = colisores(C.prep.anim, Math.max(0, tp), R, sc), lado = k.lado === 'esq' || k.lado === 'dir' ? k.lado : null;
+    return lado ? misturaCols(cols, colisores(C.prep.clipe[lado], C.prep.t, R, sc), C.prep.w*sm(Math.max(0, tp)/C.prep.rampa)) : cols; }
+  return colisores('gk_espera', 0, R, sc);
+}
+// foto da pose na tela no instante em que o plano novo começa (só quando o clipe muda: com o mesmo clipe a tela não faz transição)
+const fotoPara = (k, clipNovo, tIni, sc) => (k.plano && k.plano.clip === clipNovo && tIni >= k.plano.tIni) ? null : poseNaTela(k, tIni, sc).map(c => ({ ...c }));
 export function colisoresPlano(k, t, sc = [1, 1]) {
-  const cols = colisores(k.plano.clip, ctDe(k, t), KEEPER_CFG.raiz, sc), aj = ajusteAgora(k, t); if (!aj) return cols;
+  let cols = colisores(k.plano.clip, ctDe(k, t), KEEPER_CFG.raiz, sc);
+  if (k.plano.foto && k.plano.blend > 0) { const u = (ctDe(k, t) - k.plano.off)/k.plano.blend; if (u < 1) cols = misturaCols(k.plano.foto, cols, sm(Math.max(0, u))); }
+  const aj = ajusteAgora(k, t); if (!aj) return cols;
   for (const s of ['l', 'r']) { const a = aj[s]; if (!a) continue; const o = cols.find(c => c.nome === 'braco_' + s).a;
     for (const c of cols) if (c.nome === 'braco_' + s || c.nome === 'antebraco_' + s || c.nome === 'mao_' + s) { c.a = giraEm(c.a, o, a.eixo, a.ang); if (c.b) c.b = giraEm(c.b, o, a.eixo, a.ang); }
     if (a.angC) { const cot = cols.find(c => c.nome === 'antebraco_' + s).a;   // depois o COTOVELO estende (antebraço e mão giram em volta dele)
@@ -268,8 +285,9 @@ export function planejar(k, b, { dif = 'normal', sc = [1, 1], rng = Math.random 
     if (!(nota(esc) < nCont - C.correcao.ganho)) return null;
   }
   const { clip, off, best, tIni } = esc;
-  k.plano = { clip, tipo: esc.tipo, lado: esc.lado, altura: esc.altura, tIni, off: +off.toFixed(3), atraso: esc.atraso, lido: { x: +px.toFixed(2), y: +py.toFixed(2), cat: lido.cat },
-    real: classificar(cx, cy).cat, folgaPrevista: +esc.dm.toFixed(3), cobria: esc.dm <= E.alvo, opcoes: av.length, ritmo: esc.rt, blend: mesmo(esc) ? atual.blend : continua(esc) ? .14 : atual ? .18 : esc.tipo === 'curta' || esc.tipo === 'passos' ? .2 : .25, corrigido: !!atual && !atual.pre, saiuAntes: !!atual?.pre,
+  const foto = fotoPara(k, clip, tIni, sc);
+  k.plano = { clip, foto, tipo: esc.tipo, lado: esc.lado, altura: esc.altura, tIni, off: +off.toFixed(3), atraso: esc.atraso, lido: { x: +px.toFixed(2), y: +py.toFixed(2), cat: lido.cat },
+    real: classificar(cx, cy).cat, folgaPrevista: +esc.dm.toFixed(3), cobria: esc.dm <= E.alvo, opcoes: av.length, ritmo: esc.rt, blend: mesmo(esc) ? atual.blend : continua(esc) ? .1 : atual ? .12 : esc.tipo === 'curta' || esc.tipo === 'passos' ? .12 : .15, corrigido: !!atual && !atual.pre, saiuAntes: !!atual?.pre,
     motivoEscolha: (atual && !atual.pre ? `CORREÇÃO (antes ${atual.clip}): ` : atual?.pre ? 'já em movimento desde antes do chute; ' : '') + (esc.dm <= E.alvo ? `menor ação que cobre a bola lida (${esc.tipo}, ${cobre.length} cobriam)` : cobre.length ? `${esc.tipo} quase cobre e custa bem menos que as ${cobre.length} que cobriam` : 'nenhuma ação cobre a bola lida: tentativa que chega mais perto') };
   // para a depuração: a trajetória que ele LEU, o ponto previsto de interceptação e a parte do corpo com que pretende chegar
   k.plano.leitura = { gx: prev.gx, gy: prev.gy, tf: prev.tf, curl: prev.curl };
@@ -481,6 +499,12 @@ export function ancora(k, sc = [1, 1], t) {
 // A cada passo, com a bola no ar: posição e velocidade, direção, o PONTO (x, y em metros) em que vai cruzar o plano do gol, região descrita em
 // coordenadas reais (não só 9 casas), tempo até chegar, e a parte do corpo que está mais perto de alcançá-la. A percepção começa com o erro de
 // leitura e fica mais precisa conforme a bola se aproxima (o erro é proporcional à distância). As mãos (IK) são recalculadas a partir dele.
+// AS TRÊS ÁREAS DO GOL (terços iguais da largura, lados do ponto de vista do goleiro: esquerda = +x): a divisão inicial de decisão. A escolha do goleiro
+// (memória 1/3) é uma delas; o sensor diz em qual delas a bola vai passar — e continua dando as coordenadas exatas (x, y) dentro da área.
+export const TERCO = GOAL_W/6;   // meia largura da área do meio (1,22 m)
+export const areaDe = x => x > TERCO ? 'esq' : x < -TERCO ? 'dir' : 'centro';
+// nomes como aparecem na TELA (os mesmos do aviso "Canto travado"): o lado esquerdo do goleiro fica à DIREITA de quem olha para o gol
+export const NOME_AREA = { esq: 'DIREITA', centro: 'MEIO', dir: 'ESQUERDA' };
 const regiaoGol = (x, y) => { const lado = x > 2.1 ? 'canto esquerdo' : x > .9 ? 'meio esquerdo' : x < -2.1 ? 'canto direito' : x < -.9 ? 'meio direito' : 'centro', alt = y < .6 ? 'baixo' : y > 1.5 ? 'alto' : 'meia altura';
   return `${lado}, ${alt}`; };
 export function atualizaSensor(k, b, tB, sc = [1, 1], rng = Math.random) {
@@ -490,7 +514,7 @@ export function atualizaSensor(k, b, tB, sc = [1, 1], rng = Math.random) {
   let parte = null, dist = null;
   if (k.plano) { const tz = Math.min(tf, tB + Math.max(0, falta - .03)), q = ballFlight({ ...b, gx: px/GOAL_W + .5, gy: py/GOAL_H }, tz);
     for (const c of detalha(colisoresPlano(k, tz, sc), sc)) { const d = len(sub(q, pontoMaisProximo(q, c.a, c.b).c)) - c.r - BALL_R; if (dist == null || d < dist) { dist = d; parte = c.nome; } } }
-  k.sensor = { t: tB, pos: p.map(x => +x.toFixed(2)), vel: +len(v).toFixed(1), dir: px > .9 ? 'esq' : px < -.9 ? 'dir' : 'centro', ponto: [+px.toFixed(2), +py.toFixed(2)], real: [+cx.toFixed(2), +cy.toFixed(2)],
+  k.sensor = { t: tB, pos: p.map(x => +x.toFixed(2)), vel: +len(v).toFixed(1), dir: areaDe(px), area: areaDe(px), areaReal: areaDe(cx), ponto: [+px.toFixed(2), +py.toFixed(2)], real: [+cx.toFixed(2), +cy.toFixed(2)],
     erro: +Math.hypot(px - cx, py - cy).toFixed(2), regiao: regiaoGol(px, py), tempo: +falta.toFixed(2), parte, regiaoParte: parte ? REGIAO[regiaoDe(parte)]?.nome : null, dist: dist != null ? +dist.toFixed(2) : null };
   return k.sensor;
 }
@@ -506,7 +530,7 @@ export function passo(k, b, tA, tB, { dif = 'normal', sc = [1, 1], rng = Math.ra
   const C = KEEPER_CFG;
   if (k.prepIni == null && k.prepIniBola == null && tB >= -C.decisaoAntes) { k.prepIniBola = Math.max(tA, -C.decisaoAntes); travar(k, -k.prepIniBola); }   // sem o jogo (testes): relógio da bola
   if (!k.plano && (k.lado === 'esq' || k.lado === 'dir') && tB >= -C.saida.antes && tB < 0) {   // já sai para o lado escolhido antes do pé na bola
-    k.plano = { clip: clipeDe(k.lado, 'media'), tipo: 'mergulho', lado: k.lado, altura: 'media', tIni: tB, off: C.prep.t*.5, ritmo: 1, blend: .2, pre: true, lido: { x: 0, y: 0, cat: '—' }, real: '—', folgaPrevista: 0,
+    k.plano = { clip: clipeDe(k.lado, 'media'), foto: fotoPara(k, clipeDe(k.lado, 'media'), tB, sc), tipo: 'mergulho', lado: k.lado, altura: 'media', tIni: tB, off: C.prep.t*.5, ritmo: 1, blend: .15, pre: true, lido: { x: 0, y: 0, cat: '—' }, real: '—', folgaPrevista: 0,
       motivoEscolha: `saída para ${k.lado} ${(-tB).toFixed(2)} s antes do chute`, opcoes: 0 };
     registra(k, `começa a sair para ${k.lado} a ${(-tB).toFixed(2)} s do chute (carrega o peso e dá o primeiro passo)`);
   }

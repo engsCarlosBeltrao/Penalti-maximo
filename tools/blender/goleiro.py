@@ -42,16 +42,16 @@ CLIPES = {
     "gk_espera":       ("Goalkeeper Idle.fbx", False, PRONTO),             # espera em prontidão (joelhos flexionados, tronco à frente, mãos prontas)
     "gk_prepara":      ("Goalkeeper Idle.fbx", False, PREPARA),            # 1,5 s antes do contato: ajustes dos pés, flexão, braços, split-step
     "gk_esq_curta_baixa": ("Goalkeeper Catch (1).fbx", False, CURTA(.28)),
-    "gk_esq_curta_media": ("Goalkeeper Catch (1).fbx", False, CURTA(1.0)),
+    "gk_esq_curta_media": ("Goalkeeper Catch (1).fbx", False, CURTA(1.15)),
     "gk_esq_curta_alta": ("Goalkeeper Catch.fbx", False, ("lateral", dict(h=2.05, salto=True))),   # agarrada com SALTO real (mocap) levada para o lado
     "gk_dir_curta_baixa": ("Goalkeeper Catch (1).fbx", True, CURTA(.28)),
-    "gk_dir_curta_media": ("Goalkeeper Catch (1).fbx", True, CURTA(1.0)),
+    "gk_dir_curta_media": ("Goalkeeper Catch (1).fbx", True, CURTA(1.15)),
     "gk_dir_curta_alta": ("Goalkeeper Catch.fbx", True, ("lateral", dict(h=2.05, salto=True))),   # agarrada com SALTO real (mocap) levada para o lado
     "gk_esq_passos_baixa": ("Goalkeeper Catch (1).fbx", False, PASSOS(.28)),
-    "gk_esq_passos_media": ("Goalkeeper Catch (1).fbx", False, PASSOS(1.0)),
+    "gk_esq_passos_media": ("Goalkeeper Catch (1).fbx", False, PASSOS(1.15)),
     "gk_esq_passos_alta":  ("Goalkeeper Catch (1).fbx", False, PASSOS(1.75)),
     "gk_dir_passos_baixa": ("Goalkeeper Catch (1).fbx", True, PASSOS(.28)),
-    "gk_dir_passos_media": ("Goalkeeper Catch (1).fbx", True, PASSOS(1.0)),
+    "gk_dir_passos_media": ("Goalkeeper Catch (1).fbx", True, PASSOS(1.15)),
     "gk_dir_passos_alta":  ("Goalkeeper Catch (1).fbx", True, PASSOS(1.75)),
     "gk_esq_baixa":    ("Goalkeeper Body Block.fbx", False, BAIXO),
     "gk_dir_baixa":    ("Goalkeeper Body Block (1).fbx", False, BAIXO),
@@ -225,9 +225,10 @@ def lateral(tgt, sc, vl, N, h=1.0, salto=False, passos=1):
                 else: Mf.translation.x += (lat/2 - .01)*sm((t - .16)/.17) + (lat/2 - .01)*sm((t - .42)/.18); Mf.translation.z += .045*arco(t, .16, .33) + .045*arco(t, .42, .6) + pulo
             PE[s_].matrix_world = Mf; PE[s_].keyframe_insert("location", frame=f); PE[s_].keyframe_insert("rotation_euler", frame=f)
             PO[s_].location = Pw + Vector((sg*.25, -.9, -.3)); PO[s_].keyframe_insert("location", frame=f)
-            free = pb[f"hand_{s_}"].head.copy(); alvo = Vector((Pw.x + (.62 if lead else (.44 if salto else .3)), Pw.y - .34, h - (0 if lead else (.06 if salto else .08))))
+            # as DUAS mãos vão juntas à bola, à frente do corpo (luvas a ~18 cm, palmas para a bola): nada de um braço esticado para o lado e o outro parado
+            free = pb[f"hand_{s_}"].head.copy(); alvo = Vector((Pw.x + (.52 if lead else .34), Pw.y - .42, h - (0 if lead else .03)))
             MA[s_].location = free.lerp(alvo, wh); MA[s_].keyframe_insert("location", frame=f)
-            PB[s_].location = Pw + Vector((sg*.7, .3, (-.6 if salto and not lead else -.25) if not baixa else .25)); PB[s_].keyframe_insert("location", frame=f)
+            PB[s_].location = Pw + (Vector((sg*.55, .25, -.45 if not baixa else .25)) if lead else Vector((sg*.2, .3, -.6 if not baixa else .15))); PB[s_].keyframe_insert("location", frame=f)   # cotovelos para baixo/fora, sem abrir em "T"
     _assa(tgt)
 
 def curta(tgt, sc, vl, N, h=1.0):

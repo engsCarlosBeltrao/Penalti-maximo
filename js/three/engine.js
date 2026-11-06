@@ -20,6 +20,9 @@ import { DBG } from '../debug.js';
 import { colorize, clearSprites } from '../crowd.js';
 import { KEEPER_CLIPS } from '../keeperClips.js';
 import { createKeeperDebug } from './keeperDebug.js';
+// O exportador glTF do Blender grava o 1º quadro (frame 1) em t = 1/30 s. As trilhas dos colisores (js/keeperClips.js) começam em t = 0: sem tirar esse
+// quadro, o goleiro na tela fica 1 quadro ATRÁS da física (até ~20 cm nas mãos no meio do mergulho). Encosta o clipe em t = 0.
+function zeraInicio(ci) { const c = ci && ci.clip; if (!c) return; const t0 = Math.min(...c.tracks.map(t => t.times[0])); if (t0 > 1e-6) { c.tracks.forEach(t => { t.times = Float32Array.from(t.times, v => Math.max(0, v - t0)); }); c.resetDuration(); } }   // cópia: os trilhos compartilham o array de tempos
 const W = 960, H = 540;
 export async function start({ cv, base = 'assets/models/' }) {
   // 1) arquivos e validação ANTES de mexer na página (qualquer falha aborta sem efeito colateral)
@@ -38,7 +41,7 @@ export async function start({ cv, base = 'assets/models/' }) {
   const reac = {};                                                                                  // entrada + 5 comemorações + 5 frustrações, destro e canhoto (tools/blender/reacoes.py)
   await Promise.all(['entrada', ...Object.keys(GOAL_REACTIONS), ...Object.keys(MISS_REACTIONS)].flatMap(n => ['r', 'l'].map(async pe => { reac[n + '_' + pe] = await loadClip(base + `anim/${n}_${pe}.glb`).catch(fail); })));
   const gk = {};                                                                                    // goleiro: espera + 9 defesas (tools/blender/goleiro.py)
-  await Promise.all(Object.keys(KEEPER_CLIPS).map(async n => { gk[n] = await loadClip(base + 'anim/' + KEEPER_CLIPS[n].arquivo).catch(fail); if (gk[n] && n === 'gk_espera') { gk[n].loop = true; gk[n].clip.userData = { loop: true }; } }));
+  await Promise.all(Object.keys(KEEPER_CLIPS).map(async n => { gk[n] = await loadClip(base + 'anim/' + KEEPER_CLIPS[n].arquivo).catch(fail); zeraInicio(gk[n]); if (gk[n] && n === 'gk_espera') { gk[n].loop = true; gk[n].clip.userData = { loop: true }; } }));
   try { tplG = await loadTemplate(base + 'goalkeeper.glb', { skeletonMap, layout }); } catch (e) { if (e.status !== 404) throw e; console.info('goalkeeper.glb ausente: o goleiro usará athlete.glb com o uniforme de goleiro.'); }
   // 2) WebGL por baixo da tela 2D (que continua desenhando o placar/HUD, transparente)
   const gl = document.createElement('canvas'); gl.id = 'gl'; Object.assign(gl.style, { position: 'absolute', left: '0', top: '0', width: '100%', height: '100%', pointerEvents: 'none' }); cv.parentNode.insertBefore(gl, cv);

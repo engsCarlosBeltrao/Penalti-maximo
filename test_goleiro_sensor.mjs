@@ -121,4 +121,17 @@ console.log('centro com ajuste de passos:');
   const lados = [...varre({ gx: .4, gy: .45, lado: 'esq', tipo: 'medio' }), ...varre({ gx: .6, gy: .45, lado: 'dir', tipo: 'medio' })];
   t('lado escolhido: nunca usa os passos do centro nem passo para o lado oposto', lados.every(r => r.k.plano.tipo !== 'passos' && (r.k.plano.lado === r.k.lado || r.k.plano.lado === 'centro')), tipos(lados));
   t('candidatos: passos só existem quando a escolha é centro', GK.candidatos('centro').some(c => c.tipo === 'passos') && !GK.candidatos('esq').some(c => c.tipo === 'passos') && !GK.candidatos('dir').some(c => c.tipo === 'passos') && !GK.candidatos('centro').some(c => c.tipo === 'mergulho')); }
+// ---------- 8. três áreas do gol (terços) e transição de pose igual à da tela ----------
+{ const T = 7.32/6; t('áreas: terços iguais da largura (meio = |x| ≤ 1,22 m)', Math.abs(GK.TERCO - T) < 1e-9 && GK.areaDe(T + .01) === 'esq' && GK.areaDe(T - .01) === 'centro' && GK.areaDe(-T - .01) === 'dir' && GK.areaDe(0) === 'centro');
+  t('áreas: nomes como na tela (esquerda do goleiro = DIREITA da tela)', GK.NOME_AREA.esq === 'DIREITA' && GK.NOME_AREA.dir === 'ESQUERDA' && GK.NOME_AREA.centro === 'MEIO');
+  const casos = [[.15, 'dir'], [.5, 'centro'], [.85, 'esq'], [.4, 'centro'], [.3, 'dir']]; let okA = true;
+  for (const [gx, a] of casos) { const r = cobra({ gx, gy: .5, lado: 'centro', tipo: 'medio', rng: semente(77) }); okA &&= r.sens.at(-1).area === a && r.sens.at(-1).areaReal === a; }
+  t('sensor: identifica a área (terço) em que a bola vai chegar, mantendo as coordenadas exatas', okA);
+  const r = cobra({ gx: .45, gy: .4, lado: 'esq', tipo: 'medio', rng: semente(5) }), k = r.k, p = k.plano;
+  t('escolha esquerda e bola no meio: prepara para a esquerda (área escolhida ≠ área da bola)', k.lado === 'esq' && r.sens.at(-1).area === 'centro');
+  if (p.foto) { const ini = GK.colisoresPlano({ plano: { ...p, ajuste: null } }, p.tIni), fim = GK.colisoresPlano({ plano: { ...p, ajuste: null } }, p.tIni + (p.blend + .05)/(p.ritmo || 1)), puro = GK.colisores(p.clip, GK.ctDe({ plano: p }, p.tIni + (p.blend + .05)/(p.ritmo || 1)));
+    const d = (A, B, n) => { const a = A.find(c => c.nome === n).a, b = B.find(c => c.nome === n).a; return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]); };
+    t('transição: no início da ação a física parte da pose que estava na tela (foto)', d(ini, p.foto, 'mao_l') < .01 && d(ini, p.foto, 'mao_r') < .01);
+    t('transição: depois do blend a física é o clipe puro', d(fim, puro, 'mao_l') < .01 && d(fim, puro, 'mao_r') < .01); }
+  else t('transição: plano tem foto da pose anterior', false); }
 console.log(`SENSOR OK ${ok} | FALHAS ${bad}`); process.exit(bad ? 1 : 0);
