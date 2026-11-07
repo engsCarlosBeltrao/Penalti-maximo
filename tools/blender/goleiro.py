@@ -226,7 +226,8 @@ def lateral(tgt, sc, vl, N, h=1.0, salto=False, passos=1):
             PE[s_].matrix_world = Mf; PE[s_].keyframe_insert("location", frame=f); PE[s_].keyframe_insert("rotation_euler", frame=f)
             PO[s_].location = Pw + Vector((sg*.25, -.9, -.3)); PO[s_].keyframe_insert("location", frame=f)
             # as DUAS mãos vão juntas à bola, à frente do corpo (luvas a ~18 cm, palmas para a bola): nada de um braço esticado para o lado e o outro parado
-            free = pb[f"hand_{s_}"].head.copy(); alvo = Vector((Pw.x + (.52 if lead else .34), Pw.y - .42, h - (0 if lead else .03)))
+            # o CORPO vai para trás da bola (o passo leva a pelve até ela) e as luvas ficam juntas NA FRENTE DO PEITO, um pouco para o lado da bola
+            free = pb[f"hand_{s_}"].head.copy(); alvo = Vector((Pw.x + (.22 if lead else .02), Pw.y - .45, h - (0 if lead else .03)))
             MA[s_].location = free.lerp(alvo, wh); MA[s_].keyframe_insert("location", frame=f)
             PB[s_].location = Pw + (Vector((sg*.55, .25, -.45 if not baixa else .25)) if lead else Vector((sg*.2, .3, -.6 if not baixa else .15))); PB[s_].keyframe_insert("location", frame=f)   # cotovelos para baixo/fora, sem abrir em "T"
     _assa(tgt)
@@ -264,17 +265,20 @@ def curta(tgt, sc, vl, N, h=1.0):
 def centraliza(tgt, sc, vl, N):
     """Defesa no CENTRO: o Catch (1) do Mixamo dá sozinho um passo de ~0,4 m para a direita; aqui os pés ficam no lugar (só podem ir à frente) e a pelve
     não deriva para o lado — o goleiro defende a bola que vem no corpo sem sair da frente dela."""
-    pb = tgt.pose.bones; feet = []; px0 = []
+    pb = tgt.pose.bones; feet = []; px0 = []; sm = lambda u: (lambda v: v*v*(3 - 2*v))(min(1, max(0, u)))
     for f in range(1, N + 2): sc.frame_set(f); vl.update(); feet.append({s: pb[f"foot_{s}"].matrix.copy() for s in "lr"}); px0.append(pb["pelvis"].head.x)
-    PE = {s: _vazio(sc, f"pe_{s}") for s in "lr"}; PO = {s: _vazio(sc, f"po_{s}") for s in "lr"}
-    for s in "lr": _ik(pb, f"calf_{s}", PE[s], PO[s]); cr = pb[f"foot_{s}"].constraints.new("COPY_ROTATION"); cr.target = PE[s]
+    PE = {s: _vazio(sc, f"pe_{s}") for s in "lr"}; PO = {s: _vazio(sc, f"po_{s}") for s in "lr"}; MA = {s: _vazio(sc, f"ma_{s}") for s in "lr"}; PB = {s: _vazio(sc, f"pb_{s}") for s in "lr"}
+    for s in "lr": _ik(pb, f"calf_{s}", PE[s], PO[s]); cr = pb[f"foot_{s}"].constraints.new("COPY_ROTATION"); cr.target = PE[s]; _ik(pb, f"lowerarm_{s}", MA[s], PB[s])
     for f in range(1, N + 2):
-        sc.frame_set(f); vl.update(); P = pb["pelvis"]; M = P.matrix.copy(); M.translation.x -= px0[f - 1] - px0[0]; P.matrix = M; P.keyframe_insert("location", frame=f, group="pelvis")
-        vl.update(); Pw = pb["pelvis"].head.copy()
+        t = (f - 1)/FPS; sc.frame_set(f); vl.update(); P = pb["pelvis"]; M = P.matrix.copy(); M.translation.x -= px0[f - 1] - px0[0]; P.matrix = M; P.keyframe_insert("location", frame=f, group="pelvis")
+        vl.update(); Pw = pb["pelvis"].head.copy(); wh = sm((t - .04)/.26)*(1 - sm((t - .8)/.35))     # as DUAS mãos na frente do peito (o mocap pegava a bola de lado, com uma mão esticada)
         for s in "lr":
             sg = 1 if s == "l" else -1; Mf = feet[f - 1][s].copy(); Mf.translation.x = feet[0][s].translation.x
             PE[s].matrix_world = Mf; PE[s].keyframe_insert("location", frame=f); PE[s].keyframe_insert("rotation_euler", frame=f)
             PO[s].location = Pw + Vector((sg*.2, -.9, -.3)); PO[s].keyframe_insert("location", frame=f)
+            livre = pb[f"hand_{s}"].head.copy(); alvo = Vector((Pw.x + sg*.1, Pw.y - .45, 1.2))      # luvas em "W", ~20 cm uma da outra, palmas para a bola
+            MA[s].location = livre.lerp(alvo, wh); MA[s].keyframe_insert("location", frame=f)
+            PB[s].location = Pw + Vector((sg*.45, .2, -.55)); PB[s].keyframe_insert("location", frame=f)   # cotovelos para baixo e um pouco para fora
     _assa(tgt)
 
 def bracos(tgt, sc, vl, N):

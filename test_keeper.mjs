@@ -34,7 +34,10 @@ const lat = n => Math.max(...KEEPER_CLIPS[n].trilhas.mao_l.concat(KEEPER_CLIPS[n
 t('lados do ponto de vista do goleiro: mergulhos "esq" vão para +x, "dir" para −x', ['baixa', 'media', 'alta'].every(h => lat(`gk_esq_${h}`) > 1.8 && latN(`gk_dir_${h}`) < -1.8));
 const maos = n => KEEPER_CLIPS[n].trilhas.mao_l.concat(KEEPER_CLIPS[n].trilhas.mao_r);
 t('mergulho alto leva as mãos acima de 2 m; baixo abaixo de 0,35 m', Math.max(...maos('gk_esq_alta').map(p => p[1])) > 2 && Math.min(...maos('gk_esq_baixa').map(p => p[1])) < .35);
-t('defesa curta: mãos a ~0,9 m para o lado sem deitar (pelve ≥ 0,5 m) e termina no lugar novo (sem andar de ré)', lat('gk_esq_curta_media') > .85 && Math.min(...KEEPER_CLIPS.gk_esq_curta_media.trilhas.tronco.map(p => p[1])) > .5 && KEEPER_CLIPS.gk_esq_curta_media.trilhas.tronco.at(-1)[0] > .25);
+{ const tr = KEEPER_CLIPS.gk_esq_curta_media.trilhas.tronco, ml = KEEPER_CLIPS.gk_esq_curta_media.trilhas.mao_l, mr = KEEPER_CLIPS.gk_esq_curta_media.trilhas.mao_r, i = 15;
+  t('defesa curta: o CORPO vai para o lado (tronco ≥ 0,3 m, sem deitar: pelve ≥ 0,5 m), as duas mãos juntas na frente do peito (≤ 35 cm do tronco, ≤ 30 cm entre elas), termina no lugar novo',
+    tr.at(-1)[0] > .25 && Math.max(...tr.map(p => p[0])) > .3 && Math.min(...tr.map(p => p[1])) > .5 && Math.abs(ml[i][0] - tr[i][0]) < .35 && Math.abs(mr[i][0] - tr[i][0]) < .35 && Math.abs(ml[i][0] - mr[i][0]) < .3,
+    `tronco ${tr[i][0].toFixed(2)} · mãos ${ml[i][0].toFixed(2)} / ${mr[i][0].toFixed(2)}`); }
 t('raiz do goleiro junto da linha do gol (z ≤ 0,25 m)', GK.KEEPER_CFG.raiz[2] <= .25);
 
 // ---------- 2. classificação no plano do gol (configurável) ----------
@@ -59,7 +62,7 @@ const plano = (gx, gy, lado = 'centro', tipo = 'chapada', s = 9) => cobra({ gx, 
 t('bola no corpo (meio, média altura): defesa no centro, sem mergulho', plano(.5, .42).tipo === 'centro');
 { const n = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(sd => plano(.5, .06, 'centro', 'chapada', sd).clip === 'gk_centro_baixa').length; t(`rasteira no meio: defesa baixa no centro na maioria das leituras (${n}/10)`, n >= 7); }
 t('meio alto: braços para cima/salto (defesa alta no centro)', plano(.5, .82).clip === 'gk_centro_alta', plano(.5, .82).clip);
-{ const p = plano(.62, .4); t('bola a ~0,9 m do corpo: passo curto com extensão dos braços', p.tipo === 'curta', p.clip); }
+{ const p = plano(.62, .4); t('bola a ~0,9 m do corpo: passo(s) para o lado da bola (o corpo vai até ela), sem mergulho', (p.tipo === 'curta' || p.tipo === 'passos') && p.lado === 'esq', p.clip); }
 { const p = plano(.85, .45, 'esq'); t('bola no canto: mergulho', p.tipo === 'mergulho', p.clip); }
 { const p = plano(.85, .1, 'esq'); t('canto baixo: mergulho baixo', p.clip === 'gk_esq_baixa' || p.clip === 'gk_esq_media', p.clip); }
 { const p = plano(.15, .85, 'dir'); t('canto alto direito: mergulho alto à direita', p.clip === 'gk_dir_alta', p.clip); }

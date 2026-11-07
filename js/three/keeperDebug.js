@@ -4,9 +4,11 @@
 import * as THREE from 'three';
 import { DBG } from '../debug.js';
 import { colisoresPlano, colisoresAgora, cruzamento, ROTULOS, KEEPER_CFG, ballFlight, REGIAO, classe, velocidadeGoleiro, defesaNome, TERCO, areaDe, NOME_AREA } from '../keeper.js';
-import { GOAL_H } from '../rig.js';
+import { GOAL_H, BALL_R } from '../rig.js';
+import { FERROS, R_FERRO } from '../fisicaGol.js';
+import { sensoresMaos } from '../keeper.js';
 import { probabilidades } from '../goleiroMemoria.js';
-import { keeperScale, flightTime } from '../frame.js';
+import { keeperScale, flightTime, ballWorld } from '../frame.js';
 // cor por REGIÃO: mãos em verde (prioridade), braços em amarelo, tronco em azul, pernas e pés em laranja
 const COR = { palma: 0x39ff14, maos: 0x00ff9c, dedos: 0xb2ff59, punho: 0x76ff03, antebraco: 0xc6ff00, cotovelo: 0xffea00, braco: 0xffe600, ombro: 0xffc400, peito: 0x00e5ff, abdomen: 0x40c4ff, lateral: 0x80d8ff,
   cabeca: 0x00b0ff, coxa: 0xff9100, joelho: 0xffab40, canela: 0xff6d00, pe: 0xff3d00 }, TOQUE = 0xff1744;
@@ -32,6 +34,18 @@ export function createKeeperDebug(scene) {
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthTest: false, transparent: true })); sp.scale.set(1.6, .4, 1); sp.position.set(xArea[a], GOAL_H + .32, 0); sp.renderOrder = 999; g.add(sp);
     areas[a] = { pl, borda, sp }; }
   for (const x of [-TERCO, TERCO]) { const gl = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, 0, .02), new THREE.Vector3(x, GOAL_H, .02)]); const l = new THREE.Line(gl, new THREE.LineBasicMaterial({ color: 0xffffff, depthTest: false })); l.renderOrder = 999; g.add(l); }
+  // ÁREAS DE ALCANCE DAS MÃOS (caixas rosa presas às palmas): estar dentro NÃO é defesa — é a oportunidade que aciona o braço; contato só no colisor
+  const caixas = {}; for (const s of ['l', 'r']) { const bx = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0xff8fa3, transparent: true, opacity: .12, depthTest: false }));
+    const ed = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)), new THREE.LineBasicMaterial({ color: 0xffb3c1, depthTest: false, transparent: true, opacity: .9 })); bx.add(ed); bx.renderOrder = 997; g.add(bx); caixas[s] = { bx, ed }; }
+  // COLISOR DA BOLA (esfera do tamanho real) e FERROS (cápsulas da física: traves e travessão)
+  const bolaCol = new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 14, 10), new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, depthTest: false, transparent: true, opacity: .8 })); bolaCol.renderOrder = 999; g.add(bolaCol);
+  const ferros = FERROS.map(f => { const a = new THREE.Vector3(...f.a), b_ = new THREE.Vector3(...f.b), d = b_.clone().sub(a), m = new THREE.Mesh(new THREE.CylinderGeometry(R_FERRO, R_FERRO, d.length(), 10, 1, true), new THREE.MeshBasicMaterial({ color: 0xb0bec5, wireframe: true, depthTest: false, transparent: true, opacity: .7 }));
+    m.position.copy(a).addScaledVector(d, .5); m.quaternion.setFromUnitVectors(Y, d.normalize()); m.renderOrder = 998; g.add(m); return { f, m }; });
+  // ÁREA AZUL DOS PÉS: a região central (toda a largura do MEIO) onde o goleiro anda quando escolhe MEIO, e os pés atuais
+  const areaPes = new THREE.Mesh(new THREE.PlaneGeometry(2*TERCO, 1.0), new THREE.MeshBasicMaterial({ color: 0x00b8d4, transparent: true, opacity: .14, depthTest: false, side: THREE.DoubleSide }));
+  areaPes.rotation.x = -Math.PI/2; areaPes.position.set(0, .012, .5); areaPes.renderOrder = 996; g.add(areaPes);
+  const bordaPes = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(2*TERCO, 1.0)), new THREE.LineBasicMaterial({ color: 0x80deea, depthTest: false })); bordaPes.rotation.x = -Math.PI/2; bordaPes.position.set(0, .014, .5); bordaPes.renderOrder = 999; g.add(bordaPes);
+  const pes = ['l', 'r'].map(() => { const d = new THREE.Mesh(new THREE.RingGeometry(.07, .11, 18), new THREE.MeshBasicMaterial({ color: 0x00e5ff, side: THREE.DoubleSide, depthTest: false })); d.rotation.x = -Math.PI/2; d.renderOrder = 999; g.add(d); return d; });
   const va = new THREE.Vector3(), vb = new THREE.Vector3();
   function update(game, b, now) {
     g.visible = !!DBG.goleiro && !!game.m && !game.fin; if (!g.visible) return; const k = game.keeper; if (!k || !k.log) { g.visible = false; return; }
@@ -49,6 +63,13 @@ export function createKeeperDebug(scene) {
     toque.visible = !!k.contato; if (k.contato) toque.position.set(...k.contato.ponto);
     const escolhida = k.lado === 'esq' || k.lado === 'dir' || k.lado === 'centro' ? k.lado : null, detectada = k.sensor && b && b.t > 0 ? k.sensor.area : null;
     for (const a of AREAS) { const A = areas[a]; A.pl.material.opacity = a === escolhida ? .22 : .05; A.borda.visible = a === detectada; A.sp.material.color.setHex(a === escolhida ? 0xffe66d : a === detectada ? 0x00ffff : 0xffffff); }
+    const sc = keeperScale(game), S = sensoresMaos(k, b, b ? b.t : 0, sc), ev = new Set((k.eventos || []).map(e => e.tipo));
+    for (const s of ['l', 'r']) { const C = caixas[s], o = S[s]; C.bx.position.set(...o.centro); C.bx.scale.set(2*o.meia[0], 2*o.meia[1], 2*o.meia[2]);
+      const tocou = ev.has('toque_mao_' + s); C.bx.material.color.setHex(tocou ? TOQUE : o.dentro ? 0xff4d6d : 0xff8fa3); C.bx.material.opacity = tocou ? .32 : o.dentro ? .26 : .1; C.ed.material.color.setHex(tocou ? TOQUE : o.dentro ? 0xffffff : 0xffb3c1); }
+    const bw = b ? ballWorld(b, k) : null; bolaCol.visible = !!bw; if (bw) bolaCol.position.set(...bw);
+    for (const F of ferros) F.m.material.color.setHex(b?.fis?.ferros?.includes(F.f.nome) ? TOQUE : 0xb0bec5);
+    areaPes.material.opacity = k.lado === 'centro' ? .26 : .1;
+    for (const [i, nm] of [[0, 'pe_l'], [1, 'pe_r']]) { const c = cols.find(x => x.nome === nm); pes[i].visible = !!c; if (c) pes[i].position.set((c.a[0] + (c.b ? c.b[0] : c.a[0]))/2, .016, (c.a[2] + (c.b ? c.b[2] : c.a[2]))/2); }
   }
   let ultimosCols = []; const cols0 = () => { const b = ultimo.b; if (!b || !ultimosCols.length) return null; const bp = ballFlight(b, b.t); let best = null;
     for (const c of ultimosCols) { if (c.grupo !== 'mao') continue; const ab = c.b ? [c.b[0] - c.a[0], c.b[1] - c.a[1], c.b[2] - c.a[2]] : [0, 0, 0], l2 = ab[0]**2 + ab[1]**2 + ab[2]**2 || 1, u = Math.max(0, Math.min(1, ((bp[0] - c.a[0])*ab[0] + (bp[1] - c.a[1])*ab[1] + (bp[2] - c.a[2])*ab[2])/l2));
@@ -78,6 +99,11 @@ export function createKeeperDebug(scene) {
     if (b && b.t > 0 && !ct) { const bp = ballFlight(b, b.t), m = cols0(); if (m) L.push(`bola → mão mais próxima: ${Math.round(m.d*100)} cm · bola a ${f(Math.hypot(bp[0] - KEEPER_CFG.raiz[0], bp[2] - KEEPER_CFG.raiz[2]))} m do goleiro`); }
     if (ct) { L.push(`contato: ${ct.nomeParte || ct.parte} (${ct.parte}) · ${defesaNome(ct)} · ${classe(ct.rotulo)} · ${ROTULOS[ct.rotulo] || ct.rotulo} · ${f(ct.vel)} → ${f(ct.vOutMod)} m/s`); L.push(`por quê: ${ct.motivo}`); }
     else if (k.sem) L.push(`sem contato: ${k.sem}`); else if (k.dmin) L.push(`mais perto até agora: ${Math.round(k.dmin.d*100)} cm (${k.dmin.parte})`);
+    { const NOMES = { chute: 'pé do cobrador tocou a bola', sensor_mao_l: 'sensor: trajetória passa pela área da mão esq.', sensor_mao_r: 'sensor: trajetória passa pela área da mão dir.', na_area_mao_l: 'bola dentro da área da mão esq.', na_area_mao_r: 'bola dentro da área da mão dir.', tentativa_mao_l: 'tentativa com a mão esq.', tentativa_mao_r: 'tentativa com a mão dir.',
+        toque_mao_l: 'MÃO ESQ. TOCOU', toque_mao_r: 'MÃO DIR. TOCOU', duas_maos: 'DUAS MÃOS TOCARAM', trave: 'BOLA NA TRAVE', travessao: 'BOLA NO TRAVESSÃO' };
+      const ev = (k.eventos || []).map(e => `${NOMES[e.tipo] || (e.tipo.startsWith('toque_') ? 'TOCOU: ' + (REGIAO[e.tipo.slice(6)]?.nome || e.tipo.slice(6)).toUpperCase() : e.tipo)} (${f(e.t)} s)`);
+      L.push(`eventos (área ≠ contato): ${ev.length ? ev.join(' · ') : '—'}`);
+      if (b?.chute) L.push(`chute: ${b.chute.clipe} · pé na bola no instante ${f(b.chute.contatoClipe)} s do clipe · folga pé–bola ${b.chute.folgaPeMm ?? '—'} mm · pé a ${b.chute.velPe ?? '—'} m/s · força ${Math.round((b.chute.forca || 0)*100)}% · impulsos ${b.impulsos || 0}`); }
     if (b && b.res) L.push(`resultado: ${b.res.toUpperCase()}`);
     // linhas longas quebradas (o painel fica mais estreito e não cobre o gol, onde ficam as três áreas)
     const Q = []; for (const s0 of L) { let s1 = s0; while (s1.length > 78) { let i = s1.lastIndexOf(' ', 78); if (i < 40) i = 78; Q.push(s1.slice(0, i)); s1 = '   ' + s1.slice(i).trimStart(); } Q.push(s1); } L.length = 0; L.push(...Q);

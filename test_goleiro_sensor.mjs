@@ -62,10 +62,10 @@ function cobra({ gx, gy, tipo = 'medio', lado = 'centro', rng = Math.random, dif
 { const r = cobra({ gx: .85, gy: .5, lado: 'esq', tipo: 'bomba', rng: semente(1) });
   t('com lado escolhido, o goleiro já está em movimento ANTES do chute (≤ 0,2 s, fase inicial)', r.k.log.some(l => /começa a sair para esq a 0\.\d\d s do chute/.test(l)) && r.k.plano.saiuAntes); }
 { // alcance lateral das mãos 0,35 s depois do chute: agora × sem a saída e com a reação antiga (0,12 s)
-  const mede = (antes, reac) => { const s0 = GK.KEEPER_CFG.saida.antes, r0 = GK.KEEPER_CFG.reacao.lado.normal; GK.KEEPER_CFG.saida.antes = antes; GK.KEEPER_CFG.reacao.lado.normal = reac; let soma = 0;
+  const mede = (antes, reac) => { const s0 = GK.KEEPER_CFG.saida.antes, r0 = GK.KEEPER_CFG.reacao.lado.normal, m0 = GK.KEEPER_CFG.ajuste.max; GK.KEEPER_CFG.saida.antes = antes; GK.KEEPER_CFG.reacao.lado.normal = reac; GK.KEEPER_CFG.ajuste.max = 0; let soma = 0;   // só o corpo (sem o ajuste do braço)
     try { for (let i = 0; i < 10; i++) { const k = GK.novoGoleiro(); GK.escolherLado(k, null, 'esq', 't'); const b = { gx: .85, gy: .5, t: -1.6, tf: .62, curl: 0 }; const rng = semente(30 + i);
       while (b.t < .35) { const tA = b.t; b.t += 1/120; GK.passo(k, b, tA, b.t, { rng }); } soma += Math.max(...GK.detalha(GK.colisoresPlano(k, .35)).filter(c => c.grupo === 'mao').map(c => c.a[0])); } }
-    finally { GK.KEEPER_CFG.saida.antes = s0; GK.KEEPER_CFG.reacao.lado.normal = r0; } return soma/10; };
+    finally { GK.KEEPER_CFG.saida.antes = s0; GK.KEEPER_CFG.reacao.lado.normal = r0; GK.KEEPER_CFG.ajuste.max = m0; } return soma/10; };
   const novo = mede(.2, .08), antigo = mede(0, .12);
   console.log(`  mão mais lateral 0,35 s depois do chute: agora ${novo.toFixed(2)} m · antes (sem saída, reação 0,12 s) ${antigo.toFixed(2)} m`);
   t('goleiro mais rápido: as mãos chegam mais longe no mesmo tempo', novo > antigo + .1); }
