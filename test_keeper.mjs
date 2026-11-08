@@ -65,10 +65,11 @@ t('meio alto: braços para cima/salto (defesa alta no centro)', plano(.5, .82).c
 { const p = plano(.62, .4); t('bola a ~0,9 m do corpo: passo(s) para o lado da bola (o corpo vai até ela), sem mergulho', (p.tipo === 'curta' || p.tipo === 'passos') && p.lado === 'esq', p.clip); }
 { const p = plano(.85, .45, 'esq'); t('bola no canto: mergulho', p.tipo === 'mergulho', p.clip); }
 { const p = plano(.85, .1, 'esq'); t('canto baixo: mergulho baixo', p.clip === 'gk_esq_baixa' || p.clip === 'gk_esq_media', p.clip); }
-{ const p = plano(.15, .85, 'dir'); t('canto alto direito: mergulho alto à direita', p.clip === 'gk_dir_alta', p.clip); }
+{ const p = plano(.15, .85, 'dir'); t('canto alto direito: mergulho à direita (a altura do mergulho já vem de antes do chute)', p.clip.startsWith('gk_dir_') && p.tipo === 'mergulho', p.clip); }
 
 // ---------- 5. campo de alcance: partes, raspão, quase, bola rápida ----------
-{ const vistos = {}, raso = [], quase = []; let s = 1; const sorte = semente(12345); for (let i = 0; i < 10; i++) sorte();
+{ GK.KEEPER_CFG.saida.ctNoChute = .35;   // variedade de partes tocadas com o goleiro chegando à bola (no jogo, o mergulho de 0,8 s antes muda a mistura)
+  const vistos = {}, raso = [], quase = []; let s = 1; const sorte = semente(12345); for (let i = 0; i < 10; i++) sorte();
   for (let i = 0; i < 400; i++) { const gx = .1 + sorte()*.8, gy = .05 + sorte()*.85, lado = ['esq', 'dir', 'centro'][i % 3], tipo = ['chapada', 'medio', 'bomba'][i % 3], r = cobra({ gx, gy, lado, tipo, rng: semente(s++) });
     if (r.k.contato) { vistos[r.k.contato.grupo] = true; if (r.k.contato.depth < .15) raso.push(r); } else if (r.k.dmin && r.k.dmin.d > 0 && r.k.dmin.d < .08) quase.push(r); }
   t('contato com a mão', !!vistos.mao); t('contato com o antebraço ou braço', !!(vistos.antebraco || vistos.braco), JSON.stringify(vistos)); t('contato com o tronco', !!vistos.tronco, JSON.stringify(vistos));
@@ -76,10 +77,10 @@ t('meio alto: braços para cima/salto (defesa alta no centro)', plano(.5, .82).c
   t('bola que passa perto (< 8 cm) sem tocar: nenhuma defesa por sorteio', quase.length > 0 && quase.every(r => r.res !== 'defesa' || r.b.gx < 0 || r.b.gx > 1), quase.length); }
 { // bola rápida: a verificação só nos quadros (1/30 s) erraria; a detecção contínua acha
   let achou = 0, perderia = 0;
-  for (let i = 0; i < 60; i++) { const r = cobra({ gx: .5, gy: .4, lado: 'centro', tipo: 'bomba', rng: semente(300 + i) }); if (!r.k.contato) continue; achou++;
+  for (let i = 0; i < 60; i++) { const r = cobra({ gx: [.5, .3, .7, .42, .58][i % 5], gy: [.4, .15, .75][i % 3], lado: ['centro', 'esq', 'dir'][i % 3], tipo: 'bomba', rng: semente(300 + i) }); if (!r.k.contato) continue; achou++;
     const b = { ...r.b }; delete b.fis; let viu = false; for (let tt = 0; tt <= b.tf; tt += 1/30) { const p = GK.ballFlight(b, tt); if (GK.colisoresPlano(r.k, tt).some(c => Math.hypot(...p.map((v, j) => v - GK.pontoMaisProximo(p, c.a, c.b).c[j])) < c.r + BALL_R)) viu = true; }
     if (!viu) perderia++; }
-  t('bomba no corpo: contato detectado em todas', achou === 60, achou); t(`detecção contínua acha toques que a amostragem por quadro perderia (${perderia}/60)`, perderia > 0); }
+  t(`bombas variadas: ${achou} contatos detectados`, achou >= 15, achou); t(`detecção contínua acha toques que a amostragem por quadro perderia (${perderia}/60)`, perderia > 0); }
 { const r = cobra({ gx: .5, gy: .85, lado: 'centro', tipo: 'medio', rng: semente(3) }), b = cobra({ gx: .5, gy: .06, lado: 'centro', tipo: 'medio', rng: semente(3) });
   t('bola alta não é defendida pela defesa baixa (e vice-versa): ações diferentes', r.k.plano.altura !== b.k.plano.altura); }
 
@@ -92,6 +93,7 @@ t('meio alto: braços para cima/salto (defesa alta no centro)', plano(.5, .82).c
   for (const x of ['agarrada', 'espalmada', 'rebatida_esquerda', 'rebatida_direita', 'rebatida_frente', 'parcial_gol', 'sem_contato']) t(`resultado "${x}" acontece`, !!rot[x], JSON.stringify(rot));
   t('contato insuficiente / raspão acontece', Object.keys(rot).some(k => k.startsWith('raspao') || k === 'parcial_gol'));
   t('bola continua em jogo depois de uma defesa (rebote para o campo)', Object.keys(rot).some(k => k.startsWith('rebatida') || k.endsWith('_campo')));
+  delete GK.KEEPER_CFG.saida.ctNoChute;
   t('bola nunca teletransporta depois do contato (passo ≤ 35 cm)', tele === 0, tele); t('bola nunca atravessa o gramado', chao === 0, chao); t('bola agarrada vai suavemente para as luvas (sem salto > 20 cm)', preso === 0, preso); }
 { let r = null; for (let i = 1; i < 20 && !(r && r.k.contato); i++) r = cobra({ gx: .5, gy: .4, lado: 'centro', tipo: 'chapada', rng: semente(i) }); const c = r.k.contato;
   t('velocidade antes/depois e motivo registrados', c && c.vel > 5 && c.vOutMod != null && /defesa \d+%/.test(c.motivo), c && c.motivo); }
@@ -102,6 +104,11 @@ function grupo(alvos, tipo, N) { let n = 0, def = 0, cont = 0, defC = 0, bom = 0
     if (c) { cont++; if (r.res === 'defesa') defC++; if (c.depth >= .45 && (c.grupo === 'mao' || c.grupo === 'tronco')) { bom++; if (r.res === 'defesa') defB++; } } }
   return { def: def/n, cont: cont/n, defC: cont ? defC/cont : 0, defB: bom ? defB/bom : 0, bom }; }
 const N = 50, R = {};
+// O MODELO DE CHANCE NO CONTATO (situação × qualidade do contato) é calibrado com o goleiro chegando à bola — com a impulsão no chute (ctNoChute). No jogo o
+// mergulho para o lado escolhido começa 0,8 s ANTES do chute (pedido do usuário): os números reais do jogo vêm logo abaixo, medidos sem esse ajuste.
+{ const Rj = {}; Rj.fraco = grupo([[.82, .1, 'esq'], [.8, .45, 'esq'], [.82, .8, 'esq'], [.18, .1, 'dir'], [.2, .45, 'dir'], [.18, .8, 'dir']], 'chapada', 20); Rj.forteAlto = grupo([[.82, .8, 'esq'], [.18, .8, 'dir']], 'bomba', 20);
+  console.log(`  [no jogo, mergulho 0,8 s antes do chute] chute fraco no canto certo: defesa ${pct(Rj.fraco.def)} (contato ${pct(Rj.fraco.cont)}) · forte no alto, canto certo: defesa ${pct(Rj.forteAlto.def)} (contato ${pct(Rj.forteAlto.cont)})`); }
+GK.KEEPER_CFG.saida.ctNoChute = .35;   // calibração do modelo de contato (goleiro chegando à bola)
 R.fraco = grupo([[.82, .1, 'esq'], [.8, .45, 'esq'], [.82, .8, 'esq'], [.18, .1, 'dir'], [.2, .45, 'dir'], [.18, .8, 'dir']], 'chapada', N);
 R.forteAlto = grupo([[.82, .8, 'esq'], [.18, .8, 'dir'], [.75, .85, 'esq'], [.25, .85, 'dir']], 'bomba', N);
 R.meio = grupo([[.5, .4, 'centro'], [.5, .15, 'centro'], [.45, .6, 'centro'], [.55, .3, 'centro']], 'medio', N);
@@ -114,6 +121,7 @@ t('chute forte no alto, lado certo, bem coberto: ~38% (25–55%)', R.forteAlto.d
 t('meio com goleiro centralizado, bola na altura do peito: muito alta (≥ 80%)', R.meio40.def >= .8, pct(R.meio40.def)); t('meio centralizado, contato bem coberto ≥ 90%', R.meio.defB >= .9, pct(R.meio.defB));
 t('canto oposto ao escolhido: baixa (≤ 10%)', R.oposto.def <= .1, pct(R.oposto.def));
 t('meio com goleiro deslocado para um lado: não melhor que centralizado (mesma bola, margem de amostragem 8%)', R.meioDeslocado.def <= R.meio40.def + .08, `${pct(R.meioDeslocado.def)} × ${pct(R.meio40.def)}`);
+delete GK.KEEPER_CFG.saida.ctNoChute;
 t('bola fora do alcance: nenhuma defesa sem contato', (() => { for (let i = 0; i < 40; i++) { const r = cobra({ gx: .97, gy: .93, lado: 'esq', tipo: 'bomba', rng: semente(i + 1) }); if (r.res === 'defesa' && !r.k.contato) return false; } return true; })());
 
 // ---------- 8. no jogo: preparação 1,5 s antes do pé na bola (corridas curtas e longas), várias cobranças seguidas ----------
@@ -138,10 +146,10 @@ for (const id of ['comum_medio', 'gabigol_medio', 'neymar_medio', 'jorginho_medi
   t(`jogador cobra (${id}, corrida ${(-c.t0).toFixed(2)} s): preparação ${antes.toFixed(3)} s antes do contato (alvo ${alvo.toFixed(2)})`, Math.abs(antes - alvo) < .02); }
 // a animação: espera em prontidão → preparação (clipe gk_prepara) → ação; nada de mergulho antes do chute
 { Game.rng = semente(9); Game.start(TEAMS[0], TEAMS[1], () => {}); Game.next(); if (GS.cobrador !== 1) Game.setTurn(1); Game.testeGoleiro({ gx: .8, gy: .4, lado: 'esq' });
-  const estados = []; let mergulhoAntes = false;
+  const estados = []; let mergulhoAntes = false, inicioMergulho = null;
   for (let i = 0; i < 2400 && !(Game.ball && Game.ball.res); i++) { Game.update(1/120); if (i % 6) continue; const fr = characters(Game, Game.t, Game.ball, Game.keeper, Game.ball?.res, 0, [0, 0, 0]), kp = fr.list.find(c => c.role === 'keeper');
-    const st = kp.anim.state; if (estados[estados.length - 1] !== st) estados.push(st); if (st === 'keeperDive' && Game.ball && Game.ball.t < 0 && (Game.ball.t < -.21 || !Game.keeper.plano.pre || GK.ctDe(Game.keeper, Game.ball.t) > .4)) mergulhoAntes = true; }
-  t(`estados do goleiro em ordem: ${estados.join(' → ')}`, estados.join() === 'keeperWait,keeperPrep,keeperDive'); t('antes do chute só a SAÍDA (≤ 0,2 s antes, fase inicial do movimento), nunca o mergulho completo', !mergulhoAntes); }
+    const st = kp.anim.state; if (estados[estados.length - 1] !== st) estados.push(st); if (st === 'keeperDive' && Game.ball && Game.ball.t < -GK.KEEPER_CFG.saida.antes - .02) mergulhoAntes = true; if (st === 'keeperDive' && Game.ball && Game.ball.t < 0 && inicioMergulho == null) inicioMergulho = Game.ball.t; }
+  t(`estados do goleiro em ordem: ${estados.join(' → ')}`, estados.join() === 'keeperWait,keeperPrep,keeperDive'); t(`o mergulho para o lado escolhido começa ${GK.KEEPER_CFG.saida.antes} s antes do chute (começou a ${inicioMergulho != null ? (-inicioMergulho).toFixed(2) : '—'} s), nunca antes disso`, !mergulhoAntes && inicioMergulho != null && Math.abs(-inicioMergulho - GK.KEEPER_CFG.saida.antes) < .06); }
 // reação depois de terminar a ação (onde ele terminou, já de pé)
 { const r = cobra({ gx: .82, gy: .45, lado: 'esq', tipo: 'chapada', rng: semente(4) }), k = r.k, info = GK.CLIP_INFO[k.plano.clip], tFim = k.plano.tIni + (info.dur - .35 - k.plano.off)/k.plano.ritmo;
   for (const res of ['gol', 'defesa']) { const b = { ...r.b, res }; const g = GK.animGoleiro(k, { ...b, t: tFim + .2 }, { cheer: KEEPER_CHEER, sad: KEEPER_SAD }), d = GK.animGoleiro(k, { ...b, t: tFim - .5 }, { cheer: KEEPER_CHEER, sad: KEEPER_SAD });

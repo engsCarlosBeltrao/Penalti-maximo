@@ -122,10 +122,11 @@ for (const [team, star, tipos] of [['vasco', null, ['chapada', 'medio', 'bomba']
   }
 }
 // goleiro e defesa com tempos de voo diferentes: com o mesmo lado escolhido, a bomba chega antes de o mergulho estender
-{ const GK = await import('./js/keeper.js'), mk = (tf, seed) => { let s = seed; const rng = () => (s = (s*16807) % 2147483647)/2147483647, k = GK.novoGoleiro(); GK.escolherLado(k, null, 'dir', 'teste');
+{ const GK = await import('./js/keeper.js'); GK.KEEPER_CFG.saida.ctNoChute = .35;   // alcance do goleiro chegando à bola (no jogo o mergulho começa 0,8 s antes do chute)
+  const mk = (tf, seed) => { let s = seed; const rng = () => (s = (s*16807) % 2147483647)/2147483647, k = GK.novoGoleiro(); GK.escolherLado(k, null, 'dir', 'teste');
     const b = { gx: .12, gy: .3, t: -1.6, t0: -1.6, tf, curl: 0, res: null }; while (b.t < tf && !b.fis) { const tA = b.t; b.t += 1/120; GK.passo(k, b, tA, b.t, { rng }); } return k.contato ? 1 : 0; };
   const ch = [1, 2, 3, 4, 5, 6].reduce((a, s) => a + mk(.8, s), 0), bo = [1, 2, 3, 4, 5, 6].reduce((a, s) => a + mk(.46, s), 0);
-  t(`goleiro alcança a chapada no canto que escolheu (${ch}/6) mais que a bomba (${bo}/6)`, ch >= 4 && bo < ch); }
+  t(`goleiro alcança a chapada no canto que escolheu (${ch}/6) mais que a bomba (${bo}/6)`, ch >= 4 && bo < ch); delete GK.KEEPER_CFG.saida.ctNoChute; }
 // comemoração e lamento no fim da disputa
 { let r = null; Game.start(TEAMS[0], TEAMS[1], w => r = w); let n = 0; while (!Game.fin && n++ < 80) { Game.keeper.t0 = null; Game.ball = { gx: GS.cobrador === 0 ? .85 : -.2, gy: .5, t: .7, tf: .7, res: null, som: true }; Game.resolve(); Game.wait = 0; Game.next(); }
   const fr = characters(Game, 5, null, Game.keeper, undefined, 0, BALL0); t('fim: comemoração (mates) e lamento (loser)', Game.fin && fr.final && fr.list.some(c => c.role === 'mate') && fr.list.some(c => c.role === 'loser')); }

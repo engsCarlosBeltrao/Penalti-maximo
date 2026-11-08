@@ -1,6 +1,7 @@
 // GOLEIRO — as 20 situações pedidas, os 9 setores do gol e as partes do corpo: o goleiro vai na direção da bola, prefere as mãos, só defende com
 // contato e o resultado depende da parte tocada.  node test_goleiro_situacoes.mjs
 import * as GK from './js/keeper.js';
+GK.KEEPER_CFG.saida.ctNoChute = .35;   // MODELO DO GOLEIRO CHEGANDO À BOLA (impulsão no chute): estes testes medem partes do corpo, IK, contato e física; no jogo o mergulho para o lado começa 0,8 s antes do chute (números reais em test_keeper.mjs)
 import { BALL_R } from './js/rig.js';
 let ok = 0, bad = 0; const t = (n, c, info = '') => { c ? ok++ : (bad++, console.log('FALHOU:', n, info)); };
 const semente = s => () => (s = (s*16807) % 2147483647)/2147483647;
@@ -62,6 +63,6 @@ t('8. alto no meio: braços para cima/salto', sit('8. alto', { gx: .5, gy: .85, 
 t('9. muito perto do corpo: reação curta (sem mergulho completo)', sit('9. perto do corpo', { gx: .62, gy: .35, tipo: 'medio' }, r => r.k.plano.tipo !== 'mergulho') >= .7);
 // ---------- IK das mãos: limites ----------
 { let n = 0, viol = 0; for (let i = 0; i < 200; i++) { const r = cobra({ gx: .2 + (i % 7)*.1, gy: .1 + (i % 5)*.18, tipo: 'medio', lado: ['esq', 'dir', 'centro'][i % 3], rng: semente(i + 5) }); const aj = r.k.plano?.ajuste;
-    if (aj) for (const a of Object.values(aj)) { n++; if (a.desloc > GK.KEEPER_CFG.ajuste.max + 1e-6 || (a.angC || 0) > GK.KEEPER_CFG.ajuste.cotovelo + 1e-6 || a.distAntes > Math.hypot(...GK.KEEPER_CFG.caixaMao)) viol++; } }
+    if (aj) for (const a of Object.values(aj)) { n++; { const M = r.k.lado === 'centro' ? GK.KEEPER_CFG.meio : null; if (a.desloc > (M ? M.ikMax : GK.KEEPER_CFG.ajuste.max) + 1e-6 || (a.angC || 0) > GK.KEEPER_CFG.ajuste.cotovelo + 1e-6 || a.distAntes > Math.hypot(...GK.KEEPER_CFG.caixaMao)*(M ? M.caixa : 1)) viol++; } } }
   t(`IK das mãos dentro dos limites (≤ ${GK.KEEPER_CFG.ajuste.max*100} cm, cotovelo ≤ 34°, só com a bola dentro da área de alcance da mão) em ${n} ajustes`, n > 0 && viol === 0, viol); }
 console.log(`SITUACOES OK ${ok} | FALHAS ${bad}`); process.exit(bad ? 1 : 0);

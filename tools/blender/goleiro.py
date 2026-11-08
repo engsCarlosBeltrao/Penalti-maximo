@@ -49,10 +49,10 @@ CLIPES = {
     "gk_dir_curta_alta": ("Goalkeeper Catch.fbx", True, ("lateral", dict(h=2.05, salto=True))),   # agarrada com SALTO real (mocap) levada para o lado
     "gk_esq_passos_baixa": ("Goalkeeper Catch (1).fbx", False, PASSOS(.28)),
     "gk_esq_passos_media": ("Goalkeeper Catch (1).fbx", False, PASSOS(1.15)),
-    "gk_esq_passos_alta":  ("Goalkeeper Catch (1).fbx", False, PASSOS(1.75)),
+    "gk_esq_passos_alta":  ("Goalkeeper Catch (1).fbx", False, PASSOS(2.0)),
     "gk_dir_passos_baixa": ("Goalkeeper Catch (1).fbx", True, PASSOS(.28)),
     "gk_dir_passos_media": ("Goalkeeper Catch (1).fbx", True, PASSOS(1.15)),
-    "gk_dir_passos_alta":  ("Goalkeeper Catch (1).fbx", True, PASSOS(1.75)),
+    "gk_dir_passos_alta":  ("Goalkeeper Catch (1).fbx", True, PASSOS(2.0)),
     "gk_esq_baixa":    ("Goalkeeper Body Block.fbx", False, BAIXO),
     "gk_dir_baixa":    ("Goalkeeper Body Block (1).fbx", False, BAIXO),
     "gk_esq_media":    ("Goalkeeper Diving Save (1).fbx", False, ("bracos", {})),   # o mocap abre os braços em "T" antes da impulsão: mãos à frente
@@ -193,7 +193,7 @@ def lateral(tgt, sc, vl, N, h=1.0, salto=False, passos=1):
     pb = tgt.pose.bones; E_ = 1.9 if salto else 1.0; sm = lambda u: (lambda v: v*v*(3 - 2*v))(min(1, max(0, u)))   # salto: o Catch chega no alto ~0,8 s, tempos esticados
     arco = lambda t, a, b: math.sin(math.pi*min(1, max(0, (t - a)/(b - a))))
     baixa, alta = h < .6, h > 1.5 and not salto
-    desce, frente_, lado_ = (.36, 30, 10) if baixa else (0, 0, 16) if salto else (.04, 0, 12) if alta else (.17, 14, 14)   # queda da pelve (m), inclinação à frente e para o lado (°)
+    desce, frente_, lado_ = (.5, 42, 14) if baixa else (0, 0, 16) if salto else (.04, 0, 12) if alta else (.17, 14, 14)   # queda da pelve (m), inclinação à frente e para o lado (°)
     lat = (.34 if not baixa else .4)*(1 if passos == 1 else 1.85)
     dur = .38 + .26*(passos - 1)                                                            # dois passos: o corpo leva mais tempo para chegar
     feet = []; px0 = []
@@ -227,7 +227,8 @@ def lateral(tgt, sc, vl, N, h=1.0, salto=False, passos=1):
             PO[s_].location = Pw + Vector((sg*.25, -.9, -.3)); PO[s_].keyframe_insert("location", frame=f)
             # as DUAS mãos vão juntas à bola, à frente do corpo (luvas a ~18 cm, palmas para a bola): nada de um braço esticado para o lado e o outro parado
             # o CORPO vai para trás da bola (o passo leva a pelve até ela) e as luvas ficam juntas NA FRENTE DO PEITO, um pouco para o lado da bola
-            free = pb[f"hand_{s_}"].head.copy(); alvo = Vector((Pw.x + (.22 if lead else .02), Pw.y - .45, h - (0 if lead else .03)))
+            free = pb[f"hand_{s_}"].head.copy()
+            alvo = Vector((Pw.x + (.36 if lead else .14), Pw.y - .4, .12)) if baixa else Vector((Pw.x + (.22 if lead else .02), Pw.y - .45, h - (0 if lead else .03)))   # baixa: luvas quase no chão, abertas para o lado da bola (fecha a rasteira)
             MA[s_].location = free.lerp(alvo, wh); MA[s_].keyframe_insert("location", frame=f)
             PB[s_].location = Pw + (Vector((sg*.55, .25, -.45 if not baixa else .25)) if lead else Vector((sg*.2, .3, -.6 if not baixa else .15))); PB[s_].keyframe_insert("location", frame=f)   # cotovelos para baixo/fora, sem abrir em "T"
     _assa(tgt)

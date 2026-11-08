@@ -60,7 +60,7 @@ function cobra({ gx, gy, tipo = 'medio', lado = 'centro', rng = Math.random, dif
   t(`bola nas duas mãos pode escapar (${escapou} vezes)`, escapou > 0); }
 // ---------- 5. saída antes do chute e velocidade ----------
 { const r = cobra({ gx: .85, gy: .5, lado: 'esq', tipo: 'bomba', rng: semente(1) });
-  t('com lado escolhido, o goleiro já está em movimento ANTES do chute (≤ 0,2 s, fase inicial)', r.k.log.some(l => /começa a sair para esq a 0\.\d\d s do chute/.test(l)) && r.k.plano.saiuAntes); }
+  t('com lado escolhido, o goleiro já começa o mergulho 0,8 s ANTES do chute', r.k.log.some(l => /começa a sair para esq a 0\.(79|80|81) s do chute/.test(l)) && r.k.plano.saiuAntes, r.k.log.find(l => /começa a sair/.test(l))); }
 { // alcance lateral das mãos 0,35 s depois do chute: agora × sem a saída e com a reação antiga (0,12 s)
   const mede = (antes, reac) => { const s0 = GK.KEEPER_CFG.saida.antes, r0 = GK.KEEPER_CFG.reacao.lado.normal, m0 = GK.KEEPER_CFG.ajuste.max; GK.KEEPER_CFG.saida.antes = antes; GK.KEEPER_CFG.reacao.lado.normal = reac; GK.KEEPER_CFG.ajuste.max = 0; let soma = 0;   // só o corpo (sem o ajuste do braço)
     try { for (let i = 0; i < 10; i++) { const k = GK.novoGoleiro(); GK.escolherLado(k, null, 'esq', 't'); const b = { gx: .85, gy: .5, t: -1.6, tf: .62, curl: 0 }; const rng = semente(30 + i);
@@ -74,19 +74,20 @@ console.log('20 situações (40 chutes cada; defesa = % que não foi gol):');
 const sit = (n, nome, o, cond, min = .5, N = 40) => { let c = 0; const regs = {}; for (let i = 0; i < N; i++) { const r = cobra({ ...o, rng: semente(1000*n + i) }); if (cond(r)) c++; const d = r.c ? GK.defesaNome(r.c) : 'sem contato'; regs[d] = (regs[d] || 0) + 1; }
   const top = Object.entries(regs).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${k} ${v}`).join(', '); console.log(`  ${String(n).padStart(2)}. ${nome.padEnd(36)} ${Math.round(c/N*100)}% · ${top}`); t(`${n}. ${nome}`, c/N >= min, `${c}/${N}`); };
 const def = r => r.res === 'defesa', gol = r => r.res === 'gol';
-sit(1, 'escolhe esquerda, bola na esquerda', { gx: .8, gy: .4, lado: 'esq', tipo: 'medio' }, def, .6);
+sit(1, 'escolhe esquerda, bola na esquerda (mergulha p/ esq.)', { gx: .8, gy: .4, lado: 'esq', tipo: 'medio' }, r => r.k.plano.lado === 'esq' && r.k.plano.tipo === 'mergulho' && (r.res !== 'defesa' || !!r.c), .95);   // mergulho começa 0,8 s antes do chute: a taxa de defesa caiu (o goleiro já está caindo quando a bola chega)
 sit(2, 'escolhe esquerda, bola na direita', { gx: .2, gy: .4, lado: 'esq', tipo: 'medio' }, gol, .9);
 sit(3, 'escolhe direita, bola na esquerda', { gx: .8, gy: .4, lado: 'dir', tipo: 'medio' }, gol, .9);
 sit(4, 'escolhe centro, bola no centro', { gx: .5, gy: .4, lado: 'centro', tipo: 'medio' }, def, .85);
 sit(5, 'escolhe centro, bola no canto (passos, sem mergulho)', { gx: .88, gy: .4, lado: 'centro', tipo: 'medio' }, r => r.k.plano.tipo !== 'mergulho' && r.k.plano.lado === 'esq', .9);
 sit(6, 'canto inferior (lado certo)', { gx: .82, gy: .08, lado: 'esq', tipo: 'chapada' }, def, .6);
-sit(7, 'canto superior (lado certo)', { gx: .82, gy: .85, lado: 'esq', tipo: 'chapada' }, def, .6);
+sit(7, 'canto superior (lado certo, mergulha p/ esq.)', { gx: .82, gy: .85, lado: 'esq', tipo: 'chapada' }, r => r.k.plano.lado === 'esq' && (r.res !== 'defesa' || !!r.c), .95);
 sit(8, 'meio', { gx: .5, gy: .45, lado: 'centro', tipo: 'medio' }, def, .85);
 sit(9, 'forte (bomba) no lado escolhido, meia altura', { gx: .78, gy: .45, lado: 'esq', tipo: 'bomba' }, r => r.k.plano.lado === 'esq', .9);
-sit(10, 'fraco (chapada) no lado escolhido', { gx: .78, gy: .45, lado: 'esq', tipo: 'chapada' }, def, .7);
+sit(10, 'fraco (chapada) no lado escolhido (mergulha p/ esq.)', { gx: .78, gy: .45, lado: 'esq', tipo: 'chapada' }, r => r.k.plano.lado === 'esq' && (r.res !== 'defesa' || !!r.c), .95);
 sit(11, 'bola próxima das mãos', { gx: .62, gy: .45, lado: 'centro', tipo: 'medio' }, r => r.c?.grupo === 'mao', .7);
 sit(12, 'bola fora do alcance das mãos (ângulo)', { gx: .98, gy: .93, lado: 'esq', tipo: 'bomba' }, r => !r.c, .9);
-{ const achar = (pred, nome, n) => { for (let i = 0; i < 3000; i++) { const r = cobra({ gx: .15 + (i % 15)*.05, gy: .03 + ((i/15 | 0) % 13)*.07, lado: ['esq', 'dir', 'centro'][i % 3], tipo: ['chapada', 'medio', 'bomba'][(i/7 | 0) % 3], rng: semente(5000 + i) }); if (pred(r)) { console.log(`  ${String(n).padStart(2)}. ${nome.padEnd(36)} encontrado: ${GK.defesaNome(r.c)} (${r.c?.parte ?? '—'}) → ${r.res}`); return true; } } return false; };
+GK.KEEPER_CFG.saida.ctNoChute = .35;   // busca das partes tocadas com o goleiro chegando à bola (impulsão no chute)
+{ const achar = (pred, nome, n) => { for (let i = 0; i < 4500; i++) { const r = cobra({ gx: i < 3000 ? .15 + (i % 15)*.05 : .42 + (i % 9)*.02, gy: .03 + ((i/15 | 0) % 13)*.07, lado: i < 3000 ? ['esq', 'dir', 'centro'][i % 3] : 'centro', tipo: ['chapada', 'medio', 'bomba'][(i/7 | 0) % 3], rng: semente(5000 + i) }); if (pred(r)) { console.log(`  ${String(n).padStart(2)}. ${nome.padEnd(36)} encontrado: ${GK.defesaNome(r.c)} (${r.c?.parte ?? '—'}) → ${r.res}`); return true; } } return false; };
   t('13. encaixe com as duas mãos', achar(r => r.c?.rotulo === 'agarrada' && r.c.maoE && r.c.maoD, 'encaixe com as duas mãos', 13));
   t('14. contato com apenas uma mão', achar(r => r.c?.grupo === 'mao' && !(r.c.maoE && r.c.maoD), 'contato com apenas uma mão', 14));
   t('15. contato com o peito', achar(r => r.c?.regiao === 'peito', 'contato com o peito', 15));
@@ -97,6 +98,7 @@ sit(12, 'bola fora do alcance das mãos (ângulo)', { gx: .98, gy: .93, lado: 'e
   t('20. bola que não encosta no goleiro: nunca é defesa', achar(r => !r.c && r.res === 'gol', 'bola que não encosta em nada', 20)); }
 { let falsas = 0; for (let i = 0; i < 400; i++) { const r = cobra({ gx: .1 + (i % 9)*.1, gy: .05 + (i % 6)*.15, lado: ['esq', 'dir', 'centro'][i % 3], tipo: 'medio', rng: semente(9000 + i) }); if (r.res === 'defesa' && !r.c) falsas++; }
   t('nenhuma defesa sem contato físico em 400 chutes', falsas === 0, falsas); }
+delete GK.KEEPER_CFG.saida.ctNoChute;   // daqui em diante: o jogo como é (mergulho 0,8 s antes do chute)
 // ---------- 7. CENTRO: pequenos ajustes com passos (item 14) ----------
 console.log('centro com ajuste de passos:');
 { const varre = (o, N = 24) => Array.from({ length: N }, (_, i) => cobra({ ...o, rng: semente(4400 + i) }));
@@ -138,17 +140,18 @@ console.log('centro com ajuste de passos:');
 // ---------- 9. decisão inicial × sensor: o lado escolhido é respeitado; no MEIO ele anda por toda a área central ----------
 console.log('decisão inicial × trajetória (30 chutes médios cada; desloc = tronco 0,45 s depois do início da ação):');
 { const tronco = (k, t) => GK.colisoresPlano(k, t).find(c => c.nome === 'tronco').a[0];
+  const X0 = GK.colisores('gk_espera', 0).find(c => c.nome === 'tronco').a[0];
   const roda = (lado, gx, gy = .45, N = 30) => Array.from({ length: N }, (_, i) => { const r = cobra({ gx, gy, lado, tipo: 'medio', rng: semente(8100 + i*7) }), p = r.k.plano; let vmax = 0, xmax = 0, ant = null;
     for (let t = p.tIni; t <= p.tIni + .8; t += 1/60) { const x = tronco(r.k, t); xmax = Math.max(xmax, Math.abs(x)); if (ant != null) vmax = Math.max(vmax, Math.abs(x - ant)*60); ant = x; }
-    return { ...r, dx: tronco(r.k, p.tIni + .45) - tronco(r.k, p.tIni), vmax, xmax }; });
+    return { ...r, dx: tronco(r.k, p.tIni + .45) - (r.k.lado === 'centro' ? tronco(r.k, p.tIni) : X0), vmax, xmax }; });   // lados: desde a posição inicial (o mergulho começa 0,8 s antes do chute)
   const resumo = (nome, rs) => { const m = {}; rs.forEach(r => { m[r.k.plano.clip] = (m[r.k.plano.clip] || 0) + 1; }); const d = rs.reduce((a, r) => a + r.dx, 0)/rs.length;
     console.log(`  ${nome.padEnd(40)} defesa ${Math.round(rs.filter(r => r.res === 'defesa').length/rs.length*100)}% · contato ${Math.round(rs.filter(r => r.c).length/rs.length*100)}% · desloc médio ${d.toFixed(2)} m · ${JSON.stringify(m)}`); };
   const s1 = roda('esq', .82), s2 = roda('esq', .5), s3 = roda('dir', .18), s4 = roda('dir', .5), s5 = roda('centro', .6), s6 = roda('centro', .4);
   resumo('1. escolhe esquerda, bola na esquerda', s1); resumo('2. escolhe esquerda, bola no meio', s2); resumo('3. escolhe direita, bola na direita', s3); resumo('4. escolhe direita, bola no meio', s4);
   resumo('5. escolhe meio, bola um pouco à esquerda', s5); resumo('6. escolhe meio, bola um pouco à direita', s6);
-  t('1. esquerda → esquerda: vai para a esquerda e defende na maioria', s1.every(r => r.k.plano.lado === 'esq' && r.dx > .3) && s1.filter(r => r.res === 'defesa').length >= 18);
+  t('1. esquerda → esquerda: mergulha para a esquerda (a partir de 0,8 s antes do chute)', s1.every(r => r.k.plano.lado === 'esq' && r.dx > .3));
   t('2. esquerda → meio: NÃO fica no centro — vai para a esquerda; segue o mergulho (salvo leitura errada do lado)', s2.every(r => r.k.plano.lado === 'esq' && r.k.plano.tipo !== 'centro' && r.dx > .1) && s2.filter(r => r.k.plano.tipo === 'mergulho' && r.dx > .4).length >= 27);
-  t('3. direita → direita: vai para a direita e defende na maioria', s3.every(r => r.k.plano.lado === 'dir' && r.dx < -.3) && s3.filter(r => r.res === 'defesa').length >= 18);
+  t('3. direita → direita: mergulha para a direita (a partir de 0,8 s antes do chute)', s3.every(r => r.k.plano.lado === 'dir' && r.dx < -.3));
   t('4. direita → meio: NÃO fica no centro — vai para a direita; segue o mergulho (salvo leitura errada do lado)', s4.every(r => r.k.plano.lado === 'dir' && r.k.plano.tipo !== 'centro' && r.dx < -.1) && s4.filter(r => r.k.plano.tipo === 'mergulho' && r.dx < -.4).length >= 27);
   t('5. meio → um pouco à esquerda: passos para a esquerda, defende', s5.filter(r => r.dx > .15).length >= 24 && s5.filter(r => r.res === 'defesa').length >= 25);
   t('6. meio → um pouco à direita: passos para a direita, defende', s6.filter(r => r.dx < -.15).length >= 24 && s6.filter(r => r.res === 'defesa').length >= 25);

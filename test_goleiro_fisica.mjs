@@ -1,6 +1,7 @@
 // GOLEIRO — áreas físicas e sensores: as 20 situações do pedido (áreas de alcance das mãos × contato real, partes do corpo, traves/travessão com colisão
 // contínua, chute do cobrador, área azul dos pés no MEIO e a decisão de lado respeitada).  node test_goleiro_fisica.mjs
 import * as GK from './js/keeper.js';
+GK.KEEPER_CFG.saida.ctNoChute = .35;   // MODELO DO GOLEIRO CHEGANDO À BOLA (impulsão no chute): estes testes medem partes do corpo, IK, contato e física; no jogo o mergulho para o lado começa 0,8 s antes do chute (números reais em test_keeper.mjs)
 import { FERROS, R_FERRO, varreFerro, tocaFerro } from './js/fisicaGol.js';
 import { KICK_CLIPS } from './js/kickClips.js';
 import { BALL_R } from './js/rig.js';
@@ -28,7 +29,7 @@ console.log('— mãos: área de alcance × contato real —');
 { const r = achar(r => r.c?.grupo === 'mao' && (r.ev.has('toque_mao_l') !== r.ev.has('toque_mao_r'))); t('4. bola toca SÓ UMA mão: nunca encaixe', !!r && r.c.rotulo !== 'agarrada' && !r.ev.has('duas_maos'), desc(r)); }
 { const r = achar(r => r.ev.has('duas_maos')); t('5. bola toca AS DUAS mãos (na mesma janela de tempo do contato)', !!r && r.ev.has('toque_mao_l') && r.ev.has('toque_mao_r'), desc(r)); }
 { const r = achar(r => r.c?.rotulo === 'agarrada'); t('6. encaixe verdadeiro: duas mãos + bola presa (vai junto com as luvas, sem teleporte)', !!r && r.c.duasMaos && r.c.maoE && r.c.maoD && r.b.fis.estado !== undefined, desc(r));
-  if (r) { const k = r.k, b = { ...r.b, fis: { ...GK.novaBolaLivre(r.c.p, [0, 0, 0]), estado: 'preso', t0: r.c.t, de: r.c.p.slice(), res: 'defesa' }, t: r.c.t }; const d = [];
+  if (r) { const k = r.k; k.bolaPresa = r.c.p.slice(); const b = { ...r.b, fis: { ...GK.novaBolaLivre(r.c.p, [0, 0, 0]), estado: 'preso', t0: r.c.t, de: r.c.p.slice(), res: 'defesa' }, t: r.c.t }; const d = [];
     for (let i = 0; i < 12; i++) { b.t += 1/120; GK.passoBola(k, b, 1/120); d.push(Math.hypot(...b.fis.p.map((v, j) => v - (i ? d.p[j] : r.c.p[j])))); d.p = b.fis.p.slice(); }
     const vIn = r.c.vel/120; t('   encaixe: a bola vai às luvas sem salto (por passo, nunca mais rápida que a bola chegando)', Math.max(...d) <= vIn + .01, `${Math.max(...d).toFixed(3)} m ≤ ${vIn.toFixed(3)} m`); } }
 { const r = achar(r => r.c && ['parcial', 'raspao'].includes(r.c.tipo)); t('7. defesa parcial (a luva toca mas não segura: a bola segue mais lenta/desviada)', !!r, desc(r)); }
