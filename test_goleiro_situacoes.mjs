@@ -1,7 +1,7 @@
 // GOLEIRO — as 20 situações pedidas, os 9 setores do gol e as partes do corpo: o goleiro vai na direção da bola, prefere as mãos, só defende com
 // contato e o resultado depende da parte tocada.  node test_goleiro_situacoes.mjs
 import * as GK from './js/keeper.js';
-GK.KEEPER_CFG.saida.ctNoChute = .35;   // MODELO DO GOLEIRO CHEGANDO À BOLA (impulsão no chute): estes testes medem partes do corpo, IK, contato e física; no jogo o mergulho para o lado começa 0,8 s antes do chute (números reais em test_keeper.mjs)
+GK.KEEPER_CFG.saida.ctNoChute = .35;   // MODELO DO GOLEIRO CHEGANDO À BOLA (impulsão no chute): estes testes medem partes do corpo, IK, contato e física; no jogo o mergulho para o lado começa 0,3 s antes do chute (números reais em test_keeper.mjs)
 import { BALL_R } from './js/rig.js';
 let ok = 0, bad = 0; const t = (n, c, info = '') => { c ? ok++ : (bad++, console.log('FALHOU:', n, info)); };
 const semente = s => () => (s = (s*16807) % 2147483647)/2147483647;

@@ -27,6 +27,8 @@ export const styleOf = id => STAR_STYLES[id] || 'comum';
 export const footOf = id => (PLAYERS.find(p => p.id === id)?.preferredFoot === 'left' ? 'l' : 'r');
 export const supportedTypes = estilo => TYPE_ORDER.filter(t => KICK_CLIPS[`${estilo}_${t}`]);
 // Especificação completa de uma cobrança: clipe, tempos, bola. tipoPedido pode não existir no estilo (ex.: bomba de Neymar) → médio do mesmo estilo.
+// VELOCIDADE DA CORRIDA do cobrador até a bola: a animação da corrida toca 1,3× mais rápida (a corrida dura menos); depois do toque, tudo no tempo normal
+export const CORRIDA = 1.3;
 export function kickSpec(playerId, tipoPedido = 'medio') {
   let estilo = styleOf(playerId); if (!supportedTypes(estilo).length) estilo = 'comum';
   const tipos = supportedTypes(estilo), tipo = tipos.includes(tipoPedido) ? tipoPedido : tipos.includes('medio') ? 'medio' : tipos[0];

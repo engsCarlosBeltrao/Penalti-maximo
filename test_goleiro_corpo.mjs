@@ -1,7 +1,7 @@
 // GOLEIRO — barreira física do corpo inteiro e contato real das mãos: a bola nunca atravessa o goleiro (antes ou depois do 1º toque, em mergulhos e
 // chutes muito fortes), sai da superfície tocada, a mão tem prioridade, o encaixe segura a bola entre as palmas.  node test_goleiro_corpo.mjs
 import * as GK from './js/keeper.js';
-GK.KEEPER_CFG.saida.ctNoChute = .35;   // MODELO DO GOLEIRO CHEGANDO À BOLA (impulsão no chute): estes testes medem partes do corpo, IK, contato e física; no jogo o mergulho para o lado começa 0,8 s antes do chute (números reais em test_keeper.mjs)
+GK.KEEPER_CFG.saida.ctNoChute = .35;   // MODELO DO GOLEIRO CHEGANDO À BOLA (impulsão no chute): estes testes medem partes do corpo, IK, contato e física; no jogo o mergulho para o lado começa 0,3 s antes do chute (números reais em test_keeper.mjs)
 import { BALL_R } from './js/rig.js';
 let ok = 0, bad = 0; const t = (n, c, info = '') => { c ? ok++ : (bad++, console.log('FALHOU:', n, info)); if (c) console.log(`ok  ${n}${info !== '' ? ' · ' + info : ''}`); };
 const semente = s => () => (s = (s*16807) % 2147483647)/2147483647;

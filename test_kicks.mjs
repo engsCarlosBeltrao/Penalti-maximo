@@ -122,7 +122,7 @@ for (const [team, star, tipos] of [['vasco', null, ['chapada', 'medio', 'bomba']
   }
 }
 // goleiro e defesa com tempos de voo diferentes: com o mesmo lado escolhido, a bomba chega antes de o mergulho estender
-{ const GK = await import('./js/keeper.js'); GK.KEEPER_CFG.saida.ctNoChute = .35;   // alcance do goleiro chegando à bola (no jogo o mergulho começa 0,8 s antes do chute)
+{ const GK = await import('./js/keeper.js'); GK.KEEPER_CFG.saida.ctNoChute = .35;   // alcance do goleiro chegando à bola (no jogo o mergulho começa 0,3 s antes do chute)
   const mk = (tf, seed) => { let s = seed; const rng = () => (s = (s*16807) % 2147483647)/2147483647, k = GK.novoGoleiro(); GK.escolherLado(k, null, 'dir', 'teste');
     const b = { gx: .12, gy: .3, t: -1.6, t0: -1.6, tf, curl: 0, res: null }; while (b.t < tf && !b.fis) { const tA = b.t; b.t += 1/120; GK.passo(k, b, tA, b.t, { rng }); } return k.contato ? 1 : 0; };
   const ch = [1, 2, 3, 4, 5, 6].reduce((a, s) => a + mk(.8, s), 0), bo = [1, 2, 3, 4, 5, 6].reduce((a, s) => a + mk(.46, s), 0);

@@ -9,22 +9,25 @@ const soma1 = p => perto(p.esq + p.centro + p.dir, 1) && [p.esq, p.centro, p.dir
 // ---------- 1. memória de escolha do lado ----------
 console.log('Sequências de probabilidade (probabilidades para a PRÓXIMA cobrança):');
 const seq = (escolhas) => { const m = novaMemoria(), lin = [`início: ${pc(probabilidades(m))}`]; for (const d of escolhas) { registrar(m, d); lin.push(`${d} → ${pc(probabilidades(m))}`); } console.log('  ' + lin.join('  |  ')); return probabilidades(m); };
-{ const p0 = probabilidades(novaMemoria()); t('inicial: 33,33% cada', perto(p0.esq, 1/3) && perto(p0.centro, 1/3) && perto(p0.dir, 1/3)); }
-{ const p = seq(['esq']); t('esquerda → próxima: esquerda = 33,33% ÷ 12', perto(p.esq, 1/36)); t('…as outras duas dividem o resto por igual e soma 100%', perto(p.centro, p.dir) && soma1(p)); }
-{ const p = seq(['esq', 'esq']); t('esquerda, esquerda → esquerda = 33,33% ÷ 12 ÷ 2', perto(p.esq, 1/72) && soma1(p)); }
-{ const p = seq(['esq', 'esq', 'esq']); t('esquerda ×3 → esquerda = 33,33% ÷ 12 ÷ 2 ÷ 2', perto(p.esq, 1/144) && soma1(p)); }
-{ const p = seq(['esq', 'dir']); t('esquerda, depois direita → esquerda e direita voltam a 33,33% (sequência reiniciada)', perto(p.esq, 1/3) && perto(p.dir, 1/3) && perto(p.centro, 1/3)); }
-{ const p = seq(['dir', 'dir']); t('direita, direita → direita = 33,33% ÷ 12 ÷ 2', perto(p.dir, 1/72) && soma1(p)); }
-{ const p = seq(['centro', 'centro']); t('centro, centro → centro = 33,33% ÷ 12 ÷ 2', perto(p.centro, 1/72) && soma1(p)); }
-{ const p = seq(['centro', 'esq']); t('centro, depois esquerda → tudo volta a 33,33%', perto(p.esq, 1/3) && perto(p.centro, 1/3) && perto(p.dir, 1/3)); }
-{ const p = seq(['esq', 'esq', 'esq', 'centro']); t('esquerda ×3, depois centro → tudo volta a 33,33%', [p.esq, p.centro, p.dir].every(v => perto(v, 1/3))); }
-{ const p = seq(['esq', 'dir', 'dir']); t('depois de reiniciar, repetir a nova direção recomeça a redução (÷12)', perto(p.dir, 1/36) && soma1(p)); }
+const PE = .4, PC = .2;   // pesos iniciais: esquerda 40%, meio 20%, direita 40%
+{ const p0 = probabilidades(novaMemoria()); t('inicial: esquerda 40%, meio 20%, direita 40%', perto(p0.esq, PE) && perto(p0.centro, PC) && perto(p0.dir, PE)); }
+{ const p = seq(['esq']); t('esquerda → próxima: esquerda = 40% ÷ 12', perto(p.esq, PE/12)); t('…o resto vai para meio e direita na proporção dos pesos (1 : 2) e soma 100%', perto(p.dir, 2*p.centro) && soma1(p)); }
+{ const p = seq(['esq', 'esq']); t('esquerda, esquerda → esquerda = 40% ÷ 12 ÷ 2', perto(p.esq, PE/24) && soma1(p)); }
+{ const p = seq(['esq', 'esq', 'esq']); t('esquerda ×3 → esquerda = 40% ÷ 12 ÷ 2 ÷ 2', perto(p.esq, PE/48) && soma1(p)); }
+{ const p = seq(['esq', 'dir']); t('esquerda, depois direita → volta a 40/20/40 (sequência reiniciada)', perto(p.esq, PE) && perto(p.dir, PE) && perto(p.centro, PC)); }
+{ const p = seq(['dir', 'dir']); t('direita, direita → direita = 40% ÷ 12 ÷ 2', perto(p.dir, PE/24) && soma1(p)); }
+{ const p = seq(['centro', 'centro']); t('meio, meio → meio = 20% ÷ 12 ÷ 2', perto(p.centro, PC/24) && soma1(p)); }
+{ const p = seq(['centro', 'esq']); t('meio, depois esquerda → volta a 40/20/40', perto(p.esq, PE) && perto(p.centro, PC) && perto(p.dir, PE)); }
+{ const p = seq(['esq', 'esq', 'esq', 'centro']); t('esquerda ×3, depois meio → volta a 40/20/40', perto(p.esq, PE) && perto(p.centro, PC) && perto(p.dir, PE)); }
+{ const p = seq(['esq', 'dir', 'dir']); t('depois de reiniciar, repetir a nova direção recomeça a redução (÷12)', perto(p.dir, PE/12) && soma1(p)); }
 { let okSoma = true; const m = novaMemoria(), r = semente(3); for (let i = 0; i < 2000; i++) { registrar(m, sortear(m, r)); okSoma &&= soma1(probabilidades(m)); } t('2000 escolhas seguidas: probabilidades sempre válidas (0–100%, soma 100%)', okSoma); }
+{ const cont = { esq: 0, centro: 0, dir: 0 }, r = semente(5), N = 30000; for (let i = 0; i < N; i++) cont[sortear(novaMemoria(), r)]++;
+  t(`sorteio sem histórico: E ${(cont.esq/N*100).toFixed(1)}% · M ${(cont.centro/N*100).toFixed(1)}% · D ${(cont.dir/N*100).toFixed(1)}% ≈ 40/20/40`, Math.abs(cont.esq/N - PE) < .012 && Math.abs(cont.centro/N - PC) < .012 && Math.abs(cont.dir/N - PE) < .012); }
 { // o sorteio segue as probabilidades (frequência medida)
   const cont = { esq: 0, centro: 0, dir: 0 }, r = semente(9), N = 30000; for (let i = 0; i < N; i++) { const m = novaMemoria(); registrar(m, 'esq'); cont[sortear(m, r)]++; }
-  t(`sorteio respeita as probabilidades (depois de esquerda: E ${(cont.esq/N*100).toFixed(1)}% ≈ 2,78%)`, Math.abs(cont.esq/N - 1/36) < .005 && Math.abs(cont.centro/N - cont.dir/N) < .02); }
+  t(`sorteio respeita as probabilidades (depois de esquerda: E ${(cont.esq/N*100).toFixed(1)}% ≈ 3,33%)`, Math.abs(cont.esq/N - PE/12) < .005 && Math.abs(cont.dir/N - 2*cont.centro/N) < .03); }
 { limparMemorias(); registrar(memoriaDe('goleiro-A'), 'esq'); registrar(memoriaDe('goleiro-A'), 'esq'); registrar(memoriaDe('goleiro-B'), 'dir');
-  t('memória individual: goleiros diferentes não se misturam', perto(probabilidades(memoriaDe('goleiro-A')).esq, 1/72) && perto(probabilidades(memoriaDe('goleiro-B')).dir, 1/36) && perto(probabilidades(memoriaDe('goleiro-B')).esq, (1 - 1/36)/2));
+  t('memória individual: goleiros diferentes não se misturam', perto(probabilidades(memoriaDe('goleiro-A')).esq, PE/24) && perto(probabilidades(memoriaDe('goleiro-B')).dir, PE/12) && perto(probabilidades(memoriaDe('goleiro-B')).esq, (1 - PE/12)*PE/(PE + PC)));
   t('memória persiste para o mesmo goleiro', memoriaDe('goleiro-A').historico.join() === 'esq,esq'); }
 
 // ---------- cobrança isolada ----------
@@ -38,7 +41,7 @@ function cobra({ gx, gy, tipo = 'medio', lado = 'centro', rng = Math.random, dif
 }
 // ---------- 2. sensor ----------
 { const r = cobra({ gx: .82, gy: .8, lado: 'esq', tipo: 'chapada', rng: semente(4) }), s0 = r.sens[0], s1 = r.sens.at(-1);
-  t('sensor: começa com erro de leitura e converge para o ponto real (≤ 3 cm no fim)', s0.erro > s1.erro && s1.erro <= .03, `${s0.erro} → ${s1.erro}`);
+  t('sensor: começa com erro de leitura e converge para o ponto real (≤ 5 cm na última leitura antes do toque)', s0.erro > s1.erro && s1.erro <= .05, `${s0.erro} → ${s1.erro}`);
   t('sensor: tempo até a bola chegar só diminui e acaba perto de 0 (ou no toque)', r.sens.every((x, i) => i === 0 || x.tempo <= r.sens[i - 1].tempo + 1e-9) && (s1.tempo < .02 || (r.c && Math.abs(s1.tempo - (.8 - r.c.t)) < .03)), `${s1.tempo} toque ${r.c?.t}`);
   t('sensor: região descrita em coordenadas reais (canto esquerdo, alto)', /canto esquerdo, alto/.test(s1.regiao), s1.regiao);
   t('sensor: indica a parte do corpo mais perto de alcançar a bola', !!s1.parte && s1.dist != null, JSON.stringify(s1));
@@ -60,7 +63,7 @@ function cobra({ gx, gy, tipo = 'medio', lado = 'centro', rng = Math.random, dif
   t(`bola nas duas mãos pode escapar (${escapou} vezes)`, escapou > 0); }
 // ---------- 5. saída antes do chute e velocidade ----------
 { const r = cobra({ gx: .85, gy: .5, lado: 'esq', tipo: 'bomba', rng: semente(1) });
-  t('com lado escolhido, o goleiro já começa o mergulho 0,8 s ANTES do chute', r.k.log.some(l => /começa a sair para esq a 0\.(79|80|81) s do chute/.test(l)) && r.k.plano.saiuAntes, r.k.log.find(l => /começa a sair/.test(l))); }
+  t('com lado escolhido, o goleiro já começa o mergulho 0,3 s ANTES do chute', r.k.log.some(l => /começa a sair para esq a 0\.(29|30|31) s do chute/.test(l)) && r.k.plano.saiuAntes, r.k.log.find(l => /começa a sair/.test(l))); }
 { // alcance lateral das mãos 0,35 s depois do chute: agora × sem a saída e com a reação antiga (0,12 s)
   const mede = (antes, reac) => { const s0 = GK.KEEPER_CFG.saida.antes, r0 = GK.KEEPER_CFG.reacao.lado.normal, m0 = GK.KEEPER_CFG.ajuste.max; GK.KEEPER_CFG.saida.antes = antes; GK.KEEPER_CFG.reacao.lado.normal = reac; GK.KEEPER_CFG.ajuste.max = 0; let soma = 0;   // só o corpo (sem o ajuste do braço)
     try { for (let i = 0; i < 10; i++) { const k = GK.novoGoleiro(); GK.escolherLado(k, null, 'esq', 't'); const b = { gx: .85, gy: .5, t: -1.6, tf: .62, curl: 0 }; const rng = semente(30 + i);
@@ -74,7 +77,7 @@ console.log('20 situações (40 chutes cada; defesa = % que não foi gol):');
 const sit = (n, nome, o, cond, min = .5, N = 40) => { let c = 0; const regs = {}; for (let i = 0; i < N; i++) { const r = cobra({ ...o, rng: semente(1000*n + i) }); if (cond(r)) c++; const d = r.c ? GK.defesaNome(r.c) : 'sem contato'; regs[d] = (regs[d] || 0) + 1; }
   const top = Object.entries(regs).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${k} ${v}`).join(', '); console.log(`  ${String(n).padStart(2)}. ${nome.padEnd(36)} ${Math.round(c/N*100)}% · ${top}`); t(`${n}. ${nome}`, c/N >= min, `${c}/${N}`); };
 const def = r => r.res === 'defesa', gol = r => r.res === 'gol';
-sit(1, 'escolhe esquerda, bola na esquerda (mergulha p/ esq.)', { gx: .8, gy: .4, lado: 'esq', tipo: 'medio' }, r => r.k.plano.lado === 'esq' && r.k.plano.tipo === 'mergulho' && (r.res !== 'defesa' || !!r.c), .95);   // mergulho começa 0,8 s antes do chute: a taxa de defesa caiu (o goleiro já está caindo quando a bola chega)
+sit(1, 'escolhe esquerda, bola na esquerda (mergulha p/ esq.)', { gx: .8, gy: .4, lado: 'esq', tipo: 'medio' }, r => r.k.plano.lado === 'esq' && r.k.plano.tipo === 'mergulho' && (r.res !== 'defesa' || !!r.c), .95);   // mergulho começa 0,3 s antes do chute: a taxa de defesa caiu (o goleiro já está caindo quando a bola chega)
 sit(2, 'escolhe esquerda, bola na direita', { gx: .2, gy: .4, lado: 'esq', tipo: 'medio' }, gol, .9);
 sit(3, 'escolhe direita, bola na esquerda', { gx: .8, gy: .4, lado: 'dir', tipo: 'medio' }, gol, .9);
 sit(4, 'escolhe centro, bola no centro', { gx: .5, gy: .4, lado: 'centro', tipo: 'medio' }, def, .85);
@@ -98,7 +101,7 @@ GK.KEEPER_CFG.saida.ctNoChute = .35;   // busca das partes tocadas com o goleiro
   t('20. bola que não encosta no goleiro: nunca é defesa', achar(r => !r.c && r.res === 'gol', 'bola que não encosta em nada', 20)); }
 { let falsas = 0; for (let i = 0; i < 400; i++) { const r = cobra({ gx: .1 + (i % 9)*.1, gy: .05 + (i % 6)*.15, lado: ['esq', 'dir', 'centro'][i % 3], tipo: 'medio', rng: semente(9000 + i) }); if (r.res === 'defesa' && !r.c) falsas++; }
   t('nenhuma defesa sem contato físico em 400 chutes', falsas === 0, falsas); }
-delete GK.KEEPER_CFG.saida.ctNoChute;   // daqui em diante: o jogo como é (mergulho 0,8 s antes do chute)
+delete GK.KEEPER_CFG.saida.ctNoChute;   // daqui em diante: o jogo como é (mergulho 0,3 s antes do chute)
 // ---------- 7. CENTRO: pequenos ajustes com passos (item 14) ----------
 console.log('centro com ajuste de passos:');
 { const varre = (o, N = 24) => Array.from({ length: N }, (_, i) => cobra({ ...o, rng: semente(4400 + i) }));
@@ -143,15 +146,15 @@ console.log('decisão inicial × trajetória (30 chutes médios cada; desloc = t
   const X0 = GK.colisores('gk_espera', 0).find(c => c.nome === 'tronco').a[0];
   const roda = (lado, gx, gy = .45, N = 30) => Array.from({ length: N }, (_, i) => { const r = cobra({ gx, gy, lado, tipo: 'medio', rng: semente(8100 + i*7) }), p = r.k.plano; let vmax = 0, xmax = 0, ant = null;
     for (let t = p.tIni; t <= p.tIni + .8; t += 1/60) { const x = tronco(r.k, t); xmax = Math.max(xmax, Math.abs(x)); if (ant != null) vmax = Math.max(vmax, Math.abs(x - ant)*60); ant = x; }
-    return { ...r, dx: tronco(r.k, p.tIni + .45) - (r.k.lado === 'centro' ? tronco(r.k, p.tIni) : X0), vmax, xmax }; });   // lados: desde a posição inicial (o mergulho começa 0,8 s antes do chute)
+    return { ...r, dx: tronco(r.k, p.tIni + .45) - (r.k.lado === 'centro' ? tronco(r.k, p.tIni) : X0), vmax, xmax }; });   // lados: desde a posição inicial (o mergulho começa 0,3 s antes do chute)
   const resumo = (nome, rs) => { const m = {}; rs.forEach(r => { m[r.k.plano.clip] = (m[r.k.plano.clip] || 0) + 1; }); const d = rs.reduce((a, r) => a + r.dx, 0)/rs.length;
     console.log(`  ${nome.padEnd(40)} defesa ${Math.round(rs.filter(r => r.res === 'defesa').length/rs.length*100)}% · contato ${Math.round(rs.filter(r => r.c).length/rs.length*100)}% · desloc médio ${d.toFixed(2)} m · ${JSON.stringify(m)}`); };
   const s1 = roda('esq', .82), s2 = roda('esq', .5), s3 = roda('dir', .18), s4 = roda('dir', .5), s5 = roda('centro', .6), s6 = roda('centro', .4);
   resumo('1. escolhe esquerda, bola na esquerda', s1); resumo('2. escolhe esquerda, bola no meio', s2); resumo('3. escolhe direita, bola na direita', s3); resumo('4. escolhe direita, bola no meio', s4);
   resumo('5. escolhe meio, bola um pouco à esquerda', s5); resumo('6. escolhe meio, bola um pouco à direita', s6);
-  t('1. esquerda → esquerda: mergulha para a esquerda (a partir de 0,8 s antes do chute)', s1.every(r => r.k.plano.lado === 'esq' && r.dx > .3));
+  t('1. esquerda → esquerda: mergulha para a esquerda (a partir de 0,3 s antes do chute)', s1.every(r => r.k.plano.lado === 'esq' && r.dx > .3));
   t('2. esquerda → meio: NÃO fica no centro — vai para a esquerda; segue o mergulho (salvo leitura errada do lado)', s2.every(r => r.k.plano.lado === 'esq' && r.k.plano.tipo !== 'centro' && r.dx > .1) && s2.filter(r => r.k.plano.tipo === 'mergulho' && r.dx > .4).length >= 27);
-  t('3. direita → direita: mergulha para a direita (a partir de 0,8 s antes do chute)', s3.every(r => r.k.plano.lado === 'dir' && r.dx < -.3));
+  t('3. direita → direita: mergulha para a direita (a partir de 0,3 s antes do chute)', s3.every(r => r.k.plano.lado === 'dir' && r.dx < -.3));
   t('4. direita → meio: NÃO fica no centro — vai para a direita; segue o mergulho (salvo leitura errada do lado)', s4.every(r => r.k.plano.lado === 'dir' && r.k.plano.tipo !== 'centro' && r.dx < -.1) && s4.filter(r => r.k.plano.tipo === 'mergulho' && r.dx < -.4).length >= 27);
   t('5. meio → um pouco à esquerda: passos para a esquerda, defende', s5.filter(r => r.dx > .15).length >= 24 && s5.filter(r => r.res === 'defesa').length >= 25);
   t('6. meio → um pouco à direita: passos para a direita, defende', s6.filter(r => r.dx < -.15).length >= 24 && s6.filter(r => r.res === 'defesa').length >= 25);

@@ -2,20 +2,20 @@
 // capacidade física de defender.
 //
 // Regra:
-//  - sem histórico: esquerda, centro e direita com 1/3 cada;
+//  - sem histórico: esquerda 40%, meio 20%, direita 40% (o goleiro escolhe menos ficar no meio);
 //  - depois de escolher uma direção pela 1ª vez, na cobrança seguinte essa direção tem a sua probabilidade dividida por 12;
 //  - a cada repetição CONSECUTIVA da mesma direção, a probabilidade dela é dividida por 2 de novo (÷12, ÷24, ÷48, …);
-//  - escolher uma direção DIFERENTE da anterior encerra a sequência: as probabilidades voltam ao normal (1/3 cada) e a memória de repetição é
+//  - escolher uma direção DIFERENTE da anterior encerra a sequência: as probabilidades voltam ao normal (40/20/40) e a memória de repetição é
 //    reiniciada (a nova direção passa a ser a "anterior", sem redução — só uma nova repetição dela recomeça o ÷12);
 //  - normalização: o que a direção reduzida perde é dividido entre as outras duas proporcionalmente aos valores delas; soma sempre 1.
 export const DIRECOES = ['esq', 'centro', 'dir'];
-export const BASE = 1/3, DIV_PRIMEIRA = 12, DIV_REPETE = 2;
+export const PESO = { esq: .4, centro: .2, dir: .4 }, BASE = 1/3, DIV_PRIMEIRA = 12, DIV_REPETE = 2;   // BASE: valor antigo (1/3), mantido só como referência
 export const novaMemoria = () => ({ ultima: null, repeticoes: 0, reiniciada: false, historico: [] });
 // probabilidades atuais { esq, centro, dir } (somam 1)
 export function probabilidades(m) {
-  const p = { esq: BASE, centro: BASE, dir: BASE };
+  const p = { ...PESO };
   if (m.ultima && m.repeticoes > 0) {
-    const red = BASE/DIV_PRIMEIRA/Math.pow(DIV_REPETE, m.repeticoes - 1), resto = 1 - red, outras = DIRECOES.filter(d => d !== m.ultima), soma = outras.reduce((a, d) => a + p[d], 0);
+    const red = PESO[m.ultima]/DIV_PRIMEIRA/Math.pow(DIV_REPETE, m.repeticoes - 1), resto = 1 - red, outras = DIRECOES.filter(d => d !== m.ultima), soma = outras.reduce((a, d) => a + p[d], 0);
     p[m.ultima] = red; outras.forEach(d => { p[d] = resto*p[d]/soma; });
   }
   return p;

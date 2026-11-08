@@ -5,7 +5,7 @@ import { Aim } from './aim.js';
 import { sfx, crowd, ambient, level } from './audio.js';
 import { Renderer } from './renderer.js';
 import { pickKicker } from './players.js';
-import { kickSpec, waitSpec, forceFromAim, typeFromForce, ENTRY_S, GOAL_REACTIONS, MISS_REACTIONS, reactionBag, RESULT_WAIT } from './kicks.js';
+import { kickSpec, waitSpec, forceFromAim, typeFromForce, ENTRY_S, GOAL_REACTIONS, MISS_REACTIONS, reactionBag, RESULT_WAIT, CORRIDA } from './kicks.js';
 import * as GK from './keeper.js';
 import { keeperScale } from './frame.js';
 import { memoriaDe, sortear, registrar, probabilidades } from './goleiroMemoria.js';
@@ -73,7 +73,7 @@ export const Game = {
     GS.estado = this.hum() ? 'CHUTANDO' : 'DEFESA_DO_GOLEIRO';
     // FORÇA = altura da barra no instante em que solta (a mesma que dá a altura do chute); o tipo é decidido UMA vez, aqui, e vale para a animação e para a bola
     const p = pickKicker(GS.equipes[GS.cobrador], GS.cobranca, this.escolha[GS.cobrador]), forca = forceFromAim(gy), ks = this.kick = kickSpec(p.id, typeFromForce(forca));
-    this.ball = { gx, gy, t: ks.t0, t0: ks.t0, tf: ks.tf, curl: ks.curl, tipo: ks.tipo, forca, res: null, som: false,
+    this.ball = { gx, gy, t: ks.t0/CORRIDA, t0: ks.t0/CORRIDA, tf: ks.tf, curl: ks.curl, tipo: ks.tipo, forca, res: null, som: false,
       chute: { clipe: ks.id, contatoClipe: +(ks.clip.contato ?? 0).toFixed(3), folgaPeMm: ks.clip.folgaContatoMm ?? null, velPe: ks.clip.velPe ?? null, forca: +forca.toFixed(3) } };   // contato do pé com a bola medido no clipe (tools/build-kick-clips.mjs): a bola sai nesse instante   // t<0: aproximação do clipe; a bola só sai no CONTATO (t=0)
     this.rating = p.rating;
     level(1); Events.emit('chute', { equipe: GS.cobrador, tipoCobranca: ks.tipo, estilo: ks.estilo, forca: +forca.toFixed(3) });
@@ -89,7 +89,7 @@ export const Game = {
     if (this.hum() || GS.estado !== 'DEFESA_DO_GOLEIRO') return null;
     const f = this.forcar, gy = f?.gy ?? this.cpuMira?.gy; if (gy == null) return null;
     const p = pickKicker(GS.equipes[GS.cobrador], GS.cobranca, this.escolha[GS.cobrador]), ks = kickSpec(p.id, typeFromForce(forceFromAim(gy)));
-    return this.t + Math.max(0, this.wait) - ks.t0;                                    // espera da CPU + duração da corrida (t0 < 0) do clipe que ela vai usar
+    return this.t + Math.max(0, this.wait) - ks.t0/CORRIDA;                                    // espera da CPU + duração da corrida (t0 < 0) do clipe que ela vai usar
   },
   // goleiro que está defendendo agora (o do time que NÃO cobra) e a memória das escolhas dele
   idGoleiro() { const t = GS.equipes[1 - GS.cobrador]; if (!t) return 'gk'; return keeperOf(t)?.id || 'gk-' + (t.key || t.id); },

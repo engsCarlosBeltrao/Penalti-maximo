@@ -68,7 +68,7 @@ t('meio alto: braços para cima/salto (defesa alta no centro)', plano(.5, .82).c
 { const p = plano(.15, .85, 'dir'); t('canto alto direito: mergulho à direita (a altura do mergulho já vem de antes do chute)', p.clip.startsWith('gk_dir_') && p.tipo === 'mergulho', p.clip); }
 
 // ---------- 5. campo de alcance: partes, raspão, quase, bola rápida ----------
-{ GK.KEEPER_CFG.saida.ctNoChute = .35;   // variedade de partes tocadas com o goleiro chegando à bola (no jogo, o mergulho de 0,8 s antes muda a mistura)
+{ GK.KEEPER_CFG.saida.ctNoChute = .35;   // variedade de partes tocadas com o goleiro chegando à bola (no jogo, o mergulho de 0,3 s antes muda a mistura)
   const vistos = {}, raso = [], quase = []; let s = 1; const sorte = semente(12345); for (let i = 0; i < 10; i++) sorte();
   for (let i = 0; i < 400; i++) { const gx = .1 + sorte()*.8, gy = .05 + sorte()*.85, lado = ['esq', 'dir', 'centro'][i % 3], tipo = ['chapada', 'medio', 'bomba'][i % 3], r = cobra({ gx, gy, lado, tipo, rng: semente(s++) });
     if (r.k.contato) { vistos[r.k.contato.grupo] = true; if (r.k.contato.depth < .15) raso.push(r); } else if (r.k.dmin && r.k.dmin.d > 0 && r.k.dmin.d < .08) quase.push(r); }
@@ -105,9 +105,9 @@ function grupo(alvos, tipo, N) { let n = 0, def = 0, cont = 0, defC = 0, bom = 0
   return { def: def/n, cont: cont/n, defC: cont ? defC/cont : 0, defB: bom ? defB/bom : 0, bom }; }
 const N = 50, R = {};
 // O MODELO DE CHANCE NO CONTATO (situação × qualidade do contato) é calibrado com o goleiro chegando à bola — com a impulsão no chute (ctNoChute). No jogo o
-// mergulho para o lado escolhido começa 0,8 s ANTES do chute (pedido do usuário): os números reais do jogo vêm logo abaixo, medidos sem esse ajuste.
+// mergulho para o lado escolhido começa 0,3 s ANTES do chute (pedido do usuário): os números reais do jogo vêm logo abaixo, medidos sem esse ajuste.
 { const Rj = {}; Rj.fraco = grupo([[.82, .1, 'esq'], [.8, .45, 'esq'], [.82, .8, 'esq'], [.18, .1, 'dir'], [.2, .45, 'dir'], [.18, .8, 'dir']], 'chapada', 20); Rj.forteAlto = grupo([[.82, .8, 'esq'], [.18, .8, 'dir']], 'bomba', 20);
-  console.log(`  [no jogo, mergulho 0,8 s antes do chute] chute fraco no canto certo: defesa ${pct(Rj.fraco.def)} (contato ${pct(Rj.fraco.cont)}) · forte no alto, canto certo: defesa ${pct(Rj.forteAlto.def)} (contato ${pct(Rj.forteAlto.cont)})`); }
+  console.log(`  [no jogo, mergulho 0,3 s antes do chute] chute fraco no canto certo: defesa ${pct(Rj.fraco.def)} (contato ${pct(Rj.fraco.cont)}) · forte no alto, canto certo: defesa ${pct(Rj.forteAlto.def)} (contato ${pct(Rj.forteAlto.cont)})`); }
 GK.KEEPER_CFG.saida.ctNoChute = .35;   // calibração do modelo de contato (goleiro chegando à bola)
 R.fraco = grupo([[.82, .1, 'esq'], [.8, .45, 'esq'], [.82, .8, 'esq'], [.18, .1, 'dir'], [.2, .45, 'dir'], [.18, .8, 'dir']], 'chapada', N);
 R.forteAlto = grupo([[.82, .8, 'esq'], [.18, .8, 'dir'], [.75, .85, 'esq'], [.25, .85, 'dir']], 'bomba', N);

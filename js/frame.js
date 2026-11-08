@@ -5,7 +5,7 @@ import { pickKicker, keeperOf } from './players.js';
 import { lerp } from './vec.js';
 import { kickerPose, keeperPose, cheerPose, dejectedPose, goalToWorld, BALL0, BALL_R, SPOT_Z, KICK_T0, CLIP_END, GOAL_W, sm } from './rig.js';
 import { faceOf, SKINS, HAIRC } from './face.js';
-import { clipStart, clipEnd, ENTRY_S, KEEPER_CHEER, KEEPER_SAD } from './kicks.js';
+import { clipStart, clipEnd, ENTRY_S, KEEPER_CHEER, KEEPER_SAD, CORRIDA } from './kicks.js';
 import { animGoleiro, ballFlight } from './keeper.js';
 // MÁQUINA DE ESTADOS do cobrador: entering (clipe de entrada: caminha e para no ponto de partida) → idle (clipe de repouso) → charging (segurando a barra:
 // o repouso se mistura à pose inicial da cobrança) → runUp → kick (do plantio ao contato) → followThrough → recovery (fim do clipe) →
@@ -44,7 +44,7 @@ export function camTarget(game, b, bw, res, d) {
   if (!b && game.t < .9) { const u = sm(game.t/.9); return { pos: lerp([5, 4.2, 29], [0, 3.3, 25], u), tgt: [0, 1.0, 1], fov: 31 - 4*u }; }                    // apresentação / preparação
   const base = { pos: [0, 3.3, game.dec ? 23.5 : 25], tgt: [0, 1.0, 1], fov: game.dec ? 25.5 : 27 };                                                             // mira estável
   const ks = game.kick; if (!ks || !ks.clip) return base;                                                                                                        // cobrador que parte de longe (ex.: Gabigol, ~9 m): a câmera recua e abre para mostrá-lo,
-  const st = clipStart(ks.clip).root, sx = ks.pe === 'l' ? -st[0] : st[0], u = b ? Math.min(1, Math.max(0, 1 - b.t/ks.t0)) : 0;                              // e volta ao enquadramento normal conforme ele chega à bola
+  const st = clipStart(ks.clip).root, sx = ks.pe === 'l' ? -st[0] : st[0], u = b ? Math.min(1, Math.max(0, 1 - b.t/(b.t0 ?? ks.t0))) : 0;                              // e volta ao enquadramento normal conforme ele chega à bola
   const kx = sx*(1 - u), kz = SPOT_Z + (st[2] - SPOT_Z)*(1 - u), e = Math.min(1, Math.max(0, (Math.hypot(kx, kz - SPOT_Z) - 4.4)/4.6));
   return e <= 0 ? base : { pos: [kx*.55*e, base.pos[1] + .6*e, base.pos[2] + 4.5*e], tgt: [kx*.25*e, .85, 1 + 2*e], fov: base.fov + 9*e };
 }
@@ -70,15 +70,15 @@ export function characters(game, now, b, k, res, d, bw) {
     return { final: true, list };
   }
   const kt = GS.cobrador === 0 ? ta : tb, dt2 = GS.cobrador === 0 ? tb : ta, p = pickKicker(kt, GS.cobranca, game.escolha[GS.cobrador]);
-  const ks = game.kick, c = ks && ks.clip, tf = flightTime(b), t0 = b?.t0 ?? ks?.t0 ?? KICK_T0, state = kickerState(game, b), lk = withFace(p), wd = widthOf(lk);   // cobrança (js/kicks.js): clipe, início/fim, canhoto
-  const m = !b ? (game.t < ENTRY_S ? { mode: 'walkin', t: game.t, dur: ENTRY_S } : { mode: 'idle', t: now }) : b.t <= tf ? { mode: 'kick', tc: Math.max(t0, b.t), t0 } : { mode: 'react', d: b.t - tf, type: res === 'gol' ? 'gol' : 'falha' };
+  const ks = game.kick, c = ks && ks.clip, tf = flightTime(b), t0 = ks?.t0 ?? b?.t0 ?? KICK_T0, tClipe = b ? (b.t < 0 ? b.t*(ks ? CORRIDA : 1) : b.t) : 0, state = kickerState(game, b), lk = withFace(p), wd = widthOf(lk);   // cobrança (js/kicks.js): clipe, início/fim, canhoto   // tClipe: tempo do CLIPE do cobrador (a corrida toca CORRIDA× mais rápida)
+  const m = !b ? (game.t < ENTRY_S ? { mode: 'walkin', t: game.t, dur: ENTRY_S } : { mode: 'idle', t: now }) : b.t <= tf ? { mode: 'kick', tc: Math.max(t0, tClipe), t0 } : { mode: 'react', d: b.t - tf, type: res === 'gol' ? 'gol' : 'falha' };
   if (c) Object.assign(m, { start: clipStart(c, wd), end: clipEnd(c, wd), mirror: ks.pe === 'l' });
   let anim = null; const mir = ks && ks.pe === 'l', fx = v => [mir ? -v[0] : v[0], 0, v[2]];
   if (c && state === 'entering') { const st = clipStart(c, wd); anim = { clip: 'entrada', state, pe: ks.pe, t: game.t, pos: fx(st.root), yaw: mir ? -st.yaw : st.yaw, blend: 0 }; }   // corte no início da vez
   else if (c && (state === 'goalCelebration' || state === 'missReaction')) anim = { clip: b.reacao || (state === 'goalCelebration' ? 'gol_bracos_abertos' : 'perdeu_cabeca_baixa'), state, pe: ks.pe, t: b.t - ks.t1, pos: fx(clipEnd(c, wd).root), yaw: Math.PI, blend: .3 };
   else if (c && (state === 'idle' || state === 'charging')) { const st = clipStart(c, wd), mir = ks.pe === 'l';   // repouso no ponto de partida (espelhado no canhoto) + mistura para a pose de partida
     anim = { idle: true, state, pe: ks.pe, t: game.t + phaseOf(p.id), pos: [mir ? -st.root[0] : st.root[0], 0, st.root[2]], yaw: mir ? -st.yaw : st.yaw, ready: { clip: ks.id, w: chargeOf(game) } }; }
-  else if (b && b.t <= (ks ? ks.t1 : CLIP_END)) anim = { clip: ks ? ks.id : 'chute', tc: Math.max(t0, b.t), state };
+  else if (b && b.t <= (ks ? ks.t1 : CLIP_END)) anim = { clip: ks ? ks.id : 'chute', tc: Math.max(t0, tClipe), state };
   const kp = keeperPose(k, b, res, d, now, b && b.t > 0 ? bw : null), nk = GS.cobrancasRealizadas || 0;
   // goleiro: depois de levantar, comemora a defesa (ou o erro do cobrador) ou lamenta o gol — clipes do Blender, variando a cada cobrança
   // goleiro (js/keeper.js): espera em laço (+ preparação depois de escolher o lado) → mergulho sincronizado com a bola → reação onde ele terminou o

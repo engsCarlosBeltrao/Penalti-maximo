@@ -32,7 +32,7 @@ for (const tipo of ['chapada', 'medio', 'bomba']) {
     let semRegua = 0, salto = 0, paraLado = 0; const N = 15;
     for (let i = 0; i < N; i++) { const gx = [.2, .35, .5, .65, .8][i % 5], r = cobra({ gx, tipo, lado, rng: semente(500 + i) }), p = r.k.plano;
       if (r.hist.every(h => !h.regua)) semRegua++; if (p.tipo === 'mergulho' && p.lado === lado) salto++;
-      const trs = r.hist.filter(h => h.tr != null && h.t >= 0).map(h => h.tr); if ((trs.at(-1) - GK.colisores('gk_espera', 0).find(c => c.nome === 'tronco').a[0])*sg > .3) paraLado++; }   // desde a posição inicial (o mergulho começa 0,8 s antes do chute)
+      const trs = r.hist.filter(h => h.tr != null && h.t >= 0).map(h => h.tr); if ((trs.at(-1) - GK.colisores('gk_espera', 0).find(c => c.nome === 'tronco').a[0])*sg > .3) paraLado++; }   // desde a posição inicial (o mergulho começa 0,3 s antes do chute)
     t(`${nome} (${NOME[tipo]}): a régua NÃO aparece em nenhum instante`, semRegua === N, `${semRegua}/${N}`);
     t(`${nome} (${NOME[tipo]}): salto/mergulho para a ${nome.toLowerCase()} (com a bola em qualquer lugar)`, salto === N && paraLado === N, `mergulho ${salto}/${N} · corpo foi ≥ 0,3 m para o lado ${paraLado}/${N}`); }
 }
@@ -46,5 +46,5 @@ for (const tipo of ['chapada', 'medio', 'bomba']) {
 t('candidatos: MEIO sem mergulho/bloqueio; ESQUERDA/DIREITA só mergulho para o próprio lado (sem passos da régua)',
   !GK.candidatos('centro').some(c => c.tipo === 'mergulho' || c.tipo === 'bloqueio') && GK.candidatos('esq').every(c => c.tipo === 'mergulho' && c.lado === 'esq') && GK.candidatos('dir').every(c => c.tipo === 'mergulho' && c.lado === 'dir'));
 { const m = novaMemoria(); const p0 = probabilidades(m); registrar(m, 'esq'); const p1 = probabilidades(m);
-  t('probabilidades e memória intactas (1/3 cada; depois de esquerda, esquerda ÷ 12)', Math.abs(p0.centro - 1/3) < 1e-9 && Math.abs(p1.esq - 1/36) < 1e-9); }
+  t('probabilidades: esquerda 40%, meio 20%, direita 40%; depois de esquerda, esquerda ÷ 12', Math.abs(p0.centro - .2) < 1e-9 && Math.abs(p0.esq - .4) < 1e-9 && Math.abs(p1.esq - .4/12) < 1e-9); }
 console.log(`REGUA OK ${ok} | FALHAS ${bad}`); process.exit(bad ? 1 : 0);

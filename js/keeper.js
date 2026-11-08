@@ -32,7 +32,7 @@ export const KEEPER_CFG = {
   meio: { erro: .5, ikMax: .55, caixa: 1.3 },   // MEIO com a bola no meio: de frente para a bola, lê com metade do erro e o braço alcança mais (45 cm)   // MEIO com a bola no meio: os passos podem ser mais rápidos (o goleiro já está na frente da bola, só precisa chegar a tempo)
   // SAÍDA ANTES DO CHUTE: com lado escolhido, nos últimos `antes` s antes do pé na bola o goleiro já começa o movimento para aquele lado (carrega o
   // peso, o primeiro passo/agachamento do mergulho); no chute ele só escolhe a altura e continua de onde está — sem recomeçar parado
-  saida: { antes: .8, noAr: .45 },   // o mergulho para o lado escolhido começa 0,8 s antes do pé do cobrador tocar a bola (sempre que a escolha é esquerda/direita)
+  saida: { antes: .3, noAr: .6 },   // o mergulho para o lado escolhido começa 0,3 s antes do pé do cobrador tocar a bola (sempre que a escolha é esquerda/direita); noAr: depois disso no clipe, não troca de altura
   // CORREÇÃO NO MEIO DO LANCE: ~0,1 s depois de começar, o goleiro relê a bola (erro bem menor: já viu mais da trajetória) e, se outra ação cobrir
   // a bola muito melhor, troca uma vez (com transição curta). É o "ajuste" que todo goleiro faz acompanhando a bola.
   correcao: { apos: .1, fatorErro: .4, ganho: .08, zMin: 3 },

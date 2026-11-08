@@ -1,7 +1,7 @@
 // GOLEIRO — áreas físicas e sensores: as 20 situações do pedido (áreas de alcance das mãos × contato real, partes do corpo, traves/travessão com colisão
 // contínua, chute do cobrador, área azul dos pés no MEIO e a decisão de lado respeitada).  node test_goleiro_fisica.mjs
 import * as GK from './js/keeper.js';
-GK.KEEPER_CFG.saida.ctNoChute = .35;   // MODELO DO GOLEIRO CHEGANDO À BOLA (impulsão no chute): estes testes medem partes do corpo, IK, contato e física; no jogo o mergulho para o lado começa 0,8 s antes do chute (números reais em test_keeper.mjs)
+GK.KEEPER_CFG.saida.ctNoChute = .35;   // MODELO DO GOLEIRO CHEGANDO À BOLA (impulsão no chute): estes testes medem partes do corpo, IK, contato e física; no jogo o mergulho para o lado começa 0,3 s antes do chute (números reais em test_keeper.mjs)
 import { FERROS, R_FERRO, varreFerro, tocaFerro } from './js/fisicaGol.js';
 import { KICK_CLIPS } from './js/kickClips.js';
 import { BALL_R } from './js/rig.js';
