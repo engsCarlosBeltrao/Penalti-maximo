@@ -1,8 +1,12 @@
 // Configurações de áudio/músicas persistentes (localStorage) com validação: dados antigos ou corrompidos nunca travam o jogo.
+// spotify: links do Spotify por clube ({ flamengo: [{ id, tipo, sid, nome, autor, capa }] }, js/spotify.js) — só cadastro; o jogo apenas os abre fora dele.
+import { limpaLista } from './spotify.js';
+// torcidas: músicas locais por clube tocadas pelo jogo na partida (js/torcidas.js; o áudio fica no IndexedDB) · torcidaRegras: eventos, pausa, fim, repetição, volume
+import { limpaTorcidas, limpaRegras, REGRAS_PADRAO } from './torcidas.js';
 const KEY = 'pm_audio_v1', ID = /^[A-Za-z0-9_-]{11}$/;
 const MODES = ['team', 'exclusive', 'default', 'off'], STARTS = ['apresentacao', 'preparacao', 'cobranca', 'gol'], REPS = ['off', 'one', 'all'];
 export const uid = () => 'm' + Math.random().toString(36).slice(2, 9);
-export const defaults = () => ({ v: 1, menu: { tracks: [], shuffle: false, repeat: 'all' }, chants: {}, champion: { mode: 'team', exclusive: null, defaultSong: null }, play: { chantStart: 'preparacao', duckOnKick: true, keepMenuInMatch: false, master: 80 } });
+export const defaults = () => ({ v: 1, menu: { tracks: [], shuffle: false, repeat: 'all' }, chants: {}, champion: { mode: 'team', exclusive: null, defaultSong: null }, play: { chantStart: 'preparacao', duckOnKick: true, keepMenuInMatch: false, master: 80 }, spotify: {}, torcidas: {}, torcidaRegras: REGRAS_PADRAO() });
 const clamp = (n, a, b, d) => Number.isFinite(+n) ? Math.min(b, Math.max(a, +n)) : d;
 export function cleanEntry(e) {                          // devolve entrada válida ou null
   if (!e || typeof e !== 'object' || typeof e.vid !== 'string' || !ID.test(e.vid)) return null;
@@ -15,6 +19,8 @@ export function sanitize(raw) {
   if (raw.chants && typeof raw.chants === 'object') Object.entries(raw.chants).forEach(([k, v]) => { const c = cleanEntry(v); c && /^[a-z0-9-]{1,30}$/.test(k) ? d.chants[k] = c : dropped++; });
   const ch = raw.champion || {}; if (MODES.includes(ch.mode)) d.champion.mode = ch.mode; d.champion.exclusive = cleanEntry(ch.exclusive); d.champion.defaultSong = cleanEntry(ch.defaultSong);
   const p = raw.play || {}; if (STARTS.includes(p.chantStart)) d.play.chantStart = p.chantStart; ['duckOnKick', 'keepMenuInMatch'].forEach(k => { if (typeof p[k] === 'boolean') d.play[k] = p[k]; }); d.play.master = clamp(p.master, 0, 100, 80);
+  const sp = limpaLista(raw.spotify); d.spotify = sp.lista; dropped += sp.descartados;
+  const to = limpaTorcidas(raw.torcidas); d.torcidas = to.lista; dropped += to.descartados; d.torcidaRegras = limpaRegras(raw.torcidaRegras);
   return { data: d, dropped };
 }
 export const Store = {

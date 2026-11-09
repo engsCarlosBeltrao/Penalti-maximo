@@ -689,7 +689,8 @@ export function animGoleiro(k, b, { agora = 0, tJogo = 0, sc = [1, 1], nk = 0, c
   if (b && k && k.plano && b.t >= k.plano.tIni) {
     const ct = ctDe(k, b.t), info = CLIP_INFO[k.plano.clip], fim = info.dur - .35;
     if (b.res && ct >= fim && cheer) { const gol = b.res === 'gol';
-      return { clip: (gol ? sad : cheer)[nk % 3], pe: nk % 2 ? 'l' : 'r', t: ct - fim, pos: [R[0] + sc[0]*info.fim[0], 0, R[2] + sc[0]*info.fim[1]], yaw: info.yawFim, blend: .45, state: gol ? 'keeperSad' : 'keeperCheer' }; }
+      const lista = gol ? sad : cheer;
+      return { clip: lista[nk % lista.length], pe: nk % 2 ? 'l' : 'r', t: ct - fim, pos: [R[0] + sc[0]*info.fim[0], 0, R[2] + sc[0]*info.fim[1]], yaw: info.yawFim, blend: .45, state: gol ? 'keeperSad' : 'keeperCheer' }; }
     if (ct >= info.dur && !b.res) return { gk: true, idle: true, clip: 'gk_espera', t: agora, pos: [R[0] + sc[0]*info.fim[0], 0, R[2] + sc[0]*info.fim[1]], yaw: info.yawFim, state: 'keeperWait', ready: null };   // acabou a ação e a jogada segue: volta à base onde está
     return { gk: true, clip: k.plano.clip, t: Math.min(ct, info.dur), pos: R.slice(), yaw: 0, blend: k.plano.blend, state: 'keeperDive', ajuste: ajusteAgora(k, b.t) };
   }

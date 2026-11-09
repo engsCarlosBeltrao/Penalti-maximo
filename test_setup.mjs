@@ -16,8 +16,8 @@ const noSyntax = files.filter((f) => spawnSync('node', ['--check', f], { encodin
 const markers = [[']' + '(http', 'link Markdown'], [E + 'amp;', 'entidade HTML'], [E + 'lt;', 'entidade HTML'], [E + 'gt;', 'entidade HTML'], [String.fromCharCode(0x200b), 'caractere invisivel'], [String.fromCharCode(0xfeff), 'BOM']];
 const artefatos = []; files.filter((f) => !f.endsWith('test_setup.mjs')).forEach((f) => {
   let s = fs.readFileSync(f, 'utf8');
-  if (f.endsWith('musicPanel.js')) s = s.split('\n').filter((l) => !l.startsWith('const esc = ')).join('\n');   // unica excecao legitima: a funcao esc() que escapa texto do usuario para HTML
-  markers.forEach(([m, d]) => { if (s.includes(m)) artefatos.push(f + ': ' + d); }); }); t('nenhum link Markdown/entidade HTML/caractere invisivel no codigo (exceto esc() de musicPanel.js)', artefatos.length === 0); if (artefatos.length) console.log(' ', artefatos);
+  s = s.split('\n').filter((l) => !l.startsWith('const esc = ')).join('\n');   // unica excecao legitima: a funcao esc() que escapa texto do usuario para HTML (paineis musicPanel, spotifyPanel, torcidaPanel)
+  markers.forEach(([m, d]) => { if (s.includes(m)) artefatos.push(f + ': ' + d); }); }); t('nenhum link Markdown/entidade HTML/caractere invisivel no codigo (exceto as funcoes esc() dos paineis)', artefatos.length === 0); if (artefatos.length) console.log(' ', artefatos);
 t('setup-3d.mjs --self-test passa', runSync(['--self-test']).status === 0);
 // 2) copia local (--from)
 let root = newRoot(); const pkg = path.join(tmp, 'package'); Object.entries(FAKE).forEach(([k, v]) => { fs.mkdirSync(path.dirname(path.join(pkg, k)), { recursive: true }); fs.writeFileSync(path.join(pkg, k), v); });

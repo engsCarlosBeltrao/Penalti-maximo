@@ -40,15 +40,26 @@ export const waitSpec = playerId => kickSpec(playerId, 'medio');
 // Clipes de reação do cobrador (tools/blender/reacoes.py): ENTRADA (caminhada até o ponto de partida), 5 comemorações de gol e 5 reações de cobrança perdida
 // (duração em s, igual ao clipe — conferida em test_kicks.mjs). Arquivos: assets/models/anim/<nome>_<r|l>.glb.
 export const ENTRY_S = 2.7;
-export const GOAL_REACTIONS = { gol_bracos_abertos: 3.6, gol_punhos: 3.4, gol_salto: 3.6, gol_aponta: 3.6, gol_corrida: 3.8 };
+export const GOAL_REACTIONS = { gol_bracos_abertos: 3.6, gol_punhos: 3.4, gol_salto: 3.6, gol_aponta: 3.6, gol_corrida: 3.8,
+  gol_mao_orelha: 3.6, gol_beija_escudo: 3.6, gol_silencio: 3.4, gol_dancinha: 3.4, gol_coracao: 3.6 };
+// comemorações de DEFESA do goleiro (10) e de VITÓRIA na cena final (10) — tools/blender/reacoes.py
+export const SAVE_REACTIONS = { def_soco_ar: 3.0, def_luvas_batem: 3.0, def_aponta_torcida: 3.0, def_bate_peito: 3.2, def_rugido: 3.0, def_dedo_nao: 3.0, def_chama_torcida: 3.0,
+  def_salto_punhos: 3.0, def_agacha_grito: 3.0, def_aponta_ceu: 3.0 };
+export const VICTORY_REACTIONS = { vit_pula_bracos: 4.2, vit_aviao: 4.2, vit_palmas: 4.2, vit_escudo: 4.2, vit_danca: 4.2, vit_socos: 4.2, vit_aponta_volta: 4.2, vit_maos_cabeca: 4.2,
+  vit_grito_abertos: 4.2, vit_pulo_punho: 4.2 };
 export const MISS_REACTIONS = { perdeu_cabeca_baixa: 2.8, perdeu_maos_cintura: 3.0, perdeu_mao_rosto: 2.8, perdeu_maos_cabeca: 3.0, perdeu_olha_chao: 3.0 };
 export const REACTION_NAMES = { gol_bracos_abertos: 'Braços abertos', gol_punhos: 'Punhos cerrados', gol_salto: 'Pequeno salto', gol_aponta: 'Apontando para cima', gol_corrida: 'Corrida comemorativa',
-  perdeu_cabeca_baixa: 'Cabeça baixa', perdeu_maos_cintura: 'Mãos na cintura', perdeu_mao_rosto: 'Mão no rosto', perdeu_maos_cabeca: 'Mãos na cabeça', perdeu_olha_chao: 'Olhar para o chão' };
+  perdeu_cabeca_baixa: 'Cabeça baixa', perdeu_maos_cintura: 'Mãos na cintura', perdeu_mao_rosto: 'Mão no rosto', perdeu_maos_cabeca: 'Mãos na cabeça', perdeu_olha_chao: 'Olhar para o chão',
+  gol_mao_orelha: 'Mão na orelha', gol_beija_escudo: 'Beijo no escudo', gol_silencio: 'Silêncio', gol_dancinha: 'Dancinha', gol_coracao: 'Coração para a torcida',
+  def_soco_ar: 'Soco no ar', def_luvas_batem: 'Luvas batendo', def_aponta_torcida: 'Aponta para a torcida', def_bate_peito: 'Bate no peito', def_rugido: 'Rugido',
+  def_dedo_nao: 'Aqui não!', def_chama_torcida: 'Chama a torcida', def_salto_punhos: 'Salto com os punhos', def_agacha_grito: 'Vamos!', def_aponta_ceu: 'Aponta para o céu',
+  vit_pula_bracos: 'Pulos de braços para cima', vit_aviao: 'Avião', vit_palmas: 'Palmas para a torcida', vit_escudo: 'Mostra o escudo', vit_danca: 'Dança da vitória',
+  vit_socos: 'Socos no ar', vit_aponta_volta: 'Aponta para a torcida', vit_maos_cabeca: 'Não acredita', vit_grito_abertos: 'Grito de braços abertos', vit_pulo_punho: 'Pulo com soco no ar' };
 export const GOAL_S = Math.max(...Object.values(GOAL_REACTIONS)), MISS_S = Math.max(...Object.values(MISS_REACTIONS));
 // Depois de cada cobrança o goleiro se levanta e reage: comemora a defesa (ou o erro do cobrador) ou lamenta o gol (js/frame.js). RESULT_WAIT: tempo
 // entre o resultado e a próxima vez, suficiente para a reação do cobrador terminar.
 export const KEEPER_REACT_D = 1.35, RESULT_WAIT = 4.0;
-export const KEEPER_CHEER = ['gol_punhos', 'gol_salto', 'gol_bracos_abertos'], KEEPER_SAD = ['perdeu_maos_cintura', 'perdeu_cabeca_baixa', 'perdeu_maos_cabeca'];
+export const KEEPER_CHEER = Object.keys(SAVE_REACTIONS), KEEPER_SAD = ['perdeu_maos_cintura', 'perdeu_cabeca_baixa', 'perdeu_maos_cabeca'];   // o goleiro comemora a defesa com as 10 próprias
 // SACOLA embaralhada: cada reação sai uma vez antes de qualquer uma repetir, e a primeira de uma sacola nova nunca é a última da anterior (sem repetição
 // imediata). Sorteada UMA vez por cobrança, quando o resultado é confirmado (game.js), e guardada na bola: o mesmo chute nunca troca de reação.
 export function reactionBag(names, rnd = Math.random) {

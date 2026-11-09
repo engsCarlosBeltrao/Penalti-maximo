@@ -5,7 +5,7 @@ import { Aim } from './aim.js';
 import { sfx, crowd, ambient, level } from './audio.js';
 import { Renderer } from './renderer.js';
 import { pickKicker } from './players.js';
-import { kickSpec, waitSpec, forceFromAim, typeFromForce, ENTRY_S, GOAL_REACTIONS, MISS_REACTIONS, reactionBag, RESULT_WAIT, CORRIDA } from './kicks.js';
+import { kickSpec, waitSpec, forceFromAim, typeFromForce, ENTRY_S, GOAL_REACTIONS, MISS_REACTIONS, reactionBag, RESULT_WAIT, CORRIDA, VICTORY_REACTIONS } from './kicks.js';
 import * as GK from './keeper.js';
 import { keeperScale } from './frame.js';
 import { memoriaDe, sortear, registrar, probabilidades } from './goleiroMemoria.js';
@@ -14,6 +14,7 @@ export const cfg = { hs: 0.9, vs: 0.6, diff: 'normal', sound: true, vol: 0.5, vo
 // GOLEIRO: js/keeper.js (decisão antecipada, previsão, colisores dos ossos, contato e física). A dificuldade muda o tempo de reação e o erro de leitura
 // do goleiro da CPU; quando o goleiro é do jogador, ela vale para o cobrador da CPU (no fácil o goleiro do jogador reage mais rápido).
 const T_FLIGHT = .7, W = 960, H = 540, INV = { easy: 'hard', normal: 'normal', hard: 'easy' };
+const embaralha = a => { const r = a.slice(); for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i + 1)); [r[i], r[j]] = [r[j], r[i]]; } return r; };
 const G = { l:300, r:660, t:150, b:290 }, START = { x:480, y:470 };
 const gpt = (gx, gy) => ({ x: G.l + gx*(G.r-G.l), y: G.b - gy*(G.b-G.t) });  // coord. do gol → tela
 
@@ -130,7 +131,7 @@ export const Game = {
       GS.vencedor = GS.placar[0] > GS.placar[1] ? 0 : 1; GS.estado = 'RESULTADO';
       Events.emit('partida_encerrada', { placar: [...GS.placar], vencedor: GS.vencedor });
       Events.emit(GS.vencedor === 0 ? 'vitoria' : 'derrota'); sfx('vitoria'); crowd('roarBig'); level(1);
-      this.fin = { t: 0 }; return;      // comemoração SÓ agora (resultado final confirmado); o callback vem em finish()
+      this.fin = { t: 0, vit: embaralha(Object.keys(VICTORY_REACTIONS)), perdeu: embaralha(Object.keys(MISS_REACTIONS))[0] }; return;   // cada vencedor com uma comemoração diferente      // comemoração SÓ agora (resultado final confirmado); o callback vem em finish()
     }
     if (GS.cobrador === 1) GS.cobranca++;
     this.setTurn(GS.cobrador ^ 1);

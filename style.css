@@ -31,3 +31,188 @@ body.narrow{align-items:flex-start}body.narrow #app{overflow:visible}body.narrow
 .ard-bt{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.ard-bt button{min-width:0}.ard-bot{display:flex;flex-wrap:wrap;gap:6px}.ard-led{padding:5px 8px;border-radius:8px;background:#0b1a2e;border:1px solid #2a4468;font-size:12px}.ard-led.on{background:#38b000;color:#000}
 .ard-sim{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.ard-sim button{min-width:0}.ard-lcdv{background:#3c6e2a;color:#e8ffd8;font:16px/1.25 ui-monospace,Consolas,monospace;padding:8px;border-radius:4px;margin:4px 0;white-space:pre;min-height:4.2em}
 .ard-log{background:#0b1a2e;font:11px/1.3 ui-monospace,monospace;padding:6px;height:150px;overflow:auto;margin:4px 0;white-space:pre}
+
+/* ===== TELA INICIAL (estilo console: estádio 3D ao fundo, jogador à direita, menu em coluna à esquerda) ===== */
+#ui.home{display:block;background:none;animation:none}
+.mm{position:absolute;inset:0;font-family:Bahnschrift,'Arial Narrow','Trebuchet MS',sans-serif;color:#eef2f7;animation:mm-in .6s ease-out both}
+.mm-sombra{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(3,7,13,.93) 0%,rgba(3,7,13,.78) 26%,rgba(3,7,13,.25) 52%,rgba(3,7,13,0) 68%),linear-gradient(0deg,rgba(3,7,13,.85) 0%,rgba(3,7,13,0) 22%),linear-gradient(180deg,rgba(3,7,13,.6) 0%,rgba(3,7,13,0) 18%),radial-gradient(120% 90% at 70% 45%,transparent 50%,rgba(0,0,0,.65) 100%),linear-gradient(rgba(3,7,13,.18),rgba(3,7,13,.18))}
+.mm-luz{position:absolute;right:-8%;top:-30%;width:70%;height:90%;pointer-events:none;background:radial-gradient(closest-side,rgba(255,236,190,.16),transparent);animation:mm-luz 9s ease-in-out infinite alternate}
+.mm-logo{position:absolute;left:46px;top:30px;display:flex;align-items:center;gap:12px;animation:mm-esq .6s .05s ease-out both}
+.mm-logo b{display:block;font:italic 900 31px/0.92 Impact,'Arial Black',sans-serif;letter-spacing:1.5px;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.mm-logo b+b{color:#f5c542}
+.mm-bola{width:34px;height:34px;border-radius:50%;border:3px solid #f5c542;box-shadow:inset 0 0 0 5px rgba(245,197,66,.18);position:relative}
+.mm-bola:after{content:'';position:absolute;inset:8px;background:#f5c542;clip-path:polygon(50% 0,100% 38%,82% 100%,18% 100%,0 38%)}
+.mm-lista{position:absolute;left:34px;top:122px;width:300px;display:flex;flex-direction:column;gap:1px}
+#ui.home .mi{all:unset;box-sizing:border-box;position:relative;display:flex;align-items:center;height:30px;padding:0 12px 0 16px;cursor:pointer;font:700 15px/1 Bahnschrift,'Arial Narrow',sans-serif;letter-spacing:1.4px;color:rgba(222,230,240,.52);border-radius:3px;transition:color .18s,background .25s,transform .22s,letter-spacing .22s;animation:mm-esq .5s ease-out both}
+#ui.home .mi-p{height:36px;font-size:21px;letter-spacing:1.2px;color:rgba(235,240,247,.62)}
+#ui.home .mi i{position:absolute;left:0;top:50%;width:3px;height:0;background:#f5c542;border-radius:2px;transform:translateY(-50%);transition:height .22s ease-out;box-shadow:0 0 10px rgba(245,197,66,.7)}
+#ui.home .mi:hover,#ui.home .mi.nav-foco{outline:none!important;color:#fff;background:linear-gradient(90deg,rgba(255,255,255,.11),rgba(255,255,255,0));transform:translateX(6px);outline:none;text-shadow:0 0 18px rgba(255,255,255,.25)}
+#ui.home .mi.nav-foco i,#ui.home .mi:hover i{height:62%}
+#ui.home .mi.nav-foco{color:#fff}#ui.home .mi.pick{background:linear-gradient(90deg,rgba(245,197,66,.35),rgba(245,197,66,0));color:#fff}
+#ui.home .mi:active{transform:translateX(6px) scale(.98)}
+.mm-lista .mi:nth-child(1){animation-delay:.1s}.mm-lista .mi:nth-child(2){animation-delay:.14s}.mm-lista .mi:nth-child(3){animation-delay:.18s}.mm-lista .mi:nth-child(5){animation-delay:.22s}.mm-lista .mi:nth-child(6){animation-delay:.25s}.mm-lista .mi:nth-child(7){animation-delay:.28s}.mm-lista .mi:nth-child(8){animation-delay:.31s}.mm-lista .mi:nth-child(9){animation-delay:.34s}.mm-lista .mi:nth-child(10){animation-delay:.37s}
+.mm-sep{width:150px;margin:8px 0 8px 16px;border:0;height:1px;background:linear-gradient(90deg,rgba(245,197,66,.55),transparent)}
+.mm-info{position:absolute;left:372px;top:318px;width:250px;animation:mm-sobe .6s .3s ease-out both;text-shadow:0 2px 10px rgba(0,0,0,.8)}
+.mm-tag{display:inline-block;font:700 9px/1 Bahnschrift,sans-serif;letter-spacing:2.5px;color:#10151d;background:#f5c542;padding:4px 7px 3px;border-radius:2px}
+.mm-info h3{margin:8px 0 6px;font:700 19px/1.15 Bahnschrift,'Arial Narrow',sans-serif;letter-spacing:.4px;color:#fff}.mm-info h3 em{font-style:normal;color:#f5c542}
+.mm-info p{font-size:12.5px;line-height:1.4;color:rgba(230,236,244,.78);min-height:34px}.mm-info p.in{animation:mm-txt .3s ease-out}
+.mm-topo{position:absolute;right:30px;top:24px;display:flex;align-items:center;gap:14px;font:600 11px/1 Bahnschrift,sans-serif;letter-spacing:1.2px;color:rgba(235,240,247,.8);animation:mm-sobe .6s .2s ease-out both}
+.mm-time{display:flex;align-items:center;gap:7px;padding-right:14px;border-right:1px solid rgba(255,255,255,.25)}.mm-time img,.mm-time svg{width:20px;height:24px;object-fit:contain}
+.mm-ard{display:flex;align-items:center;gap:6px}.mm-ard i{width:7px;height:7px;border-radius:50%;background:#7c8796}.mm-ard.ok i{background:#38d96b;box-shadow:0 0 8px #38d96b}.mm-ard.warn i{background:#ff9f1c}
+.mm-teclas{position:absolute;left:40px;bottom:20px;display:flex;gap:20px;font:600 11px/1 Bahnschrift,sans-serif;letter-spacing:1px;color:rgba(230,236,244,.72);animation:mm-sobe .6s .35s ease-out both}
+.mm-teclas kbd{display:inline-block;min-width:18px;margin-right:3px;padding:3px 5px 2px;border:1px solid rgba(255,255,255,.45);border-radius:4px;font:700 9.5px/1 Bahnschrift,sans-serif;text-align:center;color:#fff;background:rgba(255,255,255,.08)}
+#ui.home.saindo .mm{transition:opacity .14s;opacity:.55}
+@keyframes mm-in{from{opacity:0}}@keyframes mm-esq{from{opacity:0;transform:translateX(-18px)}}@keyframes mm-sobe{from{opacity:0;transform:translateY(10px)}}@keyframes mm-txt{from{opacity:0;transform:translateY(4px)}}
+@keyframes mm-luz{to{transform:translate(-6%,4%) scale(1.08);opacity:.75}}
+@media (prefers-reduced-motion:reduce){.mm,.mm *{animation:none!important;transition:none!important}}
+/* tela estreita (celular): o menu ocupa a largura, sem a coluna de informações */
+#ui.flow.home{position:fixed;background:linear-gradient(180deg,rgba(3,7,13,.4),rgba(3,7,13,.92) 40%)}#ui.flow.home .mm{position:relative;min-height:100%;padding:16px}
+#ui.flow.home .mm-logo,#ui.flow.home .mm-lista,#ui.flow.home .mm-info,#ui.flow.home .mm-topo,#ui.flow.home .mm-teclas{position:static;width:auto;margin:0 0 14px}#ui.flow.home .mm-teclas,#ui.flow.home .mm-sombra,#ui.flow.home .mm-luz{display:none}#ui.flow.home .mi{height:44px}
+.mm-teclas kbd.seta{font:9px/1 "Segoe UI Symbol",Arial,sans-serif;padding:3px 4px}
+
+/* ===== TELAS INTERNAS no estilo da tela inicial (times, jogadores, músicas e torcidas, configurações, como jogar, arcade, versus, resultado, campeonato) ===== */
+#ui.tela{background:linear-gradient(90deg,rgba(3,7,13,.9),rgba(3,7,13,.72) 55%,rgba(3,7,13,.55)),radial-gradient(120% 90% at 70% 45%,transparent 45%,rgba(0,0,0,.6) 100%);font-family:Bahnschrift,'Arial Narrow','Trebuchet MS',sans-serif;animation:tl-in .35s ease-out;padding-top:34px;gap:12px}
+#ui.tela>*{animation:mm-sobe .4s ease-out both}
+#ui.tela h1{font:italic 900 46px/1 Impact,'Arial Black',sans-serif;letter-spacing:1.5px;color:#fff;text-shadow:0 3px 16px rgba(0,0,0,.6)}
+#ui.tela h2{font:700 24px/1.1 Bahnschrift,'Arial Narrow',sans-serif;letter-spacing:2.5px;text-transform:uppercase;color:#fff;position:relative;padding-bottom:9px;text-align:center}
+#ui.tela h2:after{content:'';position:absolute;left:50%;bottom:0;width:46px;height:3px;margin-left:-23px;background:#f5c542;border-radius:2px;box-shadow:0 0 10px rgba(245,197,66,.6)}
+#ui.tela h3{font:600 17px Bahnschrift,sans-serif;letter-spacing:1px;margin:0}#ui.tela p{color:rgba(230,236,244,.82)}
+#ui.tela button{font:700 13px/1 Bahnschrift,'Arial Narrow',sans-serif;letter-spacing:1.6px;text-transform:uppercase;padding:11px 26px;min-width:190px;border-radius:4px;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);box-shadow:inset 0 -2px 0 #f5c542;transition:background .18s,border-color .18s,transform .18s,box-shadow .18s,color .18s}
+#ui.tela button.sec{color:rgba(230,236,244,.75);background:rgba(8,14,24,.45);border-color:rgba(255,255,255,.14);box-shadow:none}
+#ui.tela button.sm{min-width:0;padding:7px 13px;font-size:11px;letter-spacing:1.2px}
+#ui.tela button:hover,#ui.tela button.nav-foco{transform:translateY(-1px);color:#fff;background:rgba(255,255,255,.18);border-color:#f5c542;box-shadow:inset 3px 0 0 #f5c542,0 0 16px rgba(245,197,66,.22);outline:none!important}
+#ui.tela .box{background:rgba(8,14,24,.72);border:1px solid rgba(255,255,255,.1);border-radius:6px;backdrop-filter:blur(6px);box-shadow:0 10px 30px rgba(0,0,0,.35);color:rgba(236,241,247,.9)}
+#ui.tela .box b{color:#f5c542;font-weight:700}
+#ui.tela .card{background:rgba(8,14,24,.62);border:1px solid rgba(255,255,255,.1);border-radius:6px;font:600 10px/1.25 Bahnschrift,sans-serif;letter-spacing:.4px;color:rgba(236,241,247,.85);padding:6px 2px;transition:transform .18s,border-color .18s,background .18s}
+#ui.tela .card:hover,#ui.tela .card.nav-foco{transform:translateY(-3px);border-color:#f5c542;background:rgba(255,255,255,.12);color:#fff;outline:none!important;box-shadow:0 6px 18px rgba(0,0,0,.4),0 0 12px rgba(245,197,66,.25)}
+#ui.tela .pl button{text-transform:none;letter-spacing:.4px;font-size:12px;font-weight:600}
+#ui.tela label{font-size:13px;letter-spacing:.6px;color:rgba(236,241,247,.9);padding:4px 0}
+#ui.tela input[type=range]{accent-color:#f5c542;width:170px}#ui.tela input[type=checkbox]{accent-color:#f5c542;width:16px;height:16px}
+#ui.tela select,#ui.tela .trow input:not([type=checkbox]):not([type=range]),#ui.tela .trow select{background:rgba(3,7,13,.75);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:5px 8px;font:13px Bahnschrift,sans-serif}
+#ui.tela select.nav-foco,#ui.tela input.nav-foco{outline:2px solid #f5c542!important;outline-offset:2px}
+#ui.tela .trow{border-bottom-color:rgba(255,255,255,.08)}#ui.tela .lnk{color:#f5c542}#ui.tela .note{color:#f5c542}
+#ui.tela table{font-size:11px}#ui.tela th{color:#f5c542;font-weight:700;letter-spacing:1px}#ui.tela td{color:rgba(236,241,247,.88)}
+#ui.tela .ard-lcdv{background:#2e5a22;box-shadow:inset 0 0 0 2px #1c3a14}#ui.tela .ard-log{background:rgba(3,7,13,.75)}#ui.tela .ard-led{background:rgba(3,7,13,.75);border-color:rgba(255,255,255,.15)}#ui.tela .ard-led.on{background:#38d96b}
+.tl-logo{position:absolute;left:30px;top:18px;font:italic 900 18px/1 Impact,'Arial Black',sans-serif;letter-spacing:1px;color:#fff;animation:none!important;pointer-events:none}.tl-logo b+b{color:#f5c542}
+.tl-teclas{position:absolute;left:32px;bottom:14px;display:flex;gap:18px;font:600 10px/1 Bahnschrift,sans-serif;letter-spacing:1px;color:rgba(230,236,244,.65);animation:none!important;pointer-events:none}
+.tl-teclas kbd{display:inline-block;min-width:16px;margin-right:3px;padding:3px 4px 2px;border:1px solid rgba(255,255,255,.4);border-radius:3px;font:700 9px/1 Bahnschrift,sans-serif;text-align:center;color:#fff;background:rgba(255,255,255,.08)}.tl-teclas kbd.seta{font:8px/1 'Segoe UI Symbol',Arial,sans-serif}
+@keyframes tl-in{from{opacity:0}}
+#ui.flow.tela{padding-top:14px}#ui.flow.tela h2{font-size:20px}
+
+/* ===== SELEÇÃO DE TIMES E UNIFORMES (dois lados frente a frente; jogadores 3D com os uniformes ao fundo) ===== */
+#ui.selecao{display:block;padding:0;background:linear-gradient(90deg,rgba(3,7,13,.86),rgba(3,7,13,.15) 30%,rgba(3,7,13,.15) 70%,rgba(3,7,13,.86)),linear-gradient(180deg,rgba(3,7,13,.75),rgba(3,7,13,0) 22%,rgba(3,7,13,0) 70%,rgba(3,7,13,.9))}
+#ui.selecao .tl-logo,#ui.selecao .tl-teclas{display:none}
+.sx{position:absolute;inset:0;font-family:Bahnschrift,'Arial Narrow',sans-serif;color:#eef2f7}
+.sx-topo{position:absolute;left:0;right:0;top:12px;text-align:center;animation:mm-sobe .4s ease-out both}
+.sx-tit{display:inline-block;font:700 15px/1 Bahnschrift,sans-serif;letter-spacing:4px;color:#fff;padding:0 16px 7px;border-bottom:2px solid #f5c542}
+.sx-vez{margin-top:9px;font:600 12px/1 Bahnschrift,sans-serif;letter-spacing:1.6px;color:rgba(230,236,244,.8)}.sx-vez b{color:#f5c542;font-weight:700}
+.sx-lado{position:absolute;top:70px;width:204px;padding:12px 10px;text-align:center;border-radius:8px;background:rgba(8,14,24,.55);border:1px solid rgba(255,255,255,.08);transition:opacity .25s,border-color .25s,box-shadow .25s,background .25s;animation:mm-esq .45s ease-out both}
+.sx-a{left:22px}.sx-b{right:22px;animation-name:mm-dir}@keyframes mm-dir{from{opacity:0;transform:translateX(18px)}}
+.sx-lado.ativo{border-color:rgba(245,197,66,.75);box-shadow:0 0 0 1px rgba(245,197,66,.25),0 0 28px rgba(245,197,66,.18);background:rgba(8,14,24,.72)}
+.sx-lado.espera{opacity:.45}
+.sx-jog{display:inline-block;font:700 9.5px/1 Bahnschrift,sans-serif;letter-spacing:2.4px;padding:4px 8px 3px;border-radius:2px;color:#10151d;background:rgba(235,240,247,.85)}.sx-lado.ativo .sx-jog{background:#f5c542}
+.sx-nome{margin:9px 0 6px;font:700 19px/1.1 Bahnschrift,sans-serif;letter-spacing:.6px;color:#fff;min-height:21px;text-transform:uppercase}
+.sx-esc{display:flex;align-items:center;justify-content:space-between;height:132px;border-radius:6px}
+.sx-escudo{flex:1;height:124px;display:flex;align-items:center;justify-content:center}
+.sx-escudo img{max-width:118px;max-height:118px;width:auto;height:auto;object-fit:contain;filter:drop-shadow(0 0 1.5px rgba(255,255,255,.55)) drop-shadow(0 6px 14px rgba(0,0,0,.6))}
+.sx-escudo img.pq{height:80px;width:auto;max-width:96px;object-fit:contain}
+.sx-escudo.troca{animation:sx-troca .28s ease-out}@keyframes sx-troca{from{opacity:0;transform:scale(.86)}}
+.sx-sigla{width:96px;height:110px;display:flex;align-items:center;justify-content:center;font:900 26px Impact,sans-serif;background:#2a3b52;clip-path:polygon(0 0,100% 0,100% 60%,50% 100%,0 60%)}
+#ui.selecao .sx-seta{all:unset;cursor:pointer;width:22px;height:30px;display:flex;align-items:center;justify-content:center;font:13px 'Segoe UI Symbol',Arial,sans-serif;color:#f5c542;border-radius:3px;transition:background .15s,transform .15s}
+#ui.selecao .sx-seta:hover:not(:disabled){background:rgba(245,197,66,.18);transform:scale(1.12)}#ui.selecao .sx-seta:disabled{visibility:hidden}
+.sx-uni{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding:6px 2px;border-radius:4px;border:1px solid rgba(255,255,255,.12);background:rgba(3,7,13,.45);transition:border-color .2s,background .2s}
+.sx-lado.et-uniforme .sx-uni{border-color:#f5c542;background:rgba(245,197,66,.12);box-shadow:0 0 14px rgba(245,197,66,.2)}.sx-lado.et-clube .sx-esc{background:radial-gradient(closest-side,rgba(245,197,66,.13),transparent)}
+.sx-uni>div{flex:1;line-height:1.15}.sx-un{display:block;font:700 12px Bahnschrift,sans-serif;letter-spacing:1.6px;color:#fff}.sx-ut{display:block;font:600 10px Bahnschrift,sans-serif;letter-spacing:2px;color:#f5c542}
+.sx-pecas{display:flex;justify-content:center;gap:10px;margin-top:9px;font:600 9.5px/1 Bahnschrift,sans-serif;letter-spacing:.8px;color:rgba(230,236,244,.75)}.sx-pecas span{display:flex;align-items:center;gap:4px}.sx-pecas i{width:11px;height:11px;border-radius:2px;border:1px solid rgba(255,255,255,.5)}
+.sx-ok{display:none;margin-top:9px;font:700 11px/1 Bahnschrift,sans-serif;letter-spacing:2px;color:#38d96b}.sx-lado.conf .sx-ok{display:block;animation:sx-ok .35s ease-out}@keyframes sx-ok{from{opacity:0;transform:scale(1.3)}}
+.sx-lado.conf{border-color:rgba(56,217,107,.55)}
+.sx-centro{position:absolute;left:372px;width:216px;top:86px;text-align:center;animation:mm-sobe .5s .1s ease-out both}
+.sx-vs{font:italic 900 54px/1 Impact,'Arial Black',sans-serif;color:#fff;letter-spacing:2px;text-shadow:0 0 22px rgba(245,197,66,.55),0 3px 0 #b8860b;margin-bottom:12px}
+.sx.pronto .sx-vs{animation:sx-vs .7s ease-out}@keyframes sx-vs{0%{transform:scale(2.1);opacity:0}60%{transform:scale(.92);opacity:1}100%{transform:scale(1)}}
+.sx-attr{background:rgba(8,14,24,.62);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:8px 10px 6px;backdrop-filter:blur(4px)}
+.sx-at{display:grid;grid-template-columns:34px 1fr 34px;align-items:center;font:700 14px/1 Bahnschrift,sans-serif;color:#fff;margin:2px 0 7px;row-gap:4px}.sx-at em{font:600 8.5px/1 Bahnschrift,sans-serif;font-style:normal;letter-spacing:1.6px;color:rgba(230,236,244,.6)}
+.sx-at span:first-child{text-align:left}.sx-at span:nth-child(3){text-align:right}
+.sx-br{height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;display:flex}.sx-br.e{grid-column:1/2;justify-content:flex-end}.sx-br.d{grid-column:3/4}.sx-br.e,.sx-br.d{grid-row:2}.sx-br i{display:block;height:100%;background:#f5c542}
+.sx-at .sx-br.e{grid-column:1/3;margin-right:51%}.sx-at .sx-br.d{grid-column:2/4;margin-left:51%}
+.sx-craque{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;font:600 9.5px/1.2 Bahnschrift,sans-serif;color:#fff;margin-top:4px;padding-top:7px;border-top:1px solid rgba(255,255,255,.08)}.sx-craque span:first-child{text-align:left}.sx-craque span:last-child{text-align:right}.sx-craque em{font-style:normal;font-size:8px;letter-spacing:1.4px;color:rgba(230,236,244,.55)}
+.sx-a1{font:700 13px Bahnschrift,sans-serif;letter-spacing:2px;color:#f5c542;margin-bottom:4px}.sx-attr p{font-size:11px;line-height:1.35;color:rgba(230,236,244,.75)}
+.sx.um .sx-centro{top:150px}
+.sx-acao{position:absolute;left:0;right:0;bottom:40px;text-align:center}
+.sx-aviso{min-height:14px;margin:0 0 6px!important;font-size:11px;color:#ff9f1c!important}
+#ui.selecao #sx-go{min-width:230px;padding:12px 26px}#ui.selecao #sx-go.pronto{background:#f5c542;color:#10151d;border-color:#f5c542;box-shadow:0 0 22px rgba(245,197,66,.45);animation:sx-pulsa 1.6s ease-in-out infinite}
+@keyframes sx-pulsa{50%{box-shadow:0 0 34px rgba(245,197,66,.7)}}
+.sx-teclas{position:absolute;left:0;right:0;bottom:13px;display:flex;justify-content:center;gap:20px;font:600 10.5px/1 Bahnschrift,sans-serif;letter-spacing:1px;color:rgba(230,236,244,.72)}.sx-teclas b{color:#f5c542}
+.sx-teclas kbd{display:inline-block;min-width:16px;margin-right:3px;padding:3px 4px 2px;border:1px solid rgba(255,255,255,.4);border-radius:3px;font:700 9px/1 Bahnschrift,sans-serif;text-align:center;color:#fff;background:rgba(255,255,255,.08)}.sx-teclas kbd.seta{font:8px/1 'Segoe UI Symbol',Arial,sans-serif}
+.sx.saindo{transition:opacity .4s;opacity:0}
+#ui.flow.selecao{position:fixed;overflow:auto}#ui.flow .sx{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 0 20px}#ui.flow .sx>*{position:static!important;width:auto}#ui.flow .sx-lado{width:260px}#ui.flow .sx-teclas{display:none}
+
+/* ===== MÚSICAS E TORCIDAS (links do Spotify por clube) ===== */
+.sp{width:900px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.sp-sub{font-size:11.5px;letter-spacing:.4px}.sp-sub b{color:#1ed760}
+.sp-clubes{display:grid;grid-template-columns:repeat(21,1fr);gap:4px;width:100%}
+#ui.tela .sp-cl{all:unset;box-sizing:border-box;position:relative;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:5px;background:rgba(8,14,24,.55);border:1px solid rgba(255,255,255,.08);transition:transform .15s,border-color .15s,background .15s}
+#ui.tela .sp-cl img{max-width:28px;max-height:30px;object-fit:contain;filter:drop-shadow(0 0 1px rgba(255,255,255,.5))}
+#ui.tela .sp-cl:hover,#ui.tela .sp-cl.nav-foco{border-color:#f5c542;transform:translateY(-2px);outline:none!important}
+#ui.tela .sp-cl.on{border-color:#1ed760;background:rgba(30,215,96,.14);box-shadow:0 0 12px rgba(30,215,96,.25)}
+.sp-cl i{position:absolute;right:2px;top:2px;min-width:12px;height:12px;border-radius:6px;background:#1ed760;color:#06140b;font:700 8px/12px Bahnschrift,sans-serif;font-style:normal;text-align:center}
+#ui.tela .sp-box{width:100%;max-height:300px;padding:10px 14px;display:flex;flex-direction:column;gap:8px}
+.sp-topo{display:flex;align-items:center;gap:10px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.08)}.sp-topo img{height:34px;width:auto}
+.sp-topo b{display:block;font:700 16px Bahnschrift,sans-serif;letter-spacing:1px;text-transform:uppercase;color:#fff}.sp-topo span{font-size:11px;color:rgba(230,236,244,.65)}
+.sp-lista{display:flex;flex-direction:column;gap:5px;overflow:auto;min-height:20px;flex:1}
+.sp-item{display:flex;align-items:center;gap:10px;padding:5px 6px;border-radius:5px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.05)}
+.sp-item.ed{border-color:#f5c542}
+.sp-capa{width:42px;height:42px;flex:none;border-radius:4px;overflow:hidden;background:#1a2433;display:flex;align-items:center;justify-content:center;color:#1ed760;font-size:18px}.sp-capa img{width:100%;height:100%;object-fit:cover}
+.sp-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;text-align:left}
+.sp-txt b{color:#fff!important;font:700 13px Bahnschrift,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-txt span{font-size:10.5px;color:rgba(230,236,244,.7)}.sp-txt em{font-style:normal;font-weight:700;letter-spacing:1px;color:#1ed760}
+.sp-link{font-size:10px;color:rgba(230,236,244,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none}.sp-link:hover{color:#1ed760}
+.sp-bts{display:flex;align-items:center;gap:4px;flex:none}
+#ui.tela .sp-bts button.sm{padding:6px 9px;font-size:10px;letter-spacing:.8px}
+#ui.tela .sp-bts .sp-abre{background:#1ed760;color:#06140b;border-color:#1ed760;box-shadow:none}#ui.tela .sp-bts .sp-abre:hover,#ui.tela .sp-bts .sp-abre.nav-foco{background:#3be477;color:#06140b}
+#ui.tela .sp-bts .sp-ico{padding:6px 7px;font:9px 'Segoe UI Symbol',Arial,sans-serif}#ui.tela .sp-bts button:disabled{opacity:.3;cursor:default;transform:none}
+.sp-conf{font-size:11px;color:#ff9f1c;margin-right:4px}
+.sp-form{flex:1;display:flex;gap:6px}
+.sp-add{display:flex;gap:6px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)}
+#ui.tela .sp-add input,#ui.tela .sp-form input{background:rgba(3,7,13,.75);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:7px 9px;font:12px Bahnschrift,sans-serif;min-width:0}
+#ui.tela .sp-add input:focus,#ui.tela .sp-form input:focus{outline:none;border-color:#1ed760}
+.sp-add #sp-link,.sp-form #sp-el{flex:2.2}.sp-add #sp-nome,.sp-form #sp-en{flex:1}
+#ui.tela .sp-nota{min-height:15px;font-size:11.5px;color:rgba(230,236,244,.8)}#ui.tela .sp-nota.ok{color:#1ed760}#ui.tela .sp-nota.err{color:#ff9f1c}
+#ui.flow .sp{width:100%}#ui.flow .sp-clubes{grid-template-columns:repeat(10,1fr)}#ui.flow .sp-item{flex-wrap:wrap}#ui.flow .sp-bts{flex-wrap:wrap}#ui.flow .sp-add,#ui.flow .sp-form{flex-direction:column}
+
+/* ===== MÚSICAS DAS TORCIDAS (arquivos tocados pelo jogo): abas, lista por clube, regras e barra do player ===== */
+#ui.tela .sp.mu{gap:7px}
+.mu-abas{gap:4px}#ui.tela .mu-abas button.sm{padding:7px 14px;font-size:10.5px}
+#ui.tela .mu-box{max-height:220px}
+.mu-add{margin-left:auto;cursor:pointer;font:700 10.5px/1 Bahnschrift,sans-serif;letter-spacing:1.2px;color:#10151d;background:#f5c542;padding:8px 12px;border-radius:4px;transition:filter .15s}.mu-add:hover{filter:brightness(1.1)}
+.mu-add:focus-within{outline:2px solid #fff}
+#ui.tela .mu-star{padding:5px 8px;font-size:13px;color:rgba(255,255,255,.35);box-shadow:none}#ui.tela .mu-star.on{color:#f5c542;border-color:#f5c542}
+.mu-tag{font-style:normal;font-size:8.5px;letter-spacing:1.2px;color:#10151d!important;background:#f5c542;padding:2px 5px;border-radius:2px;margin-left:4px;vertical-align:1px}
+.mu-item.tocando{border-color:#38d96b;background:rgba(56,217,107,.1)}
+.mu-player{width:100%;display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:6px;background:rgba(8,14,24,.82);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(6px)}
+.mu-agora{display:flex;align-items:center;gap:9px;flex:1;min-width:0;text-align:left}.mu-agora img{height:34px;width:auto}.mu-nota{width:30px;text-align:center;font-size:20px;color:#f5c542}
+.mu-agora div{min-width:0;display:flex;flex-direction:column;gap:1px}.mu-agora b{color:#fff;font:700 13px Bahnschrift,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mu-agora span{font-size:10px;color:rgba(230,236,244,.65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mu-est{font-style:normal;font:700 8.5px/1 Bahnschrift,sans-serif;letter-spacing:1.6px;color:rgba(230,236,244,.6)}.mu-est.tocando{color:#38d96b}.mu-est.pausado{color:#f5c542}.mu-est.erro{color:#ff9f1c}
+.mu-ctl{display:flex;align-items:center;gap:4px;flex:none}#ui.tela .mu-ctl button.sm{padding:6px 9px;font-size:10px;letter-spacing:.8px}#ui.tela .mu-ctl button:disabled{opacity:.35;transform:none;cursor:default}
+#ui.tela .mu-vol{width:auto;gap:6px;padding:0 0 0 6px;font:700 9px Bahnschrift,sans-serif;letter-spacing:1px;color:rgba(230,236,244,.7)}#ui.tela .mu-vol input{width:90px}.mu-vol i{font-style:normal;min-width:28px}
+#ui.tela .mu-regras{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:18px;text-align:left;max-height:none}
+.mu-col h3{font:700 11px Bahnschrift,sans-serif!important;letter-spacing:2px!important;color:#f5c542;margin:0 0 8px!important}
+#ui.tela .mu-ck{width:auto;justify-content:flex-start;align-items:flex-start;gap:9px;padding:5px 0;cursor:pointer}.mu-ck span{display:flex;flex-direction:column;gap:2px;font-size:10.5px;color:rgba(230,236,244,.7)}.mu-ck b{font-size:12.5px;color:#fff!important}
+#ui.tela .mu-sel{width:auto;display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:12px}.mu-sel b{color:#fff!important;font-weight:600}#ui.tela .mu-sel select{min-width:220px}
+.mu-obs{font-size:10.5px!important;color:rgba(230,236,244,.6)!important;margin-top:8px!important;line-height:1.4}
+#ui.flow .mu-player,#ui.flow .mu-regras{flex-direction:column;grid-template-columns:1fr}#ui.flow .mu-ctl{flex-wrap:wrap}
+/* conta do Spotify (conectar / conectado) na aba Links do Spotify */
+.sp-conta{width:100%;display:flex;flex-direction:column;gap:6px;padding:8px 12px;border-radius:6px;background:rgba(8,14,24,.72);border:1px solid rgba(30,215,96,.35);text-align:left;font-size:11px;color:rgba(230,236,244,.8)}
+.sp-conta.on{flex-direction:row;align-items:center;gap:8px;padding:6px 12px}.sp-conta.on b{color:#1ed760;letter-spacing:1.4px;font-size:11px}.sp-conta.on span:not(.sp-dot){flex:1;font-size:10.5px}.sp-conta em{color:#ff9f1c;font-style:normal}
+.sp-dot{width:8px;height:8px;border-radius:50%;background:#1ed760;box-shadow:0 0 8px #1ed760}
+.sp-passos b{color:#fff}.sp-passos ol{margin:4px 0 0;padding-left:18px;line-height:1.55}.sp-passos a{color:#1ed760}.sp-passos code{background:rgba(3,7,13,.8);padding:1px 6px;border-radius:3px;color:#f5c542;font-size:10.5px}
+#ui.tela .sp-passos button.sm{padding:3px 8px;font-size:9px;margin-left:4px}
+.sp-cid{display:flex;gap:6px}#ui.tela .sp-cid input{flex:1;background:rgba(3,7,13,.75);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:6px 9px;font:12px Bahnschrift,sans-serif}
+#ui.tela .sp-cid button.sm{padding:6px 12px;font-size:10px}#ui.tela #sp-con{background:#1ed760;color:#06140b;border-color:#1ed760;box-shadow:none}
+/* aviso da música na partida (js/main.js → Torcida.ouvir) */
+#tocando{position:absolute;right:12px;top:52px;z-index:7;max-width:46%;padding:7px 12px;border-radius:5px;background:rgba(8,14,24,.82);border-left:3px solid #1ed760;color:#fff;font:600 12px/1.3 Bahnschrift,'Trebuchet MS',sans-serif;letter-spacing:.3px;animation:mm-sobe .3s ease-out;pointer-events:none}#tocando.erro{border-left-color:#ff9f1c;color:#ffd9a8}#tocando[hidden]{display:none}
+/* item ♪ MENU (músicas do menu principal) na faixa de clubes */
+.sp-mn{display:flex;flex-direction:column;align-items:center;line-height:1;color:#f5c542;font-size:15px}.sp-mn small{font:700 7px Bahnschrift,sans-serif;letter-spacing:1px;color:#fff}.sp-mn.g{width:34px;font-size:22px}.sp-mn.g small{font-size:8px}
+#ui.tela .sp-cl.mn{border-color:rgba(245,197,66,.45)}#ui.tela .sp-cl.mn.on{border-color:#f5c542;background:rgba(245,197,66,.16)}
+/* diagnóstico das músicas */
+#ui.tela .mu-diag{width:100%;max-height:300px;text-align:left;display:flex;flex-direction:column;gap:6px;font-size:12px}.mu-diag b{color:#fff}.mu-diag .dg-ok{color:#38d96b}.mu-diag .dg-no{color:#ff9f1c}.dg-cl{line-height:1.9}.dg-cl span,.mu-diag div>span{display:inline-block;margin:0 4px 2px 0;padding:1px 6px;border-radius:3px;background:rgba(255,255,255,.06);font-size:10.5px}span.dg-ok{color:#38d96b}span.dg-av{color:#ff9f1c}span.dg-0{color:rgba(230,236,244,.4)}.dg-dica{font-size:10.5px;color:rgba(230,236,244,.6)}
+#ui.tela .mu-ck{flex-direction:row-reverse;justify-content:space-between}#ui.tela .mu-ck input{margin-top:2px;flex:none}

@@ -16,7 +16,7 @@ export function telaArcade({ show, on, voltar, Arduino }) {
         ${BOT.map(([k, n]) => `<button class="sm sec" data-sim="${k}">${n}</button>`).join('')}</div>
     </div>
     <div class="ard-r"><p class="hint">LCD (o que o jogo está mandando):</p><pre id="ar-lcd-v" class="ard-lcdv"></pre><p class="hint">Comandos recebidos:</p><pre id="ar-log" class="ard-log"></pre></div>
-  </div><button id="b" class="sec">VOLTAR</button>`);
+  </div><button id="b" class="sec" data-voltar>VOLTAR</button>`);
   const $ = id => document.getElementById(id);
   const pinta = () => { if (!$('ar-st')) return;
     $('ar-st').textContent = `Estado: ${NOMES[Arduino.estado] || Arduino.estado}${Arduino.modo ? ' · ' + (Arduino.modo === 'simulador' ? 'SIMULADOR' : 'USB') : ''}${Arduino.motivo ? ' — ' + Arduino.motivo : ''}`;

@@ -4,12 +4,18 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { exec } from 'node:child_process';
+import { exec, execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.json': 'application/json', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml',
   '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.wav': 'audio/wav', '.ico': 'image/x-icon', '.woff2': 'font/woff2' };
 const server = http.createServer((req, res) => {
+  // /spotify-abrir?uri=spotify:track:<id>: abre a música no APLICATIVO Spotify do Windows e devolve o foco ao jogo (tools/spotify-abrir.ps1). O cabeçalho
+  // X-Penalti só é enviado pelo próprio jogo (outro site não consegue mandá-lo para cá), e o endereço só aceita links do Spotify.
+  if (req.url.startsWith('/spotify-abrir')) { const uri = new URL(req.url, 'http://x').searchParams.get('uri') || '';
+    if (req.headers['x-penalti'] !== '1' || !/^spotify:(track|playlist):[A-Za-z0-9]{22}$/.test(uri) || process.platform !== 'win32') { res.writeHead(400, { 'Content-Type': 'application/json' }); return res.end('{"ok":false}'); }
+    execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(ROOT, 'tools', 'spotify-abrir.ps1'), '-Uri', uri], { windowsHide: true, timeout: 10000 }, err => {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }); res.end(JSON.stringify({ ok: !err })); }); return; }
   let p; try { p = path.join(ROOT, decodeURIComponent(new URL(req.url, 'http://x').pathname)); } catch { res.writeHead(400); return res.end(); }
   if (!p.startsWith(ROOT)) { res.writeHead(403); return res.end(); }
   if (p.endsWith(path.sep)) p = path.join(p, 'index.html');

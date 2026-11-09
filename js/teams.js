@@ -1,5 +1,5 @@
 // 20 clubes brasileiros: cores e padrões de uniforme ESTILIZADOS (não são réplicas oficiais).
-// Escudos: coloque PNGs em assets/crests/<key>.png (ex.: flamengo.png). Sem arquivo, aparece um selo neutro com a sigla.
+// Escudos: assets/crests/<key>.png (todos os 20; fontes em assets/crests/FONTES.md). Sem arquivo, aparece um selo neutro com a sigla.
 export const TEAMS = [
  ['flamengo','Flamengo','FLA','#c8102e','#111111','#ffffff','h'],['corinthians','Corinthians','COR','#ffffff','#111111','#ffffff','p'],
  ['palmeiras','Palmeiras','PAL','#006437','#ffffff','#ffffff','p'],['saopaulo','São Paulo','SAO','#ffffff','#e30613','#111111','s'],
@@ -14,4 +14,7 @@ export const TEAMS = [
 ].map(([key,nome,sigla,c1,c2,c3,pat],id)=>({id,key,nome,sigla,c1,c2,c3,pat}));
 
 // Escudos disponíveis em assets/crests/<key>.png — liste aqui a key de cada arquivo que você adicionar (evita erros 404 no console).
-export const CRESTS = [];
+export const CRESTS = TEAMS.map(t => t.key);   // os 20 têm arquivo (fontes e licenças: assets/crests/FONTES.md)
+// origem de cada escudo: 'oficial' = Wikimedia Commons (domínio público); 'restrito' = Wikipédia em português, licença restrita (uso local, autorizado pelo dono do projeto)
+export const CREST_INFO = Object.fromEntries(TEAMS.map(t => [t.key, ['corinthians', 'vasco', 'sport', 'bragantino'].includes(t.key) ? 'restrito' : 'oficial']));
+export const crestUrl = t => `assets/crests/${t.key}.png`;

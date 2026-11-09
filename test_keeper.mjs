@@ -153,7 +153,7 @@ for (const id of ['comum_medio', 'gabigol_medio', 'neymar_medio', 'jorginho_medi
 // reação depois de terminar a ação (onde ele terminou, já de pé)
 { const r = cobra({ gx: .82, gy: .45, lado: 'esq', tipo: 'chapada', rng: semente(4) }), k = r.k, info = GK.CLIP_INFO[k.plano.clip], tFim = k.plano.tIni + (info.dur - .35 - k.plano.off)/k.plano.ritmo;
   for (const res of ['gol', 'defesa']) { const b = { ...r.b, res }; const g = GK.animGoleiro(k, { ...b, t: tFim + .2 }, { cheer: KEEPER_CHEER, sad: KEEPER_SAD }), d = GK.animGoleiro(k, { ...b, t: tFim - .5 }, { cheer: KEEPER_CHEER, sad: KEEPER_SAD });
-    t(`${res}: durante a ação o clipe do goleiro; depois, ${res === 'gol' ? 'lamenta' : 'comemora'} no lugar onde terminou`, d.state === 'keeperDive' && (res === 'gol' ? g.clip in MISS_REACTIONS : g.clip in GOAL_REACTIONS) && Math.abs(g.pos[0]) > .5); } }
+    t(`${res}: durante a ação o clipe do goleiro; depois, ${res === 'gol' ? 'lamenta' : 'comemora'} no lugar onde terminou`, d.state === 'keeperDive' && (res === 'gol' ? g.clip in MISS_REACTIONS : KEEPER_CHEER.includes(g.clip)) && Math.abs(g.pos[0]) > .5); } }
 // partida inteira com o goleiro: sem travar, um resultado por cobrança, estado zerado a cada vez
 { const ev = []; Events.on('*', e => ev.push(e)); let fim = null; Game.rng = semente(21); Game.start(TEAMS[2], TEAMS[3], w => fim = w); let ant = null, reaproveitado = false, erros = 0;
   for (let i = 0; i < 40000 && fim === null; i++) {

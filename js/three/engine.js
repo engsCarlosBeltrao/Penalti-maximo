@@ -6,7 +6,7 @@ import { Events } from '../events.js';
 import { GS } from '../gameState.js';
 import { flightTime, ballWorld, camTarget, characters } from '../frame.js';
 import { KICK_CLIPS } from '../kickClips.js';
-import { FORCE_BANDS, GOAL_REACTIONS, MISS_REACTIONS } from '../kicks.js';
+import { FORCE_BANDS, GOAL_REACTIONS, MISS_REACTIONS, SAVE_REACTIONS, VICTORY_REACTIONS } from '../kicks.js';
 import { humanJoints, goalToWorld, GOAL_W, GOAL_H, BALL0 } from '../rig.js';
 import { hud } from '../hud.js';
 import { AIM_LIM } from '../aim.js';
@@ -39,7 +39,7 @@ export async function start({ cv, base = 'assets/models/' }) {
   Object.keys(KICK_CLIPS).forEach(want);
   const idle = { r: await loadClip(base + 'anim/repouso_r.glb').catch(fail), l: await loadClip(base + 'anim/repouso_l.glb').catch(fail) };   // repouso do cobrador (tools/blender/repouso.py)
   const reac = {};                                                                                  // entrada + 5 comemorações + 5 frustrações, destro e canhoto (tools/blender/reacoes.py)
-  await Promise.all(['entrada', ...Object.keys(GOAL_REACTIONS), ...Object.keys(MISS_REACTIONS)].flatMap(n => ['r', 'l'].map(async pe => { reac[n + '_' + pe] = await loadClip(base + `anim/${n}_${pe}.glb`).catch(fail); })));
+  await Promise.all(['entrada', ...Object.keys(GOAL_REACTIONS), ...Object.keys(MISS_REACTIONS), ...Object.keys(SAVE_REACTIONS), ...Object.keys(VICTORY_REACTIONS)].flatMap(n => ['r', 'l'].map(async pe => { reac[n + '_' + pe] = await loadClip(base + `anim/${n}_${pe}.glb`).catch(fail); })));
   const gk = {};                                                                                    // goleiro: espera + 9 defesas (tools/blender/goleiro.py)
   await Promise.all(Object.keys(KEEPER_CLIPS).map(async n => { gk[n] = await loadClip(base + 'anim/' + KEEPER_CLIPS[n].arquivo).catch(fail); zeraInicio(gk[n]); if (gk[n] && n === 'gk_espera') { gk[n].loop = true; gk[n].clip.userData = { loop: true }; } }));
   try { tplG = await loadTemplate(base + 'goalkeeper.glb', { skeletonMap, layout }); } catch (e) { if (e.status !== 404) throw e; console.info('goalkeeper.glb ausente: o goleiro usará athlete.glb com o uniforme de goleiro.'); }
@@ -67,6 +67,7 @@ export async function start({ cv, base = 'assets/models/' }) {
   function drawScene(c, game) {
     const now = performance.now()/1000, dt = Math.min(.05, now - last || .016); last = now; exS = exS.map(v => Math.max(0, v - dt*.5)); sad = sad.map(v => Math.max(0, v - dt*.4)); shake = Math.max(0, shake - dt*2.2);
     if (!game.paused) relogio += dt;
+    if (game.vitrine && !game.m) game.vitrine.t = (game.vitrine.t || 0) + dt;   // relógio da vitrine do menu (balanço da câmera)
     const b = game.fin ? null : game.ball, k = game.keeper, res = b?.res, d = b ? b.t - flightTime(b) : 0, bw = ballWorld(b, k), T = camTarget(game, b, bw, res, d), f = 1 - Math.exp(-3*dt);
     cam.pos = lerp(cam.pos, T.pos, f); cam.tgt = lerp(cam.tgt, T.tgt, f); cam.fov += (T.fov - cam.fov)*f; if (DBG.cam) cam = { pos: DBG.cam.pos.slice(), tgt: DBG.cam.tgt.slice(), fov: DBG.cam.fov };
     camera.fov = cam.fov; camera.updateProjectionMatrix(); camera.position.set(cam.pos[0] + (shake ? rng()*shake*.12 : 0), cam.pos[1] + (shake ? rng()*shake*.12 : 0), cam.pos[2]); camera.lookAt(J(cam.tgt));
@@ -86,7 +87,7 @@ export async function start({ cv, base = 'assets/models/' }) {
     // HUD 2D por cima (a tela 2D é transparente neste modo)
     const k0 = c.canvas.width/W; c.setTransform(k0, 0, 0, k0, 0, 0); c.clearRect(0, 0, W, H);
     if (game.m && !game.fin && game.hum() && !b && (GS.estado === 'MIRANDO' || GS.estado === 'AGUARDANDO_COBRANCA')) drawAim(c, game.aim, GS.estado === 'MIRANDO');
-    hud(c, game, res, b); gkDbg.hud(c, game, b, camera, W, H);
+    if (game.m || !game.vitrine) hud(c, game, res, b); gkDbg.hud(c, game, b, camera, W, H);
   }
   const setTeams = (a, bb) => { colorize([a, bb]); clearSprites(); st.buildCrowd(); fx.setTeams(a, bb); };
   Renderer.set({ name: 'three', drawScene, setTeams });

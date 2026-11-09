@@ -12,6 +12,8 @@ import { animGoleiro, ballFlight } from './keeper.js';
 // goalCelebration (só se o resultado CONFIRMADO for gol) ou missReaction (defesa, trave ou fora). O estado é função do tempo e do resultado: não se
 // "ativa" a cada quadro, e uma cobrança nunca tem as duas reações. Só UM clipe controla os ossos por vez.
 export const CHARGE_S = .45;
+// uniforme do time na partida: o escolhido na seleção (t.uni: home | away | third) ou o padrão (1º time titular, 2º reserva)
+export const uniDe = (t, i) => t.uni || (i === 1 ? 'away' : 'home');
 export function kickerState(game, b) {
   const ks = game.kick;
   if (!b) return game.t < ENTRY_S ? 'entering' : chargeOf(game) > 0 ? 'charging' : 'idle';
@@ -38,6 +40,7 @@ export function ballWorld(b, k) {
   return [T[0] + (T[0] < 0 ? -1 : 1)*1.5*d, Math.max(BALL_R, T[1] + (b.gy > 1 ? 3 : .5)*d - g*d*d), Math.max(-3.2, -9*d)];
 }
 export function camTarget(game, b, bw, res, d) {
+  if (!game.m && game.vitrine) return game.vitrine.duelo ? dueloCam(game.vitrine.t ?? 0) : vitrineCam(game.vitrine.t ?? 0);
   if (game.fin) return { pos: [0, 2.3, 15], tgt: [0, 1.4, 4], fov: 38 };
   if (b && res && d > 0) { const T = goalToWorld(b.gx, b.gy); return { pos: [T[0]*.3 + 1.2, 2.7, 19.5], tgt: [T[0]*.5, 1.2, 0], fov: 31 }; }                // gol / defesa: aproxima do gol e da torcida
   if (b && b.t > 0) return { pos: [bw[0]*.15, 3.1, 24], tgt: [bw[0]*.5, bw[1]*.5 + .6, Math.min(1, bw[2]*.3)], fov: 25 };                                  // acompanha a bola
@@ -61,12 +64,19 @@ const keeperLook = (t, mood) => { const g = keeperOf(t); return g ? { ...withFac
 const gkKit = t => ({ c1: kcol(t), c2: '#141414', c3: '#fff', pat: 'p', sh: '#1b1b1b', keeper: true, long: true, glove: true, key: 'gk' + t.id });
 // Personagens do quadro: [{ role, P (pose do rig), kit, look }]. role: kicker | keeper | mate | loser
 export function characters(game, now, b, k, res, d, bw) {
-  const [ta, tb] = GS.equipes; if (!ta || !game.m) return null;
+  if (!game.m) return game.vitrine ? vitrine(game.vitrine, now) : null;   // menu: jogador em destaque na frente do estádio
+  const [ta, tb] = GS.equipes; if (!ta) return null;
   if (game.fin) {                                                                                   // FIM CONFIRMADO: só o vencedor comemora; o derrotado mostra decepção
-    const w = GS.vencedor, A = GS.equipes[w], B = GS.equipes[1 - w], ft = game.fin.t, run = sm(ft/1.4), list = [];
-    list.push({ role: 'keeper', P: { root: [0, 0, .55], yaw: 0, lean: 0, head: [-.2], hipL: [.2, .25, .5], hipR: [.2, .25, .5], armL: [2.9, .5, .2], armR: [2.9, .5, .2], lift: Math.abs(Math.sin(ft*6))*.35 }, kit: gkKit(A), look: keeperLook(A, 'happy') });
-    [[-1.3, 0], [0, 1], [1.3, 2]].forEach(([x, i]) => { const pp = pickKicker(A, i + 1, i === 1 ? game.escolha[w] : null), pos = lerp([x*.3, 0, 3], [x, 0, 7.2 - Math.abs(x)*.4], run); list.push({ role: 'mate', P: cheerPose(ft, i, pos, 0), kit: { ...A, variant: w === 1 ? 'away' : 'home', sh: A.c2 }, look: withFace(pp) }); });
-    list.push({ role: 'loser', P: dejectedPose(ft, [-3.6, 0, 8.5], .6), kit: { ...B, variant: w === 1 ? 'home' : 'away', sh: B.c2 }, look: withFace(pickKicker(B, 1, null)) });
+    const w = GS.vencedor, A = GS.equipes[w], B = GS.equipes[1 - w], ft = game.fin.t, list = [], vit = game.fin.vit || [];
+    // COMEMORAÇÃO DE VITÓRIA: cada um com um clipe diferente (10 em js/kicks.js → VICTORY_REACTIONS, sorteados sem repetir), de frente para a câmera;
+    // o derrotado com uma reação de lamento. A pose do rig fica só como reserva (sem os clipes carregados).
+    const clipe = (n, pos, yaw, pe = 'r') => ({ clip: n, pe, t: ft, pos, yaw, blend: .35, state: 'victory' });
+    const posGol = [2.4, 0, 6.4];
+    list.push({ role: 'keeper', P: cheerPose(ft, 3, posGol, 0), anim: vit[3] ? clipe(vit[3], posGol, -.15, 'l') : null, kit: gkKit(A), look: keeperLook(A, 'happy') });
+    [[-1.3, 0], [0, 1], [1.3, 2]].forEach(([x, i]) => { const pp = pickKicker(A, i + 1, i === 1 ? game.escolha[w] : null), pos = [x, 0, 7.2 - Math.abs(x)*.4];
+      list.push({ role: 'mate', P: cheerPose(ft, i, pos, 0), anim: vit[i] ? clipe(vit[i], pos, -x*.08, i % 2 ? 'l' : 'r') : null, kit: { ...A, variant: uniDe(A, w), sh: A.c2 }, look: withFace(pp) }); });
+    const posPerd = [-3.6, 0, 8.5];
+    list.push({ role: 'loser', P: dejectedPose(ft, posPerd, .6), anim: game.fin.perdeu ? clipe(game.fin.perdeu, posPerd, .6) : null, kit: { ...B, variant: uniDe(B, 1 - w), sh: B.c2 }, look: withFace(pickKicker(B, 1, null)) });
     return { final: true, list };
   }
   const kt = GS.cobrador === 0 ? ta : tb, dt2 = GS.cobrador === 0 ? tb : ta, p = pickKicker(kt, GS.cobranca, game.escolha[GS.cobrador]);
@@ -85,7 +95,25 @@ export function characters(game, now, b, k, res, d, bw) {
   // mergulho, já de pé: comemora a defesa (ou o erro do cobrador) ou lamenta o gol. Clipes do Blender; o rig.js só entra se faltar algum clipe.
   const gk = k && k.log ? k : null, kAnim = gk ? animGoleiro(gk, b, { agora: now, tJogo: game.t ?? now, sc: keeperScale(game), nk, cheer: KEEPER_CHEER, sad: KEEPER_SAD }) : null;
   const mood = kAnim ? (kAnim.state === 'keeperSad' ? 'sad' : kAnim.state === 'keeperCheer' ? 'happy' : 'neutral') : kp.info.happy ? 'happy' : kp.info.sad ? 'sad' : 'neutral';
-  const list = [{ role: 'kicker', P: kickerPose(m), anim, state, kit: { ...kt, sh: kt.c2, variant: GS.cobrador === 1 ? 'away' : 'home' }, look: lk },
+  const list = [{ role: 'kicker', P: kickerPose(m), anim, state, kit: { ...kt, sh: kt.c2, variant: uniDe(kt, GS.cobrador) }, look: lk },
     { role: 'keeper', P: kp.P, anim: kAnim, kit: gkKit(dt2), look: keeperLook(dt2, mood) }];
   return { final: false, list };
+}
+// VITRINE DO MENU: o cobrador principal do time escolhido de costas para a câmera, no lado direito da tela, olhando o campo (repouso em laço);
+// câmera baixa, atrás do ombro, com um balanço lento (profundidade). t: segundos desde que o menu abriu.
+export const VITRINE = { pos: [.75, 0, 15.9], yaw: Math.PI - .32 };
+export function vitrineCam(t) { const a = Math.sin(t*.21)*.5 + .5, b = Math.sin(t*.13 + 1);
+  return { pos: [-.4 + .2*a, 1.55 + .05*b, 18.65 - .2*a], tgt: [-.45 + .15*a, 1.45, 9.5], fov: 35 }; }
+export function vitrine(v, now) { if (v.duelo) return duelo(v, now); const t = v.time; if (!t) return null; const p = pickKicker(t, 1, v.escolha ?? null);
+  return { final: true, vitrine: true, list: [{ role: 'kicker', P: kickerPose({ mode: 'idle', t: now }), state: 'idle',
+    anim: { idle: true, state: 'idle', pe: 'r', t: now + phaseOf(p.id), pos: VITRINE.pos, yaw: VITRINE.yaw, ready: { clip: null, w: 0 } }, kit: { ...t, sh: t.c2, variant: 'home' }, look: withFace(p) }] }; }
+// SELEÇÃO DE TIMES: os dois cobradores principais lado a lado, de frente para a câmera, cada um com o clube e o uniforme que está sendo escolhido
+// (v.duelo = [{ time, uni, escolha, tConf }, ...]); ao confirmar, o jogador comemora (soco no ar) e volta ao repouso. Corpo inteiro: camisa, calção e meião.
+export const DUELO = { x: 1.25, z: 14.2 };
+export function dueloCam(t) { const b = Math.sin(t*.25); return { pos: [.12*b, 1.05, 20.4], tgt: [0, .98, 14], fov: 30 }; }
+function duelo(v, now) {
+  const list = v.duelo.map((l, i) => { if (!l || !l.time) return null; const p = pickKicker(l.time, 1, l.escolha ?? null), sg = i ? 1 : -1, pos = [sg*DUELO.x, 0, DUELO.z], yaw = -sg*.28, dt = (v.t ?? 0) - (l.tConf ?? -99);
+    const anim = dt >= 0 && dt < 2.9 ? { clip: 'def_soco_ar', pe: 'r', t: dt, pos, yaw, blend: .3, state: 'victory' } : { idle: true, state: 'idle', pe: 'r', t: now + phaseOf(p.id) + i*1.7, pos, yaw, ready: { clip: null, w: 0 } };
+    return { role: 'mate', P: kickerPose({ mode: 'idle', t: now }), state: 'idle', anim, kit: { ...l.time, sh: l.time.c2, variant: l.uni || 'home' }, look: withFace(p) }; }).filter(Boolean);
+  return { final: true, vitrine: true, list };
 }
