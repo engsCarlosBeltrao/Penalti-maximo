@@ -30,7 +30,7 @@ const show = h => { const fl = window.innerWidth < 820; ui.className = fl ? 'flo
 const hide = () => { ui.className = 'off'; back.hidden = false; };
 const on = (id, f) => { const e = document.getElementById(id); if (e) e.onclick = f; };
 const T = i => TEAMS[i];
-Store.load(); Game.init(cv); Music.init();
+Store.load(); Store.carregaDisco();   /* junta as músicas salvas em arquivo (dados/musicas-salvas.json) com as do navegador */ Game.init(cv); Music.init();
 // MÚSICAS DAS TORCIDAS: um único player do jogo, ligado aos eventos da partida (js/torcidas.js); para ao sair da partida / voltar ao menu
 const SpotifyC = criaControle();
 const Torcida = criaPlayer({ spotify: SpotifyC, store: () => Store.data, Audio: typeof Audio !== 'undefined' ? Audio : null, url: b => URL.createObjectURL(b), livre: u => URL.revokeObjectURL(u), pausaOutras: () => { if (Music.playing) Music.pause(); } });

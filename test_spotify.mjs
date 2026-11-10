@@ -51,4 +51,14 @@ const e = { tipo: 'track', sid: TR };
 const main = fs.readFileSync('js/main.js', 'utf8'), game = fs.readFileSync('js/game.js', 'utf8'), sp = fs.readFileSync('js/spotify.js', 'utf8') + fs.readFileSync('js/spotifyPanel.js', 'utf8');
 t('o jogo não inicia mais o player do YouTube nem toca música externa na partida', !/AM\.init\(\)|audioManager\.js'/.test(main) && !/spotify/i.test(game));
 t('cadastro e links sem API/SDK/download; a API oficial (Player) fica só em js/spotifyControle.js, sem SDK e sem baixar áudio', !/api\.spotify\.com|sdk\.scdn\.co|Spotify\.Player|new Audio|accounts\.spotify/.test(sp) && (c => !/sdk\.scdn\.co|Spotify\.Player|new Audio|\/tracks\/|\/audio-/.test(c) && /api\.spotify\.com\/v1/.test(c))(fs.readFileSync('js/spotifyControle.js', 'utf8')));
+// músicas salvas em ARQUIVO (dados/musicas-salvas.json): ao abrir, o jogo junta o arquivo com o navegador sem duplicar e sem perder nenhum lado
+{ const { Store, defaults } = await import('./js/settingsStore.js'), L = id => ({ tipo: 'track', sid: id, nome: 'm' + id.slice(0, 3) });
+  const A = '1'.repeat(22), B = '2'.repeat(22), C = '3'.repeat(22);
+  Store.data = defaults(); Store._temLocal = true; Store.data.spotify = { flamengo: [{ id: 'a1', ...L(A) }] };
+  const n = Store.junta({ spotify: { flamengo: [L(A), L(B)], vasco: [L(C)] } });
+  t('arquivo + navegador: une os links dos dois lados sem duplicar', n === 2 && Store.data.spotify.flamengo.map(e => e.sid).join() === [A, B].join() && Store.data.spotify.vasco?.[0]?.sid === C);
+  Store.data = defaults(); Store._temLocal = false; Store.junta({ spotify: { santos: [L(B)] }, play: { master: 33 } });
+  t('navegador vazio (dados limpos ou outro endereço): tudo volta do arquivo', Store.data.spotify.santos?.[0]?.sid === B && Store.data.play.master === 33);
+  Store.data = defaults(); t('arquivo corrompido ou vazio não apaga nada nem trava', Store.junta(null) === 0 && Store.junta('lixo') === 0);
+  const srv = fs.readFileSync('tools/servidor.mjs', 'utf8'); t('servidor: /musicas-salvas grava só com o cabeçalho do jogo e de forma atômica (temporário + troca)', /x-penalti'\] !== '1'\) return json\(400/.test(srv) && /fs\.rename\(tmp, arq/.test(srv)); }
 console.log(`SPOTIFY OK ${ok} | FALHAS ${bad}`); process.exit(bad ? 1 : 0);

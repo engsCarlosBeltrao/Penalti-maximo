@@ -16,6 +16,15 @@ const server = http.createServer((req, res) => {
     if (req.headers['x-penalti'] !== '1' || !/^spotify:(track|playlist):[A-Za-z0-9]{22}$/.test(uri) || process.platform !== 'win32') { res.writeHead(400, { 'Content-Type': 'application/json' }); return res.end('{"ok":false}'); }
     execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(ROOT, 'tools', 'spotify-abrir.ps1'), '-Uri', uri], { windowsHide: true, timeout: 10000 }, err => {
       res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }); res.end(JSON.stringify({ ok: !err })); }); return; }
+  // /musicas-salvas: TODAS as músicas cadastradas (links do Spotify por clube, menu, cantos e torcidas) gravadas em dados/musicas-salvas.json, para não se
+  // perderem quando o navegador limpa os dados ou o jogo abre por outro endereço. GET lê; POST (só do próprio jogo: cabeçalho X-Penalti) grava.
+  if (req.url.split('?')[0] === '/musicas-salvas') { const arq = path.join(ROOT, 'dados', 'musicas-salvas.json'), json = (c, b) => { res.writeHead(c, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }); res.end(b); };
+    if (req.method === 'GET') return fs.readFile(arq, 'utf8', (err, d) => json(200, err ? '{}' : d));
+    if (req.method !== 'POST' || req.headers['x-penalti'] !== '1') return json(400, '{"ok":false}');
+    let corpo = ''; req.setEncoding('utf8'); req.on('data', c => { corpo += c; if (corpo.length > 2e6) req.destroy(); });
+    req.on('end', () => { let d; try { d = JSON.parse(corpo); } catch { return json(400, '{"ok":false}'); } if (!d || typeof d !== 'object' || Array.isArray(d)) return json(400, '{"ok":false}');
+      fs.mkdirSync(path.dirname(arq), { recursive: true }); const tmp = arq + '.tmp';                    // grava num temporário e troca: nunca deixa o arquivo pela metade
+      fs.writeFile(tmp, JSON.stringify(d, null, 1), err => { if (err) return json(500, '{"ok":false}'); fs.rename(tmp, arq, e2 => json(e2 ? 500 : 200, JSON.stringify({ ok: !e2 }))); }); }); return; }
   let p; try { p = path.join(ROOT, decodeURIComponent(new URL(req.url, 'http://x').pathname)); } catch { res.writeHead(400); return res.end(); }
   if (!p.startsWith(ROOT)) { res.writeHead(403); return res.end(); }
   if (p.endsWith(path.sep)) p = path.join(p, 'index.html');

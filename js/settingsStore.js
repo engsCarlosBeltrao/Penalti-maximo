@@ -26,10 +26,31 @@ export function sanitize(raw) {
 export const Store = {
   data: defaults(), warning: '',
   load() {
-    let raw = null; try { const s = localStorage.getItem(KEY); raw = s ? JSON.parse(s) : null; } catch { this.warning = 'Configurações salvas estavam corrompidas e foram ignoradas.'; }
+    let raw = null; try { const s = localStorage.getItem(KEY); raw = s ? JSON.parse(s) : null; this._temLocal = !!s; } catch { this.warning = 'Configurações salvas estavam corrompidas e foram ignoradas.'; }
     const r = sanitize(raw); this.data = r.data; if (r.dropped) this.warning = `${r.dropped} item(ns) inválido(s) foram descartados.`; return this.data;
   },
-  save() { try { localStorage.setItem(KEY, JSON.stringify(this.data)); return true; } catch { this.warning = 'Não foi possível salvar (armazenamento bloqueado).'; return false; } },
+  save() { this.gravaDisco(); try { localStorage.setItem(KEY, JSON.stringify(this.data)); return true; } catch { this.warning = 'Não foi possível salvar (armazenamento bloqueado).'; return !!this.disco; } },
+  // CÓPIA EM ARQUIVO (dados/musicas-salvas.json, pelo servidor do jogo): os links ficam salvos mesmo sem o Client ID do Spotify (que só é preciso para
+  // o jogo TOCAR), e não somem quando o navegador limpa os dados ou o jogo abre por outro endereço. Sem o servidor (arquivo aberto direto), só o navegador.
+  disco: false, _gravando: null,
+  gravaDisco() { if (typeof fetch !== 'function' || typeof location === 'undefined' || !/^https?:$/.test(location.protocol)) return; clearTimeout(this._gravando);
+    this._gravando = setTimeout(() => fetch('/musicas-salvas', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Penalti': '1' }, body: JSON.stringify(this.data) })
+      .then(r => { this.disco = r.ok; }, () => { this.disco = false; }), 300); },
+  async carregaDisco(f = typeof fetch === 'function' ? fetch : null) {      // junta o arquivo com o que o navegador tem; devolve quantos links vieram do arquivo
+    if (!f || typeof location === 'undefined' || !/^https?:$/.test(location.protocol)) return 0; let raw;
+    try { const r = await f('/musicas-salvas', { cache: 'no-store' }); if (!r.ok) return 0; raw = await r.json(); } catch { return 0; }
+    const n = this.junta(raw); this.disco = true; this.save(); return n;
+  },
+  junta(raw) {                                          // une sem duplicar: links do Spotify e músicas do menu de ambos; o resto, do navegador (ou do arquivo se o navegador não tiver)
+    const arq = sanitize(raw).data, d = this.data, ant = JSON.stringify(d.spotify); let n = 0;
+    for (const [k, l] of Object.entries(arq.spotify)) { const atual = d.spotify[k] ||= []; for (const e of l) if (!atual.some(x => x.tipo === e.tipo && x.sid === e.sid)) { atual.push(e); n++; } }
+    d.spotify = limpaLista(d.spotify).lista;
+    for (const t of arq.menu.tracks) if (!d.menu.tracks.some(x => x.vid === t.vid)) { d.menu.tracks.push(t); n++; }
+    for (const [k, v] of Object.entries(arq.chants)) if (!d.chants[k]) { d.chants[k] = v; n++; }
+    for (const [k, v] of Object.entries(arq.torcidas)) if (!d.torcidas[k]?.length) d.torcidas[k] = v;
+    if (!this._temLocal) { d.champion = arq.champion; d.play = arq.play; d.torcidaRegras = arq.torcidaRegras; d.menu.shuffle = arq.menu.shuffle; d.menu.repeat = arq.menu.repeat; }
+    return n || (JSON.stringify(d.spotify) !== ant ? 1 : 0);
+  },
   reset() { this.data = defaults(); this.save(); },                              // restaurar padrão
   clear() { this.data = defaults(); try { localStorage.removeItem(KEY); } catch {} }   // limpar tudo
 };
