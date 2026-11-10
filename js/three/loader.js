@@ -121,6 +121,8 @@ export function instantiate(tpl, { maos = 'relaxada' } = {}) {   // maos: pose d
       if (api.blendOut) { const u = (performance.now() - api.blendOut.t0)/1000/BLEND; blendFrom(api.blendOut.S, sm(u)); if (u >= 1) api.blendOut = null; }
       api.posed = true;
     },
+    // corta a transição da pose anterior: o próximo clipe entra direto (usado na troca de cobrador, escondida pelo clarão — o goleiro não "desliza" de volta ao gol)
+    semTransicao() { api.mode = null; api.posed = false; api.into = null; api.blendOut = null; },
     dispose() { if (api.shirtTex) api.shirtTex.dispose(); }
   };
   return api;

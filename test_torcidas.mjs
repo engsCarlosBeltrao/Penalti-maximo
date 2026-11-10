@@ -37,6 +37,14 @@ Events.emit('cobranca_mudou', { cobrador: 1 }); await tick(); t('mudança de equ
 t('nunca duas músicas ao mesmo tempo (um só elemento de áudio)', criados === 1 && vivos.size === 1);
 t('padrão: na cobrança a música NÃO abaixa (toca o tempo todo)', Store.data.torcidaRegras.chute === 'nada'); Store.data.torcidaRegras.chute = 'abaixar'; Events.emit('chute', { equipe: 1 }); t('regra opcional \baixar\: no chute a música abaixa', P._el.volume < .3); Events.emit('defesa', { equipe: 1 }); t('depois do lance volta ao volume', Math.abs(P._el.volume - .7) < 1e-9); Store.data.torcidaRegras.chute = 'nada';
 Events.emit('gol', { equipe: 0 }); await tick(); t('gol do Flamengo: toca a música do Flamengo', tocando() === 'tocando:Fla 1', tocando());
+// A MÚSICA SEGUE A TORCIDA QUE COMEMORA: só troca quando a OUTRA torcida passa a comemorar
+{ const n1 = P.tocadas; Events.emit('cobranca_mudou', { cobrador: 1 }); await tick(); t('comemorando: na vez do adversário a música do Flamengo CONTINUA', tocando() === 'tocando:Fla 1' && P.tocadas === n1, tocando());
+  Events.emit('fora', { equipe: 1 }); await tick(); t('o adversário perdeu o pênalti: continua a mesma, sem recomeçar', tocando() === 'tocando:Fla 1' && P.tocadas === n1, tocando());
+  Events.emit('cobranca_mudou', { cobrador: 0 }); await tick(); t('próxima vez do Flamengo: continua', tocando() === 'tocando:Fla 1' && P.tocadas === n1);
+  Events.emit('defesa', { equipe: 0 }); await tick(); t('o goleiro do Corinthians defendeu: troca para a música do Corinthians', tocando() === 'tocando:Tim 1', tocando());
+  Events.emit('cobranca_mudou', { cobrador: 1 }); await tick(); Events.emit('cobranca_mudou', { cobrador: 0 }); await tick(); t('…e ela continua nas vezes seguintes', tocando() === 'tocando:Tim 1', tocando());
+  Events.emit('trave', { equipe: 0 }); await tick(); t('o Flamengo bateu na trave: a do Corinthians segue', tocando() === 'tocando:Tim 1');
+  Events.emit('gol', { equipe: 0 }); await tick(); t('gol do Flamengo: agora sim volta a do Flamengo', tocando() === 'tocando:Fla 1', tocando()); }
 Events.emit('pausa'); t('pausa da partida: música pausa (regra "pausar")', P.estado === 'pausado' && vivos.size === 0);
 Events.emit('retomada'); await tick(); t('retomada: continua de onde parou', P.estado === 'tocando' && tocando() === 'tocando:Fla 1');
 Store.data.torcidaRegras.pausa = 'abaixar'; Events.emit('pausa'); t('regra "abaixar" na pausa', P.estado === 'tocando' && P._el.volume < .3); Events.emit('retomada'); Store.data.torcidaRegras.pausa = 'pausar';

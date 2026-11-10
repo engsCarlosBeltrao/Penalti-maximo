@@ -27,12 +27,12 @@ export function telas(s, cols = 20, rows = 4) {
   const vs = cabe ? `${s.A} x ${s.B}` : `${cor(s.A)} x ${cor(s.B)}`, vsc = `${s.sa} ${s.pa} x ${s.pb} ${s.sb}`;   // nomes inteiros se couberem; senão, os dois cortados por igual
   let p;
   switch (s.tela) {
-    case 'MENU': p = W ? [['PENALTI MAXIMO', 'MENU PRINCIPAL', '', 'SETAS + AVANCAR']] : [['PENALTI MAXIMO', 'MENU PRINCIPAL']]; break;
-    case 'SELECAO': p = W ? [['PENALTI MAXIMO', 'ESCOLHA OS TIMES', '', 'SETAS + AVANCAR']] : [['PENALTI MAXIMO', 'ESCOLHA OS TIMES']]; break;
+    case 'MENU': p = W ? [['PENALTI MAXIMO', 'MENU PRINCIPAL', '', 'SETAS + ARCADE']] : [['PENALTI MAXIMO', 'MENU PRINCIPAL']]; break;
+    case 'SELECAO': p = W ? [['PENALTI MAXIMO', 'ESCOLHA OS TIMES', '', 'SETAS + ARCADE']] : [['PENALTI MAXIMO', 'ESCOLHA OS TIMES']]; break;
     case 'PROXIMA': p = W ? [['PROXIMA COBRANCA', `TIME: ${s.bat}`, `COBRADOR: ${s.jog || '-'}`, `${vsc}  ${cob(s.cob, 16)}`]] : [['PROXIMA COBRANCA', `TIME: ${s.sbat}`], [`COBRADOR:`, s.jog || '-']]; break;
     case 'JOGO': p = W ? [[vs, `PLACAR: ${s.pa} x ${s.pb}`, cob(s.cob, cols), `BATENDO: ${s.bat}`]] : [[vsc, cob(s.cob, cols)], [vsc, `BATENDO: ${s.sbat}`]]; break;
     case 'RESULTADO': p = W ? [[RES[s.res] || '', `${s.bat}`, `PLACAR: ${s.pa} x ${s.pb}`, cob(s.cob, cols)]] : [[RES16[s.res] || '', vsc]]; break;
-    case 'PAUSA': p = W ? [['JOGO PAUSADO', `${s.sa} ${s.pa} x ${s.pb} ${s.sb}`, '', 'AVANCAR P/ VOLTAR']] : [['JOGO PAUSADO', `${s.pa} x ${s.pb} AVANCAR`]]; break;
+    case 'PAUSA': p = W ? [['JOGO PAUSADO', `${s.sa} ${s.pa} x ${s.pb} ${s.sb}`, '', 'DESPAUSA P/ VOLTAR']] : [['JOGO PAUSADO', `${s.pa} x ${s.pb} DESPAUSA`]]; break;
     case 'FIM': { const w = s.venc === 0 ? s.A : s.B, ws = s.venc === 0 ? s.sa : s.sb, x = Math.max(s.pa, s.pb), y = Math.min(s.pa, s.pb);
       p = W ? [['FIM DE JOGO!', w, `VITORIA: ${x} x ${y}`, vsc]] : [['FIM DE JOGO!', `${ws} VENCEU ${x}x${y}`]]; break; }
     default: p = [['PENALTI MAXIMO', '']];

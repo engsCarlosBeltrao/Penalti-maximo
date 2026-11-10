@@ -8,12 +8,12 @@ export const L_coritiba = {
     { n: null, name: "Tinga", pos: "RB" },
     { n: null, name: "Maicon", pos: "CB" },
     { n: null, name: "Tiago Cóser", nick: "Cóser", pos: "CB" },
-    { n: null, name: "Bruno Melo", pos: "LB" },
+    { n: null, name: "Bruno Melo", pos: "LB", foot: "left" },   // pé: Transfermarkt (perfil 538230), conferido em 10/11/2026
     { n: null, name: "Willian Oliveira", pos: "DM" },
     { n: null, name: "Vini Paulista", pos: "CM" },
     { n: null, name: "Thiago Santos", pos: "CM" },
     { n: null, name: "Pedro Rocha", pos: "RW" },
-    { n: null, name: "Lavega", pos: "ST" },
+    { n: null, name: "Lavega", pos: "ST", foot: "left" },   // pé: Transfermarkt (perfil 895926, "Joaquín Lavega"), conferido em 10/11/2026
     { n: null, name: "Breno Lopes", pos: "LW" }
   ]
 };

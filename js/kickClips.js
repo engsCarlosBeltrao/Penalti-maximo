@@ -121,6 +121,126 @@ export const KICK_CLIPS = {
   "folgaContatoMm": -1,
   "derivaApoioMm": 0
  },
+ "canhoto_bomba": {
+  "estilo": "canhoto",
+  "tipo": "bomba",
+  "pe": "l",
+  "arquivo": "cobranca_canhoto_bomba.glb",
+  "t0": -1.25,
+  "t1": 1.15,
+  "contato": 1.25,
+  "toque": [
+   -0.0284,
+   0.1021,
+   -0.1049
+  ],
+  "plantio": -0.13,
+  "pouso": 0.47,
+  "inicio": {
+   "S": [
+    2.3782,
+    3.3989
+   ],
+   "AP": -35
+  },
+  "fim": {
+   "pelve": [
+    0.05,
+    -1.46
+   ],
+   "apoio": [
+    0.22,
+    -1.535
+   ],
+   "chute": [
+    -0.1,
+    -1.46
+   ]
+  },
+  "velPe": 26.5,
+  "folgaContatoMm": -1,
+  "derivaApoioMm": 0
+ },
+ "canhoto_chapada": {
+  "estilo": "canhoto",
+  "tipo": "chapada",
+  "pe": "l",
+  "arquivo": "cobranca_canhoto_chapada.glb",
+  "t0": -1.8166666666666667,
+  "t1": 1,
+  "contato": 1.8166666666666667,
+  "toque": [
+   0.016,
+   0.0761,
+   -0.1024
+  ],
+  "plantio": -0.15,
+  "pouso": 0.34,
+  "inicio": {
+   "S": [
+    2.3782,
+    3.3989
+   ],
+   "AP": -35
+  },
+  "fim": {
+   "pelve": [
+    0.08,
+    -0.7145
+   ],
+   "apoio": [
+    0.18,
+    -0.749
+   ],
+   "chute": [
+    -0.1,
+    -0.703
+   ]
+  },
+  "velPe": 14,
+  "folgaContatoMm": -1,
+  "derivaApoioMm": 0
+ },
+ "canhoto_medio": {
+  "estilo": "canhoto",
+  "tipo": "medio",
+  "pe": "l",
+  "arquivo": "cobranca_canhoto_medio.glb",
+  "t0": -1.3,
+  "t1": 1,
+  "contato": 1.3,
+  "toque": [
+   -0.0284,
+   0.1075,
+   -0.1052
+  ],
+  "plantio": -0.117,
+  "pouso": 0.4,
+  "inicio": {
+   "S": [
+    2.3782,
+    3.3989
+   ],
+   "AP": -35
+  },
+  "fim": {
+   "pelve": [
+    0.05,
+    -1.1285
+   ],
+   "apoio": [
+    0.2,
+    -1.169
+   ],
+   "chute": [
+    -0.1,
+    -1.088
+   ]
+  },
+  "velPe": 21.2,
+  "folgaContatoMm": -1,
+  "derivaApoioMm": 0
+ },
  "comum_bomba": {
   "estilo": "comum",
   "tipo": "bomba",

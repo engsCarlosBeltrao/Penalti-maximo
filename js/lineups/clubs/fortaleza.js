@@ -10,9 +10,9 @@ export const L_fortaleza = {
     { n: null, name: "Bastos", pos: "CB" },
     { n: null, name: "Neris", pos: "CB" },
     { n: null, name: "Mucuri", pos: "LB" },
-    { n: null, name: "Pierre", pos: "DM" },
+    { n: null, name: "Pierre", pos: "DM", foot: "left" },   // pé: Transfermarkt (perfil 802646), conferido em 10/11/2026
     { n: null, name: "Eduardo Sasha", nick: "Sasha", pos: "CM" },
-    { n: null, name: "Rodriguinho", pos: "AM" },
+    { n: null, name: "Rodriguinho", pos: "AM", foot: "left" },   // pé: Transfermarkt (perfil 977463), conferido em 10/11/2026
     { n: null, name: "Luiz Fernando", pos: "ST" },
     { n: null, name: "Cantillo", pos: "ST" }
   ]

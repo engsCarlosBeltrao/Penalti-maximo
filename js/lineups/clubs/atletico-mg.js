@@ -8,10 +8,10 @@ export const L_atletico_mg = {
     { n: 2, name: "Natanael", pos: "RB" },
     { n: 13, name: "Lyanco", pos: "CB" },
     { n: 4, name: "Ruan Tressoldi", nick: "Tressoldi", pos: "CB" },
-    { n: 6, name: "Renan Lodi", nick: "Lodi", pos: "LB" },
+    { n: 6, name: "Renan Lodi", nick: "Lodi", pos: "LB", foot: "left" },   // pé: Transfermarkt (perfil 476352), conferido em 10/11/2026
     { n: 21, name: "Alan Franco", pos: "DM" },
-    { n: 8, name: "Maycon", pos: "CM" },
-    { n: 10, name: "Gustavo Scarpa", nick: "Scarpa", pos: "AM" },
+    { n: 8, name: "Maycon", pos: "CM", foot: "left" },   // pé: Transfermarkt (perfil 421935), conferido em 10/11/2026
+    { n: 10, name: "Gustavo Scarpa", nick: "Scarpa", pos: "AM", foot: "left" },   // pé: Transfermarkt (perfil 330085), conferido em 10/11/2026
     { n: 28, name: "Tomás Cuello", nick: "Cuello", pos: "RW" },
     { n: 9, name: "Mateo Cassierra", nick: "Cassierra", pos: "ST" },
     { n: 11, name: "Bernard", pos: "LW" }

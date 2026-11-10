@@ -19,8 +19,9 @@
 #    aproximação controlada, reduz o ritmo, pulinho sobre o pé de apoio que aterrissa ao lado da bola e já transfere o peso para o chute.
 #  - arrascaeta: perfil ORIGINAL (direção artística pedida, sem medição do atleta): preparação econômica, passadas controladas, chute compacto.
 
-TIPOS_SUPORTADOS = {e: ("chapada", "medio", "bomba") for e in ("comum", "neymar", "gabigol", "jorginho", "arrascaeta")}   # o tipo vem da barra de força
-PE = {"comum": "r", "neymar": "r", "gabigol": "l", "jorginho": "r", "arrascaeta": "r"}   # pé de chute (Transfermarkt / elenco do jogo)
+TIPOS_SUPORTADOS = {e: ("chapada", "medio", "bomba") for e in ("comum", "canhoto", "neymar", "gabigol", "jorginho", "arrascaeta")}   # o tipo vem da barra de força
+# "canhoto" = a cobrança comum batida com a ESQUERDA (espelho exato da pose do destro), usada por todo jogador canhoto sem rotina própria
+PE = {"comum": "r", "canhoto": "l", "neymar": "r", "gabigol": "l", "jorginho": "r", "arrascaeta": "r"}   # pé de chute (Transfermarkt / elenco do jogo)
 
 
 # AJUSTES A PARTIR DA REFERÊNCIA VISUAL "Penalty" (Centroid Motion Capture, Sketchfab): o modelo NÃO é baixável e não tem licença declarada, então
@@ -132,7 +133,7 @@ def _tipo(nome):
 
 def estilo(nome, t):
     e = _estilo(nome, t)
-    if nome != "comum":                                              # o craque mantém o ritmo, mas a força muda a pressa: chapada controlada, bomba agressiva
+    if nome not in ("comum", "canhoto"):                             # o craque mantém o ritmo, mas a força muda a pressa: chapada controlada, bomba agressiva
         k = 1.12 if t["last"] <= 1.1 else .86 if t["last"] >= 1.5 else 1.0
         e = e | dict(passos=[(d, dt*k) for d, dt in e["passos"]])
     return e
@@ -142,7 +143,7 @@ def _estilo(nome, t):
     """Rotina de aproximação. passos = [(distância até o PRÓXIMO apoio, tempo até o próximo toque)] do 1º apoio até o último antes de R3 (pé de chute na última passada).
     inicio = distância da posição parada ao 1º apoio. olhar = janelas (tc0, tc1) em que a cabeça mira o goleiro."""
     base = dict(AP=-35, gait=t["gait"], zs=t["zs"], zf=t["zf"], lean=t["lean"], sway=t["sway"], arms=t["armk"], amp=1.0, olhar=(), hesita=0, pulinho=False, ajustes=0)
-    if nome == "comum":
+    if nome in ("comum", "canhoto"):
         if t["last"] >= 1.5:   # bomba: do mesmo ponto, passadas mais longas e rápidas (corrida agressiva), última passada longa
             return base | dict(inicio=.60, passos=[(.80, .25), (1.0, .21)])
         if t["last"] <= 1.1:   # chapada: do mesmo ponto, passos curtos, controlados e mais lentos

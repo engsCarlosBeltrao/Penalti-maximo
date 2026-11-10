@@ -7,12 +7,12 @@ export const L_cruzeiro = {
     { n: 1, name: "Cássio", pos: "GK" },
     { n: 23, name: "Fagner", pos: "RB" },
     { n: 15, name: "Fabrício Bruno", pos: "CB" },
-    { n: 25, name: "Lucas Villalba", nick: "Villalba", pos: "CB" },
-    { n: 27, name: "Gabriel Rojas", nick: "Rojas", pos: "LB" },
+    { n: 25, name: "Lucas Villalba", nick: "Villalba", pos: "CB", foot: "left" },   // pé: Transfermarkt (perfil 240913), conferido em 10/11/2026
+    { n: 27, name: "Gabriel Rojas", nick: "Rojas", pos: "LB", foot: "left" },   // pé: Transfermarkt (perfil 471639), conferido em 10/11/2026
     { n: 16, name: "Lucas Silva", pos: "DM" },
     { n: 29, name: "Lucas Romero", nick: "Romero", pos: "CM" },
-    { n: 10, name: "Matheus Pereira", pos: "AM" },
-    { n: 77, name: "Gabriel Pec", nick: "Pec", pos: "RW" },
+    { n: 10, name: "Matheus Pereira", pos: "AM", foot: "left" },   // pé: Transfermarkt (perfil 225984), conferido em 10/11/2026
+    { n: 77, name: "Gabriel Pec", nick: "Pec", pos: "RW", foot: "left" },   // pé: Transfermarkt (perfil 703321), conferido em 10/11/2026
     { n: 19, name: "Kaio Jorge", pos: "ST" },
     { n: 17, name: "Luis Sinisterra", nick: "Sinisterra", pos: "LW" }
   ]

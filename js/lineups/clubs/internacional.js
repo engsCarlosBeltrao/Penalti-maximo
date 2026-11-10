@@ -8,12 +8,12 @@ export const L_internacional = {
     { n: 15, name: "Bruno Gomes", pos: "RB" },
     { n: 25, name: "Gabriel Mercado", nick: "Mercado", pos: "CB" },
     { n: 3, name: "Guillermo Maripán", nick: "Maripán", pos: "CB" },
-    { n: 26, name: "Alexandro Bernabei", nick: "Bernabei", pos: "LB" },
-    { n: 29, name: "Thiago Maia", pos: "DM" },
+    { n: 26, name: "Alexandro Bernabei", nick: "Bernabei", pos: "LB", foot: "left" },   // pé: Transfermarkt (perfil 719635), conferido em 10/11/2026
+    { n: 29, name: "Thiago Maia", pos: "DM", foot: "left" },   // pé: Transfermarkt (perfil 294873), conferido em 10/11/2026
     { n: 8, name: "Bruno Henrique", pos: "CM" },
     { n: 10, name: "Alan Patrick", pos: "AM" },
     { n: 7, name: "Johan Carbonero", nick: "Carbonero", pos: "RW" },
     { n: 9, name: "Alerrandro", pos: "ST" },
-    { n: 11, name: "Kayky", pos: "LW" }
+    { n: 11, name: "Kayky", pos: "LW", foot: "left" }   // pé: Transfermarkt (perfil 668265), conferido em 10/11/2026
   ]
 };

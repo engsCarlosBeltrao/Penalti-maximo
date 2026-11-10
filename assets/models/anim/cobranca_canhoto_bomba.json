@@ -1,0 +1,204 @@
+{
+ "id": "canhoto_bomba",
+ "estilo": "canhoto",
+ "tipo": "bomba",
+ "pe": "l",
+ "arquivo": "cobranca_canhoto_bomba.glb",
+ "t0": -1.25,
+ "t1": 1.15,
+ "contato_s": 1.25,
+ "fps": 60,
+ "toque": [
+  -0.0284,
+  0.1021,
+  -0.1049
+ ],
+ "plantio": -0.13,
+ "pouso": 0.47,
+ "inicio": {
+  "S": [
+   2.3782,
+   3.3989
+  ],
+  "AP": -35
+ },
+ "fim": {
+  "pelve": [
+   0.05,
+   -1.46
+  ],
+  "apoio": [
+   0.22,
+   -1.535
+  ],
+  "chute": [
+   -0.1,
+   -1.46
+  ]
+ },
+ "vel_pe_contato_m_s": 26.5,
+ "relatorio": {
+  "clipe": "canhoto_bomba",
+  "pe": "l",
+  "fps": 60,
+  "t0": -1.25,
+  "t1": 1.15,
+  "frames": 145,
+  "contact_frame": 75,
+  "contato": {
+   "chuteira_bola_mm": -1.0,
+   "material": "Sole",
+   "ponto_local_pe": [
+    0.013,
+    0.131,
+    -0.051
+   ],
+   "quadro_antes_mm": 419.9,
+   "menor_antes_mm": 419.9,
+   "recuo_tornozelo_m": 0.0227,
+   "tecnica": "peito"
+  },
+  "vel_ponta_pe": {
+   "pico_quadro_rel": 0,
+   "pico_m_s": 26.5,
+   "no_contato_m_s": 26.5
+  },
+  "joelho_chute_graus": {
+   "max_recuo": 130.5,
+   "contato": 60.5
+  },
+  "apoios_deriva_mm": [
+   [
+    "l",
+    -1.25,
+    -0.975,
+    0.0
+   ],
+   [
+    "l",
+    -0.59,
+    -0.545,
+    0.0
+   ],
+   [
+    "l",
+    -0.07,
+    0.22,
+    0.0
+   ],
+   [
+    "l",
+    0.72,
+    1.15,
+    0.0
+   ],
+   [
+    "r",
+    -1.25,
+    -1.15,
+    0.0
+   ],
+   [
+    "r",
+    -0.84,
+    -0.775,
+    0.0
+   ],
+   [
+    "r",
+    -0.38,
+    -0.26,
+    0.0
+   ],
+   [
+    "r",
+    0.53,
+    0.686,
+    0.0
+   ],
+   [
+    "r",
+    1.04,
+    1.15,
+    0.0
+   ]
+  ],
+  "max_deriva_apoio_mm": 0.0,
+  "erro_ik_apoio": {
+   "l": [
+    0.0,
+    144
+   ],
+   "r": [
+    0.0,
+    144
+   ]
+  },
+  "fim": {
+   "vel_pelve_ultimo_quadro_m_s": 0.0,
+   "pelve_parada_desde_tc": 1.083,
+   "pelve_menos_meio_dos_pes_m": [
+    -0.01,
+    0.037
+   ],
+   "base_pes_m": 0.329
+  },
+  "torcao_max_graus": {
+   "antebraco_l": 0.1,
+   "punho_l": 0.0,
+   "antebraco_r": 0.1,
+   "punho_r": 0.0
+  },
+  "anticolisao": {
+   "empurrao_cm": {
+    "l": 1.7,
+    "r": 2.9
+   },
+   "ciclos": 2,
+   "pior_mm": 13.2
+  },
+  "dedos_pele_min_mm": 13.2,
+  "pe_mais_baixo_z_m": 0.004,
+  "pe_mais_baixo_tc": 0.0,
+  "pe_mais_baixo_qual": "toe_r",
+  "aceleracao_max_m_s2": {
+   "pelvis": [
+    117.3,
+    -0.133
+   ],
+   "Head": [
+    83.3,
+    -0.183
+   ],
+   "hand_l": [
+    366.0,
+    -0.2
+   ],
+   "hand_r": [
+    222.3,
+    -0.117
+   ],
+   "calf_l": [
+    470.8,
+    -0.25
+   ],
+   "calf_r": [
+    571.8,
+    -0.233
+   ]
+  },
+  "passos_aproximacao": 3,
+  "primeiro_passo_m": 0.513,
+  "pelve_abaixada_alcance_cm": [
+   -0.0,
+   -1.25
+  ],
+  "distancia_inicio_bola_m": 4.15,
+  "duracao_aproximacao_s": 1.25,
+  "contato_canhoto": {
+   "chuteira_bola_mm": -1.0,
+   "quadro_antes_mm": 419.9
+  },
+  "canhoto_deriva_apoio_plantio_mm": 0.0
+ }
+}

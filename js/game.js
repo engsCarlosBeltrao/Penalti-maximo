@@ -1,13 +1,14 @@
 // Núcleo da disputa: máquina de estados, física da bola, goleiro, regras e renderização Canvas.
 import { Events } from './events.js';
 import { GS } from './gameState.js';
-import { Aim } from './aim.js';
-import { sfx, crowd, ambient, level } from './audio.js';
+import { Aim, AIM_BASE } from './aim.js';
+import { Humor } from './torcidaHumor.js';
+import { sfx, ambient } from './audio.js';
 import { Renderer } from './renderer.js';
 import { pickKicker } from './players.js';
-import { kickSpec, waitSpec, forceFromAim, typeFromForce, ENTRY_S, GOAL_REACTIONS, MISS_REACTIONS, reactionBag, RESULT_WAIT, CORRIDA, VICTORY_REACTIONS } from './kicks.js';
+import { kickSpec, waitSpec, forceFromAim, typeFromForce, fatorVelocidade, ENTRY_S, GOAL_REACTIONS, MISS_REACTIONS, reactionBag, RESULT_WAIT, CORRIDA, VICTORY_REACTIONS, FIN_S, FIN_PULAR } from './kicks.js';
 import * as GK from './keeper.js';
-import { keeperScale } from './frame.js';
+import { keeperScale, planoFesta } from './frame.js';
 import { memoriaDe, sortear, registrar, probabilidades } from './goleiroMemoria.js';
 import { keeperOf } from './players.js';
 export const cfg = { hs: 0.9, vs: 0.6, diff: 'normal', sound: true, vol: 0.5, volCrowd: 0.5 };
@@ -30,6 +31,9 @@ export const Game = {
     window.addEventListener('pointercancel', () => this.cancel());
     window.addEventListener('blur', () => this.cancel());
     window.addEventListener('keydown', e => { const k = {ArrowLeft:[.15,.4],ArrowRight:[.85,.4],ArrowUp:[.5,.85],ArrowDown:[.5,.15]}[e.key]; if (k) { e.preventDefault(); this.keeperChoose(k[0], k[1]); } });
+    // CHUTE pelo teclado: ESPAÇO apertado trava a direção e começa a carga; solto, chuta (o mesmo down/up do mouse e do arcade)
+    window.addEventListener('keydown', e => { if (e.code === 'Space' && this.m && !this.paused) { e.preventDefault(); if (!e.repeat) this.down(null); } });
+    window.addEventListener('keyup', e => { if (e.code === 'Space') this.up(); });
     let last = performance.now();
     const STEP = 1/120, loop = n => { const dt = Math.min(.05, (n-last)/1000); last = n; this.acc = (this.acc || 0) + dt; let i = 0; while (this.acc >= STEP && i++ < 12) { this.update(STEP); this.acc -= STEP; }   // passo FIXO (skill physics-tuning): mira e bola não dependem do FPS
       this.draw(); requestAnimationFrame(loop); };
@@ -53,31 +57,37 @@ export const Game = {
     GS.cobrador = k; this.ball = null;
     const p = pickKicker(GS.equipes[k], GS.cobranca, this.escolha[k]); this.kick = waitSpec(p.id);   /* espera no ponto de partida do estilo; o TIPO só sai da força, ao soltar */ this.aim.reset(); if (this.hum(k)) this.aim.run(); this.keeperKey = null; this.t = 0; this.keeper = GK.novoGoleiro();   /* goleiro zerado a cada vez: nada da cobrança anterior sobra */   // a linha de mira já oscila durante a espera
     this.cpuMira = { gx: Math.min(1.05, Math.max(-.05, .08 + Math.random() * .84)), gy: .12 + Math.random() * .8 + (Math.random() < .08 ? .3 : 0) };   /* a CPU decide a mira antes de correr: assim o instante do chute é previsível */
-    this.wait = this.hum(k) ? 0 : ENTRY_S + .6;   /* a CPU espera o cobrador terminar a entrada (caminhada) */ this.dec = this.m.taken[k] >= 4; if (this.dec) sfx('decisiva'); level(this.dec ? .85 : .45);     // cobrança decisiva: 5ª ou morte súbita                       // adversário cobra após breve pausa
+    this.wait = this.hum(k) ? 0 : ENTRY_S + .6;   /* a CPU espera o cobrador terminar a entrada (caminhada) */ this.dec = this.m.taken[k] >= 4; if (this.dec) sfx('decisiva');     // cobrança decisiva: 5ª ou morte súbita                       // adversário cobra após breve pausa
     GS.estado = this.hum(k) ? 'AGUARDANDO_COBRANCA' : 'DEFESA_DO_GOLEIRO';
-    Events.emit('cobranca_mudou', { cobranca: GS.cobranca, cobrador: k });
+    Events.emit('cobranca_mudou', { cobranca: GS.cobranca, cobrador: k, decisiva: this.dec });
   },
   down(e) {
     if (this.paused || !this.m) return;
+    if (this.fin) { if (this.fin.t > FIN_PULAR) this.finish(); return; }   // festa do título: clique / ESPAÇO / ARCADE pula para o resultado
     if (this.t < ENTRY_S) return;     // espera o cobrador chegar ao ponto de partida (clipe de entrada)
-    if (GS.estado === 'AGUARDANDO_COBRANCA') { this.aim.start(); this.aimT = this.t; GS.estado = 'MIRANDO'; level(.75); crowd('expect'); }   // só inicia aqui
+    if (GS.estado === 'AGUARDANDO_COBRANCA') { this.aim.start(); this.aimT = this.t; GS.estado = 'MIRANDO'; }   // só inicia aqui
     else if (GS.estado === 'DEFESA_DO_GOLEIRO' && e) {                      // toque/clique: terço esquerdo/central/direito da tela escolhe o lado (só antes do limite)
       const r = this.cv.getBoundingClientRect(), nx = (e.clientX - r.left)/r.width, ny = (e.clientY - r.top)/r.height; this.keeperChoose(nx < .38 ? .15 : nx > .62 ? .85 : .5, ny < .3 ? .85 : ny > .6 ? .15 : .4);
     }
   },
   up() {
     if (GS.estado !== 'MIRANDO' || this.paused) return;                  // ignora soltar fora de contexto → sem disparo duplo
-    const p = this.aim.release(); this.launch(p.gx, p.gy);
+    const a = this.aim, incl = a.inclinacao, p = a.release(); this.launch(p.gx, p.gy, p.forca); if (this.ball?.mira) this.ball.mira.inclinacao = incl;
   },
-  cancel() { if (GS.estado === 'MIRANDO') { this.aim.reset(); this.aim.run(); GS.estado = 'AGUARDANDO_COBRANCA'; } },  // perda de foco: cancela mira
-  launch(gx, gy) {
+  cancel() { if (GS.estado === 'MIRANDO') { const a = this.aim; a.hold = false; a.y = AIM_BASE; a.carga = 0; GS.estado = 'AGUARDANDO_COBRANCA'; } },  // perda de foco: cancela a carga e a seta volta a oscilar
+  // A SETA DA MIRA só existe com a cobrança LIBERADA de verdade: vez do jogador, cobrador já no ponto, sem bola em jogo, sem pausa nem fim de jogo
+  miraVisivel() { return !!this.m && !this.fin && !this.paused && this.hum() && !this.ball && ((GS.estado === 'AGUARDANDO_COBRANCA' && this.t >= ENTRY_S) || GS.estado === 'MIRANDO'); },
+  launch(gx, gy, forcaJogador) {
     GS.estado = this.hum() ? 'CHUTANDO' : 'DEFESA_DO_GOLEIRO';
-    // FORÇA = altura da barra no instante em que solta (a mesma que dá a altura do chute); o tipo é decidido UMA vez, aqui, e vale para a animação e para a bola
-    const p = pickKicker(GS.equipes[GS.cobrador], GS.cobranca, this.escolha[GS.cobrador]), forca = forceFromAim(gy), ks = this.kick = kickSpec(p.id, typeFromForce(forca));
-    this.ball = { gx, gy, t: ks.t0/CORRIDA, t0: ks.t0/CORRIDA, tf: ks.tf, curl: ks.curl, tipo: ks.tipo, forca, res: null, som: false,
+    // jogador (seta 3D): direção travada ao apertar, altura = inclinação da seta e força = tempo apertado (os dois saem da mesma barra); a bola usa
+    // EXATAMENTE esses valores — o tipo/clipe e a velocidade saem da força (mais força, voo mais curto). CPU / testes antigos: launch(gx, gy) com a força pela altura.
+    const p = pickKicker(GS.equipes[GS.cobrador], GS.cobranca, this.escolha[GS.cobrador]), forca = forcaJogador ?? forceFromAim(gy), ks = this.kick = kickSpec(p.id, typeFromForce(forca));
+    const mira = forcaJogador != null ? { gx, gy, forca, inclinacao: this.aim.inclinacao } : null;
+    const tf = forcaJogador != null ? ks.tf*fatorVelocidade(forca) : ks.tf;
+    this.ball = { gx, gy, mira, t: ks.t0/CORRIDA, t0: ks.t0/CORRIDA, tf, curl: ks.curl, tipo: ks.tipo, forca, res: null, som: false,
       chute: { clipe: ks.id, contatoClipe: +(ks.clip.contato ?? 0).toFixed(3), folgaPeMm: ks.clip.folgaContatoMm ?? null, velPe: ks.clip.velPe ?? null, forca: +forca.toFixed(3) } };   // contato do pé com a bola medido no clipe (tools/build-kick-clips.mjs): a bola sai nesse instante   // t<0: aproximação do clipe; a bola só sai no CONTATO (t=0)
     this.rating = p.rating;
-    level(1); Events.emit('chute', { equipe: GS.cobrador, tipoCobranca: ks.tipo, estilo: ks.estilo, forca: +forca.toFixed(3) });
+    Events.emit('chute', { equipe: GS.cobrador, tipoCobranca: ks.tipo, estilo: ks.estilo, forca: +forca.toFixed(3) });
     // goleiro da CPU (o jogador cobra): sorteia o lado AGORA, sem olhar a mira; se a corrida começar depois do limite, o lado trava logo em seguida
     if (this.hum()) GK.escolherLado(this.keeper, null, this.forcar?.lado || sortear(this.memGoleiro(), this.rng || Math.random), 'CPU', this.t);   // memória do goleiro (js/goleiroMemoria.js)
     else if (this.forcar?.lado && !this.keeper.lado) GK.escolherLado(this.keeper, null, this.forcar.lado, 'cena de teste', this.t);
@@ -116,8 +126,8 @@ export const Game = {
     GS.ultimaCobranca = { equipe: q, resultado: r, gx: +b.gx.toFixed(3), gy: +b.gy.toFixed(3), goleiro: gk };
     Events.emit(r, { equipe: q, gx: b.gx, gy: b.gy, reacao: b.reacao, goleiro: gk });       // evento único por cobrança
     // sons ligados ao evento CONFIRMADO (um só resultado por cobrança)
-    if (r === 'gol') { sfx('rede'); sfx('gol', .05); crowd('roar'); } else if (r === 'trave') { sfx(b.fis?.ferros?.[0] === 'travessao' ? 'travessao' : 'trave'); crowd('groan'); } else if (r === 'defesa') { sfx('defesa'); crowd('groan'); } else { sfx('fora'); crowd('groan'); }
-    level(r === 'gol' ? 1 : .6);
+    if (r === 'gol') { sfx('rede'); sfx('gol', .05); } else if (r === 'trave') { sfx(b.fis?.ferros?.[0] === 'travessao' ? 'travessao' : 'trave'); } else if (r === 'defesa') { sfx('defesa'); } else { sfx('fora'); }
+    // a torcida (explosão de quem comemora, lamento de quem sofreu) reage ao evento acima: js/torcidaSom.js pelo humor de cada lado
     if (r === 'gol') { GS.placar[q]++; Events.emit('placar_alterado', { placar: [...GS.placar] }); }
     // Encerramento antecipado: quem está à frente por mais que as cobranças restantes do outro
     const [a, c] = m.taken, [sa, sc] = GS.placar, ra = Math.max(0, 5 - a), rc = Math.max(0, 5 - c);
@@ -130,8 +140,8 @@ export const Game = {
     if (m.fim) {
       GS.vencedor = GS.placar[0] > GS.placar[1] ? 0 : 1; GS.estado = 'RESULTADO';
       Events.emit('partida_encerrada', { placar: [...GS.placar], vencedor: GS.vencedor });
-      Events.emit(GS.vencedor === 0 ? 'vitoria' : 'derrota'); sfx('vitoria'); crowd('roarBig'); level(1);
-      this.fin = { t: 0, vit: embaralha(Object.keys(VICTORY_REACTIONS)), perdeu: embaralha(Object.keys(MISS_REACTIONS))[0] }; return;   // cada vencedor com uma comemoração diferente      // comemoração SÓ agora (resultado final confirmado); o callback vem em finish()
+      Events.emit(GS.vencedor === 0 ? 'vitoria' : 'derrota'); sfx('vitoria');
+      this.fin = { t: 0, vit: embaralha(Object.keys(VICTORY_REACTIONS)), perdeu: embaralha(Object.keys(MISS_REACTIONS))[0] }; this.fin.festa = planoFesta(this, this.rng || Math.random); return;   // cada vencedor com uma comemoração diferente      // comemoração SÓ agora (resultado final confirmado); o callback vem em finish()
     }
     if (GS.cobrador === 1) GS.cobranca++;
     this.setTurn(GS.cobrador ^ 1);
@@ -139,8 +149,8 @@ export const Game = {
   finish() { const marks = this.m.marks; this.m = null; this.fin = null; ambient(false); this.cb?.(GS.vencedor === 0, [...GS.placar], marks); },
   update(dt) {
     if (this.paused || !this.m) return;
-    if (this.fin) { this.fin.t += dt; this.t += dt; if (this.fin.t > 4.4) this.finish(); return; }
-    this.t += dt; this.aim.update(dt, cfg.hs, cfg.vs);
+    if (this.fin) { this.fin.t += dt; this.t += dt; Humor.update(dt); if (this.fin.t > FIN_S) this.finish(); return; }   // festa do título (js/frame.js → festa)
+    this.t += dt; this.aim.update(dt, cfg.hs, cfg.vs); Humor.update(dt);   // humor da torcida (para junto com a pausa)
     const b = this.ball, k = this.keeper;
     if (GS.estado === 'DEFESA_DO_GOLEIRO' && !b) {                     // adversário prepara o chute
       this.wait -= dt; const f = this.forcar, mira = this.cpuMira; if (this.wait <= 0) this.launch(f?.gx ?? mira.gx, f?.gy ?? mira.gy);

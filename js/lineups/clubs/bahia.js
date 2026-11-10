@@ -8,11 +8,11 @@ export const L_bahia = {
     { n: 2, name: "Gilberto", pos: "RB" },
     { n: 3, name: "Gabriel Xavier", nick: "Xavier", pos: "CB" },
     { n: 4, name: "Kanu", pos: "CB" },
-    { n: 46, name: "Luciano Juba", nick: "Juba", pos: "LB" },
+    { n: 46, name: "Luciano Juba", nick: "Juba", pos: "LB", foot: "left" },   // pé: Transfermarkt (perfil 676035), conferido em 10/11/2026
     { n: 5, name: "Nicolás Acevedo", nick: "Acevedo", pos: "DM" },
     { n: 6, name: "Jean Lucas", pos: "CM" },
-    { n: 10, name: "Éverton Ribeiro", nick: "Ribeiro", pos: "AM" },
-    { n: 7, name: "Ademir", pos: "RW" },
+    { n: 10, name: "Éverton Ribeiro", nick: "Ribeiro", pos: "AM", foot: "left" },   // pé: Transfermarkt (perfil 52896, "Everton Ribeiro"), conferido em 10/11/2026
+    { n: 7, name: "Ademir", pos: "RW", foot: "left" },   // pé: Transfermarkt (perfil 544259), conferido em 10/11/2026
     { n: 12, name: "Willian José", pos: "ST" },
     { n: 16, name: "Erick Pulga", nick: "Pulga", pos: "LW" }
   ]

@@ -1,7 +1,8 @@
 // Mixer (skills audio-design/game-audio): barramentos efeitos + torcida → master → limitador. Volumes em dB, mute no master, iniciado após interação.
 import { cfg } from './game.js';
 import { RECIPES, SFX_FILES, VAR, taper } from './soundEffects.js';
-let ctx, master, fx, cr, amb;
+import { criaTorcidaSom } from './torcidaSom.js';
+let ctx, master, fx, cr, amb, torcida = null;   // torcida: cantos, palmas e reações por lado (js/torcidaSom.js)
 const IMPACT = new Set(['trave', 'travessao', 'defesa', 'rede', 'gol']);
 function init() {
   if (ctx) return true;
@@ -19,8 +20,9 @@ export function sfx(n, delay = 0) {                                    // chamad
   if (IMPACT.has(n)) duck(.55, .4);
 }
 export const crowd = n => sfx(n);
-export function ambient(on) {                                          // murmúrio contínuo: 3 camadas de ruído com oscilação lenta própria
-  if (!cfg.sound || !init()) return; vols();
+export function ambient(on) {                                          // torcida da partida (js/torcidaSom.js) + murmúrio de fundo
+  if (!cfg.sound || !init()) { if (!on) torcida?.desligar(); return; } vols();
+  if (on) { (torcida ||= criaTorcidaSom({ ctx, saida: cr })).ligar(); } else torcida?.desligar();
   if (on && !amb) {
     const out = ctx.createGain(); out.gain.value = .55; out.connect(cr); const layers = [[300, .5, .07, .13], [900, .6, .05, .31], [1800, .8, .022, .07]].map(([f, q, g, hz]) => {
       const s = ctx.createBufferSource(), fl = ctx.createBiquadFilter(), gn = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain(); const n = ctx.sampleRate*3, b = ctx.createBuffer(1, n, ctx.sampleRate), a = b.getChannelData(0); for (let i = 0; i < n; i++) a[i] = Math.random()*2 - 1;
@@ -29,3 +31,4 @@ export function ambient(on) {                                          // murmú
   } else if (!on && amb) { amb.layers.forEach(l => { try { l.s.stop(); l.lfo.stop(); } catch {} }); amb = null; }
 }
 export function level(v) { if (!amb) return; amb.cur = v; amb.out.gain.setTargetAtTime(lvl(), ctx.currentTime, .4); }   // intensidade da torcida (expectativa → explosão)
+export const _audioDbg = () => ({ ctx, cr, torcida });                     // só para os testes (medir o som da torcida e gravar demonstrações)

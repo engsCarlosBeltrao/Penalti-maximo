@@ -1,5 +1,6 @@
 // O QUE CADA BOTÃO FAZ, conforme o momento do jogo. Passa SEMPRE pelos mesmos caminhos do teclado/mouse:
 //  - chute: Game.down() ao apertar (começa a encher a MESMA barra de força) e Game.up() ao soltar (chuta com a força daquele instante);
+//  - cobrador do jogador: a seta oscila sozinha o tempo todo; o ARCADE enche força e altura (apertar/segurar) e chuta na direção do instante de soltar;
 //  - goleiro do jogador: Game.keeperChoose() com as setas (como ← ↑ →);
 //  - menus: o navegador clica no item em foco; pausa: o menu de pausa do jogo.
 // Bloqueios: um aperto do arcade gera no máximo UMA cobrança; comandos fora de hora são ignorados (e contados).
@@ -17,10 +18,15 @@ export function criarComandos({ game, nav, pausa, emMenu }) {
   }
   function comando(cmd) {
     const [b, ev] = cmd.split('_'), dir = b in LADO ? b : null; st.ultimo = cmd;
+    if (cmd === 'ARCADE_DOWN' && game.fin && !pausa.aberta()) { game.down(null); return true; }   // festa do título: o ARCADE pula para o resultado
     if (cmd === 'ARCADE_DOWN') { if (st.segurando) return ign('arcade já apertado'); st.segurando = true; st.cedo = false;
       if (!partida() || pausa.aberta()) return (emMenu() || pausa.aberta()) ? nav.confirmar() : ign('arcade fora da cobrança'); return tentaCarregar() || ign('cedo: o cobrador ainda não está pronto'); }
     if (cmd === 'ARCADE_UP') { const ia = st.carregando; st.segurando = false; st.carregando = false;
       if (ia && GS.estado === 'MIRANDO' && partida()) { game.up(); st.chutes++; return true; } return ign('soltou sem carregar'); }
+    // PAUSA e DESPAUSA (firmware 2): botões próprios. Na partida, PAUSA abre o menu de pausa e DESPAUSA volta ao jogo; nos menus, DESPAUSA volta
+    // D6 = AVANÇAR / PAUSA: confirma nos menus (e no menu de pausa), pausa na partida · D7 = VOLTAR / DESPAUSA: volta nos menus, despausa na partida
+    if (b === 'PAUSE') { if (pausa.aberta()) return nav.confirmar(); if (partida()) { if (st.carregando) return ign('pausa durante a carga'); pausa.abrir(); return true; } if (emMenu()) return nav.confirmar(); return ign(cmd); }
+    if (b === 'RESUME') { if (pausa.aberta()) { pausa.voltar(); return true; } if (partida()) return ign('o jogo não está pausado'); if (emMenu()) return nav.voltar(); return ign(cmd); }
     if (pausa.aberta()) { if (dir) return nav.mover(dir); if (b === 'ADVANCE') return nav.confirmar(); if (b === 'BACK') { pausa.voltar(); return true; } return false; }
     if (partida()) {
       if (b === 'ADVANCE' || b === 'BACK') { if (st.carregando) return ign('pausa durante a carga'); pausa.abrir(); return true; }   // VOLTAR também só abre a pausa: sair exige confirmar

@@ -17,7 +17,7 @@ O Arduino lê 7 botões e manda os eventos pelo USB. O jogo, aberto no navegador
 
 ## 2. Pinos
 
-Para trocar os pinos, edite `penalti_arcade/config.h`.
+Esses são os pinos **padrão**. Você não precisa seguir esta tabela: ligue cada botão em qualquer pino livre (D2 a D12 ou A0 a A3) e depois configure pelo jogo, como no item **Configurar os botões** abaixo. (Também dá para trocar o padrão em `penalti_arcade/config.h`.)
 
 | Função | Pino | Ligação |
 |---|---|---|
@@ -25,14 +25,24 @@ Para trocar os pinos, edite `penalti_arcade/config.h`.
 | BAIXO | D3 | idem |
 | ESQUERDA | D4 | idem |
 | DIREITA | D5 | idem |
-| AVANÇAR (confirma; na partida, pausa) | D6 | idem |
-| VOLTAR | D7 | idem |
+| AVANÇAR / PAUSA | D6 | idem |
+| VOLTAR / DESPAUSA | D7 | idem |
 | ARCADE (chute) | D8 | idem |
 | LCD SDA | A4 | no Nano também é A4 |
 | LCD SCL | A5 | no Nano também é A5 |
 | LCD VCC / GND | 5V / GND | — |
 
-Não use D0 e D1: são a serial USB.
+Não use D0 e D1 (serial USB), D13 (LED da placa) nem A4/A5 (LCD).
+
+### Configurar os botões (firmware 2)
+
+1. Grave o firmware novo: `enviar.bat` (ele aparece no jogo como **firmware 2**).
+2. No jogo: **ARCADE / ARDUINO → CONECTAR** e depois **CONFIGURAR BOTÕES**.
+3. O jogo (e o LCD) pede um botão de cada vez: **CIMA, BAIXO, ESQUERDA, DIREITA, PAUSA, DESPAUSA e ARCADE**. Aperte no arcade o botão que você quer para cada um.
+4. Se apertar um botão que já foi usado, o jogo avisa e espera outro. **VOLTAR UM PASSO** desfaz o último; **CANCELAR** sai sem gravar nada.
+5. No 7º botão o mapa é gravado na **EEPROM do Arduino** e passa a valer na hora. Ele continua lá depois de desligar a placa e em qualquer PC.
+
+Durante a configuração os botões não mexem no jogo nem nos menus. Se o cabo cair no meio, nada é gravado.
 
 ```
             ARDUINO UNO / NANO
@@ -41,8 +51,8 @@ Não use D0 e D1: são a serial USB.
   BAIXO ───┤ D3            A5  ├──── SCL ├── módulo I2C do LCD
   ESQ. ────┤ D4            5V  ├──── VCC │
   DIR. ────┤ D5           GND  ├──── GND ┘
-  AVANÇAR ─┤ D6                │
-  VOLTAR ──┤ D7                │
+  AVANÇAR ─┤ D6  (e PAUSA)     │
+  VOLTAR ──┤ D7  (e DESPAUSA)  │
   ARCADE ──┤ D8           GND  ├──┬── 2º terminal de TODOS os botões (GND comum)
            └────────┬──────────┘  │
                   USB → PC        └── (pode ser um barramento de GND na caixa)
@@ -91,9 +101,9 @@ Feche o Monitor Serial do IDE e a tela ARCADE do jogo antes de enviar, porque s�
 | Botão | Nos menus | Na partida |
 |---|---|---|
 | Direcionais | movem a seleção; em controles deslizantes e listas, ← → mudam o valor | defendendo: escolhem o canto do goleiro (← canto esquerdo da tela, → direito, ↑/↓ centro), antes do limite de 1,5 s |
-| AVANÇAR | confirma o item selecionado | **pausa** (bola, jogadores e cronômetro param); no menu de pausa, confirma CONTINUAR / SAIR |
-| VOLTAR | volta à tela anterior; na confirmação, cancela | abre a pausa (nunca sai direto); sair exige **SAIR DA PARTIDA → SIM, SAIR** |
-| ARCADE | confirma, como o AVANÇAR | **apertar** começa a encher a força (a mesma barra do mouse); **soltar** chuta com a força daquele instante. Toque rápido = chapada (fraca), ~0,7 s = médio, ~1,2 s = bomba (forte). Um aperto = no máximo uma cobrança. |
+| AVANÇAR / PAUSA | confirma o item selecionado | **pausa** (bola, jogadores e cronômetro param); no menu de pausa, confirma o item em foco |
+| VOLTAR / DESPAUSA | volta à tela anterior | no menu de pausa, **volta ao jogo** de onde parou. Sair da partida: no menu de pausa, **SAIR DA PARTIDA → SIM, SAIR** com as setas e o ARCADE |
+| ARCADE | confirma o item selecionado (também no menu de pausa) | **apertar** começa a encher a força (a mesma barra do mouse); **soltar** chuta com a força daquele instante. Toque rápido = chapada (fraca), ~0,7 s = médio, ~1,2 s = bomba (forte). Um aperto = no máximo uma cobrança. |
 
 Como no mouse, um aperto antes de o cobrador chegar à bola não vale: solte e aperte de novo quando a mira aparecer. Assim a força é sempre o tempo real em que o botão ficou apertado.
 
@@ -105,8 +115,8 @@ Cada mensagem é uma linha de texto ASCII que termina em `*HH`. HH é o XOR de t
 
 | Direção | Mensagens |
 |---|---|
-| Arduino → jogo | `HELLO\|1\|20x4` · `UP_PRESS` `DOWN_PRESS` `LEFT_PRESS` `RIGHT_PRESS` · `UP_REPEAT`… (direcional segurado: começa após 450 ms, a cada 180 ms) · `ADVANCE_PRESS` · `BACK_PRESS` · `ARCADE_DOWN` · `ARCADE_UP\|ms` · `PONG` |
-| Jogo → Arduino | `HELLO?` · `PING` (a cada 2 s) · `L\|linha1\|linha2\|linha3\|linha4` (o texto do LCD) · `T\|0/1` (luz de fundo) |
+| Arduino → jogo | `HELLO\|2\|20x4` · `UP_PRESS` `DOWN_PRESS` `LEFT_PRESS` `RIGHT_PRESS` · `UP_REPEAT`… (direcional segurado: começa após 450 ms, a cada 180 ms) · `PAUSE_PRESS` · `RESUME_PRESS` · `ARCADE_DOWN` · `ARCADE_UP\|ms` · `PONG` · `MAPA\|2,3,4,5,6,7,8` · `MAPA_ERRO\|motivo` · `APRENDER\|0/1` · `PINO\|n` (só no modo de configuração). O firmware 1 mandava `ADVANCE_PRESS`/`BACK_PRESS`, que o jogo ainda aceita. |
+| Jogo → Arduino | `HELLO?` · `PING` (a cada 2 s) · `L\|linha1\|linha2\|linha3\|linha4` (o texto do LCD) · `T\|0/1` (luz de fundo) · `MAPA?` · `MAPA\|a,b,c,d,e,f,g` (grava na EEPROM) · `MAPA\|PADRAO` · `APRENDER\|1` / `APRENDER\|0` |
 
 O jogo só manda o LCD quando a tela muda: troca de time, de cobrança, placar, resultado, pausa ou fim. No 16x2 também manda quando a página alterna. Se o Arduino ficar 6 s sem receber nada válido, mostra **SEM CONEXAO** no LCD e continua mandando os botões.
 

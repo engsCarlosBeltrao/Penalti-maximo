@@ -8,7 +8,7 @@ export const L_palmeiras = {
     { n: 4, name: "Agustín Giay", nick: "Giay", pos: "RB" },
     { n: 15, name: "Gustavo Gómez", pos: "CB" },
     { n: 26, name: "Murilo", pos: "CB" },
-    { n: 22, name: "Joaquín Piquerez", nick: "Piquerez", pos: "LB" },
+    { n: 22, name: "Joaquín Piquerez", nick: "Piquerez", pos: "LB", foot: "left" },   // pé: Transfermarkt (perfil 496268), conferido em 10/11/2026
     { n: 17, name: "Marlon Freitas", pos: "DM" },
     { n: 8, name: "Andreas Pereira", pos: "CM" },
     { n: 11, name: "Jhon Arias", nick: "Arias", pos: "AM" },

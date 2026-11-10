@@ -109,12 +109,16 @@ export function criaPlayer(deps) {
   // ---- eventos da partida (js/events.js) ----
   P.liga = (Events, GS) => {
     const time = i => GS.equipes[i]?.key;
-    Events.on('partida_iniciada', () => { P.abaixar(false); if (regras().inicio) P.tocarClube(time(0), { forcar: true }); });
-    Events.on('partida_reiniciada', () => { P.abaixar(false); });
-    Events.on('cobranca_mudou', e => { P.abaixar(false); if (regras().vez) P.tocarClube(time(e.cobrador)); });           // mudança de equipe: a música do time que vai cobrar
+    // A MÚSICA SEGUE A TORCIDA QUE COMEMORA: gol → a de quem marcou; defesa → a do time do goleiro; pênalti perdido → a do outro time. Enquanto uma
+    // torcida comemora, a próxima cobrança NÃO troca a música; ela só muda quando a outra torcida passa a comemorar (o mesmo time nunca recomeça).
+    P.comemora = null;
+    const comemora = q => { if (q !== 0 && q !== 1) return; P.comemora = q; if (regras().gol) P.tocarClube(time(q)); };   // evento sem equipe válida: não muda nada
+    Events.on('partida_iniciada', () => { P.comemora = null; P.abaixar(false); if (regras().inicio) P.tocarClube(time(0), { forcar: true }); });
+    Events.on('partida_reiniciada', () => { P.comemora = null; P.abaixar(false); });
+    Events.on('cobranca_mudou', e => { P.abaixar(false); if (regras().vez && P.comemora == null) P.tocarClube(time(e.cobrador)); });   // vez: só enquanto ninguém comemora
     Events.on('chute', () => { if (regras().chute === 'abaixar') P.abaixar(true); });
-    for (const r of ['defesa', 'fora', 'trave']) Events.on(r, () => P.abaixar(false));
-    Events.on('gol', e => { P.abaixar(false); if (regras().gol) P.tocarClube(time(e.equipe)); });
+    for (const r of ['defesa', 'fora', 'trave']) Events.on(r, e => { P.abaixar(false); comemora(1 - e.equipe); });   // comemora o time que NÃO cobrou
+    Events.on('gol', e => { P.abaixar(false); comemora(e.equipe); });
     Events.on('pausa', () => { const r = regras().pausa; if (r === 'pausar') P._pausouNaPausa = P.pausar(); else if (r === 'abaixar') P.abaixar(true); });
     Events.on('retomada', () => { if (P._pausouNaPausa) P.continuar(); P._pausouNaPausa = false; P.abaixar(false); });
     Events.on('partida_encerrada', e => { P.abaixar(false); const r = regras().fim; if (r === 'vencedor') P.tocarClube(time(e.vencedor), { forcar: P.clube !== time(e.vencedor) }); else if (r === 'parar') P.parar(); });

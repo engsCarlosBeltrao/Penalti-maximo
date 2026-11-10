@@ -6,9 +6,9 @@ export const L_gremio = {
   xi: [
     { n: 1, name: "Weverton", pos: "GK" },
     { n: 14, name: "Marcos Rocha", pos: "RB" },
-    { n: 4, name: "Walter Kannemann", nick: "Kannemann", pos: "CB" },
-    { n: 3, name: "Wagner Leonardo", pos: "CB" },
-    { n: 23, name: "Marlon", pos: "LB" },
+    { n: 4, name: "Walter Kannemann", nick: "Kannemann", pos: "CB", foot: "left" },   // pé: Transfermarkt (perfil 145400), conferido em 10/11/2026
+    { n: 3, name: "Wagner Leonardo", pos: "CB", foot: "left" },   // pé: Transfermarkt (perfil 671572), conferido em 10/11/2026
+    { n: 23, name: "Marlon", pos: "LB", foot: "left" },   // pé: Transfermarkt (perfil 406675), conferido em 10/11/2026
     { n: 20, name: "Mathías Villasanti", nick: "Villasanti", pos: "DM" },
     { n: 8, name: "Erick Noriega", nick: "Noriega", pos: "CM" },
     { n: 10, name: "Filip Krovinović", nick: "Krovinović", pos: "AM" },

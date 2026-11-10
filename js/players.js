@@ -13,9 +13,18 @@ export function squad(club) {                                       // cobradore
   return [...real, ...fill];
 }
 const CELS = ['arms', 'crest', 'confident', 'team', 'normal'];
-const lookOf = (p, cel) => ({ id: p.id, nome: (p.nickname || p.name).toUpperCase(), num: p.jerseyNumber, star: p.isStar, rating: p.rating, pending: !!p.pending, noNum: p.jerseyNumber == null, cel, skin: p.appearance.skinTone, hair: p.appearance.hair || p.appearance.hairStyle, ap: p.appearance.skinI !== undefined ? p.appearance : null });
+const lookOf = (p, cel) => ({ id: p.id, gk: p.posCode === 'GK', nome: (p.nickname || p.name).toUpperCase(), num: p.jerseyNumber, star: p.isStar, rating: p.rating, pending: !!p.pending, noNum: p.jerseyNumber == null, cel, skin: p.appearance.skinTone, hair: p.appearance.hair || p.appearance.hairStyle, ap: p.appearance.skinI !== undefined ? p.appearance : null });
+// ORDEM DE COBRANÇA: os 11 titulares — os 10 de linha (estrelas primeiro, depois pela camisa) e o GOLEIRO por último; depois do 11º a ordem
+// recomeça. Quem o jogador escolheu (ESCOLHER JOGADORES) abre a fila; se for reserva, entra no lugar do último de linha (continuam 11, goleiro no fim).
+export function ordemCobranca(club, choiceId) {
+  const s = squad(club), xi = s.filter(p => p.starter && p.posCode !== 'GK'), gk = s.find(p => p.starter && p.posCode === 'GK');
+  let linha = [...xi, ...s.filter(p => !xi.includes(p) && p.posCode !== 'GK')].slice(0, gk ? 10 : 11);   // titulares; faltando, completa com reservas/pendentes
+  const esc = choiceId && s.find(x => x.id === choiceId);
+  if (esc && esc !== gk) { linha = [esc, ...linha.filter(p => p !== esc)].slice(0, gk ? 10 : 11); }
+  return esc && esc === gk ? [gk, ...linha] : gk ? [...linha, gk] : linha;
+}
 export function pickKicker(club, n, choiceId) {
-  const s = squad(club), p = s.find(x => x.id === choiceId) || s[(n - 1) % Math.min(5, s.length)], cel = p.celebration !== 'normal' ? p.celebration : CELS[(n + (p.jerseyNumber || 0)) % 4];
+  const o = ordemCobranca(club, choiceId), p = o[(Math.max(1, n) - 1) % o.length], cel = p.celebration !== 'normal' ? p.celebration : CELS[(n + (p.jerseyNumber || 0)) % 4];
   return lookOf(p, cel);
 }
 export function keeperOf(club) {                                     // goleiro titular do clube (aparência e nome próprios); sem dados → null e o jogo usa o goleiro genérico

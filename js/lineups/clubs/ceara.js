@@ -8,10 +8,10 @@ export const L_ceara = {
     { n: null, name: "Bryan Borges", nick: "Bryan", pos: "RB" },
     { n: null, name: "Júlio César", pos: "CB" },
     { n: null, name: "Luizão", pos: "CB" },
-    { n: null, name: "Sanchez", pos: "LB" },
+    { n: null, name: "Sanchez", pos: "LB", foot: "left" },   // pé: Transfermarkt (perfil 375241, "Sánchez"), conferido em 10/11/2026
     { n: null, name: "Richardson", pos: "DM" },
     { n: null, name: "João Gabriel", pos: "CM" },
-    { n: null, name: "Melk", pos: "AM" },
+    { n: null, name: "Melk", pos: "AM", foot: "left" },   // pé: Transfermarkt (perfil 1096082), conferido em 10/11/2026
     { n: null, name: "Matheus Araújo", pos: "AM" },
     { n: null, name: "Enzo", pos: "ST" },
     { n: null, name: "Saulo Mineiro", nick: "Saulo", pos: "ST" }

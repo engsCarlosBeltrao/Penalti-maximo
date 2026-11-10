@@ -11,9 +11,9 @@ export const L_sport = {
     { n: 3, name: "Marcelo Ajul", nick: "Ajul", pos: "LB" },
     { n: 8, name: "Max Alves", pos: "DM" },
     { n: 7, name: "Yago Felipe", pos: "CM" },
-    { n: 10, name: "Carlos de Pena", nick: "Pena", pos: "AM" },
+    { n: 10, name: "Carlos de Pena", nick: "Pena", pos: "AM", foot: "left" },   // pé: Transfermarkt (perfil 257740), conferido em 10/11/2026
     { n: 77, name: "Micael", pos: "RW" },
-    { n: 9, name: "Pedro Perotti", nick: "Perotti", pos: "ST" },
+    { n: 9, name: "Pedro Perotti", nick: "Perotti", pos: "ST", foot: "left" },   // pé: Transfermarkt (perfil 432959, "Perotti"), conferido em 10/11/2026
     { n: 11, name: "Gustavo Maia", pos: "LW" }
   ]
 };

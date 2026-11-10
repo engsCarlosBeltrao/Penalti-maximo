@@ -16,14 +16,20 @@ export const KICK_TYPES = {
 export const TYPE_ORDER = ['chapada', 'medio', 'bomba'];
 // Rotinas próprias (ID do elenco → estilo). Pés confirmados: Neymar e Gabigol no elenco do jogo; Jorginho e Arrascaeta: destros (Transfermarkt).
 export const STAR_STYLES = { 'santos-neymar-jr': 'neymar', 'santos-gabriel-barbosa': 'gabigol', 'flamengo-jorginho': 'jorginho', 'flamengo-giorgian-de-arrascaeta': 'arrascaeta' };
-export const STYLE_NAMES = { comum: 'Cobrança padrão', neymar: 'Ritmo variado', gabigol: 'Hesitação e decisão', jorginho: 'Pulinho', arrascaeta: 'Técnica e compacta' };
+export const STYLE_NAMES = { comum: 'Cobrança padrão', neymar: 'Ritmo variado', gabigol: 'Hesitação e decisão', jorginho: 'Pulinho', arrascaeta: 'Técnica e compacta', canhoto: 'Cobrança padrão (canhoto)' };
 // FORÇA = fração da barra (a mesma barra que o jogador enche segurando; js/aim.js → y): 0 no mínimo, 1 no máximo.
 // Faixas: até 35% chapada · acima de 35% até 70% médio · acima de 70% bomba (fronteira fechada à esquerda: 35% exato = chapada, 70% exato = médio).
 export const FORCE_BANDS = { chapada: .35, medio: .70 };
 export const forceFromAim = y => Math.min(1, Math.max(0, (y - AIM_LIM.ymin)/(AIM_LIM.ymax - AIM_LIM.ymin)));
+// velocidade dentro da faixa do tipo: mais força = bola mais rápida (menos tempo de voo), de forma contínua (±6% em torno do tempo do tipo)
+export function fatorVelocidade(f) { const a = f <= FORCE_BANDS.chapada ? 0 : f <= FORCE_BANDS.medio ? FORCE_BANDS.chapada : FORCE_BANDS.medio, b = f <= FORCE_BANDS.chapada ? FORCE_BANDS.chapada : f <= FORCE_BANDS.medio ? FORCE_BANDS.medio : 1;
+  return 1.06 - .12*Math.min(1, Math.max(0, (f - a)/(b - a))); }
 export const typeFromForce = f => (f <= FORCE_BANDS.chapada + 1e-9 ? 'chapada' : f <= FORCE_BANDS.medio + 1e-9 ? 'medio' : 'bomba');
 
-export const styleOf = id => STAR_STYLES[id] || 'comum';
+// estilo da cobrança: o craque tem rotina própria; os demais batem a cobrança padrão — com a perna ESQUERDA se forem canhotos (estilo 'canhoto',
+// espelho exato da padrão; pé de cada jogador no elenco: js/lineups/clubs, conferido no Transfermarkt)
+export const styleOf = id => STAR_STYLES[id] || (footOf(id) === 'l' && supportedTypes('canhoto').length ? 'canhoto' : 'comum');
+export const PADRAO = new Set(['comum', 'canhoto']);   // estilos sem rotina de craque
 export const footOf = id => (PLAYERS.find(p => p.id === id)?.preferredFoot === 'left' ? 'l' : 'r');
 export const supportedTypes = estilo => TYPE_ORDER.filter(t => KICK_CLIPS[`${estilo}_${t}`]);
 // Especificação completa de uma cobrança: clipe, tempos, bola. tipoPedido pode não existir no estilo (ex.: bomba de Neymar) → médio do mesmo estilo.
@@ -47,6 +53,10 @@ export const SAVE_REACTIONS = { def_soco_ar: 3.0, def_luvas_batem: 3.0, def_apon
   def_salto_punhos: 3.0, def_agacha_grito: 3.0, def_aponta_ceu: 3.0 };
 export const VICTORY_REACTIONS = { vit_pula_bracos: 4.2, vit_aviao: 4.2, vit_palmas: 4.2, vit_escudo: 4.2, vit_danca: 4.2, vit_socos: 4.2, vit_aponta_volta: 4.2, vit_maos_cabeca: 4.2,
   vit_grito_abertos: 4.2, vit_pulo_punho: 4.2 };
+// FESTA DO TÍTULO (cena final, js/frame.js): o protagonista recebe os companheiros; os outros correm CHEGADA m em linha reta e chegam abraçando
+// (tools/blender/reacoes.py → fest_*). Duração da cena final: FIN_S (dá para pular depois de FIN_PULAR s).
+export const FEST_CLIPS = { fest_recebe: 9.0, fest_abraco: 8.4, fest_lado: 8.4 };
+export const CHEGADA = 6.15, FIN_S = 9.4, FIN_PULAR = 1.5;
 export const MISS_REACTIONS = { perdeu_cabeca_baixa: 2.8, perdeu_maos_cintura: 3.0, perdeu_mao_rosto: 2.8, perdeu_maos_cabeca: 3.0, perdeu_olha_chao: 3.0 };
 export const REACTION_NAMES = { gol_bracos_abertos: 'Braços abertos', gol_punhos: 'Punhos cerrados', gol_salto: 'Pequeno salto', gol_aponta: 'Apontando para cima', gol_corrida: 'Corrida comemorativa',
   perdeu_cabeca_baixa: 'Cabeça baixa', perdeu_maos_cintura: 'Mãos na cintura', perdeu_mao_rosto: 'Mão no rosto', perdeu_maos_cabeca: 'Mãos na cabeça', perdeu_olha_chao: 'Olhar para o chão',

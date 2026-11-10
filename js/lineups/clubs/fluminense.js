@@ -7,20 +7,20 @@ export const L_fluminense = {
     { n: 1, name: "Fábio", pos: "GK" },
     { n: 2, name: "Samuel Xavier", pos: "RB" },
     { n: 4, name: "Ignacio", pos: "CB" },
-    { n: 22, name: "Freytes", pos: "CB" },
-    { n: 13, name: "Guilherme Arana", nick: "Arana", pos: "LB", r: 80 },
+    { n: 22, name: "Freytes", pos: "CB", foot: "left" },   // pé: Transfermarkt (perfil 628750, "Juan Pablo Freytes"), conferido em 10/11/2026
+    { n: 13, name: "Guilherme Arana", nick: "Arana", pos: "LB", r: 80, foot: "left" },   // pé: Transfermarkt (perfil 346766), conferido em 10/11/2026
     { n: 5, name: "Facundo Bernal", nick: "Bernal", pos: "DM" },
     { n: 8, name: "Martinelli", pos: "CM" },
-    { n: 10, name: "Ganso", pos: "AM", star: true, r: 84, cel: "confident" },
+    { n: 10, name: "Ganso", pos: "AM", star: true, r: 84, cel: "confident", foot: "left" },   // pé: Transfermarkt (perfil 67920), conferido em 10/11/2026
     { n: 11, name: "Keno", pos: "RW" },
     { n: 14, name: "Germán Cano", nick: "Cano", pos: "ST", star: true, r: 85, cel: "arms" },
     { n: 7, name: "Yeferson Soteldo", nick: "Soteldo", pos: "LW", r: 80 }
   ],
   reserves: [
     { n: 3, name: "Jemmes" },
-    { n: 6, name: "Renê" },
+    { n: 6, name: "Renê", foot: "left" },   // pé: Transfermarkt (perfil 212209), conferido em 10/11/2026
     { n: 9, name: "Everaldo" },
-    { n: 12, name: "Gabriel Fuentes" },
+    { n: 12, name: "Gabriel Fuentes", foot: "left" },   // pé: Transfermarkt (perfil 480686), conferido em 10/11/2026
     { n: 15, name: "Matheus Reis" },
     { n: 16, name: "Nonato" },
     { n: 17, name: "Agustín Canobbio", nick: "Canobbio" },
@@ -30,7 +30,7 @@ export const L_fluminense = {
     { n: 23, name: "Guga" },
     { n: 24, name: "Daniel" },
     { n: 27, name: "Pitaluga" },
-    { n: 28, name: "Riquelme" },
+    { n: 28, name: "Riquelme", foot: "left" },   // pé: Transfermarkt (perfil 1219749), conferido em 10/11/2026
     { n: 30, name: "Santi Moreno" },
     { n: 32, name: "Lucho Acosta", nick: "Acosta", r: 80 },
     { n: 34, name: "Wesley Natã" },

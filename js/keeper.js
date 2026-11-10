@@ -493,11 +493,13 @@ export function resultadoContato(ct, { rng = Math.random, craque = 75, garantida
 
 // ---------- física da bola depois do contato (gravidade, quique, travessão/trave, rede); passo fixo — o MESMO na previsão e no jogo ----------
 export function novaBolaLivre(p, v) { return { p: p.slice(), v: v.slice(), t: 0, estado: 'livre', gol: false, res: null, trave: 0, ferros: [], cruzou: false }; }
+// QUIQUE da bola no gramado: restituição (fração da velocidade vertical que volta), perda horizontal por toque e velocidade mínima para ainda quicar
+export const QUIQUE = { e: .62, atrito: .86, min: .42 };
 export function passoLivre(f, dt = KEEPER_CFG.dt) {
   const g = 9.81, pz = f.p[2], p0 = f.p.slice(); f.t += dt;
   f.v[1] -= g*dt; const dr = 1 - .015*dt*len(f.v); f.v = mul(f.v, Math.max(.9, dr)); f.p = add(f.p, mul(f.v, dt));
   { const h = varreFerro(p0, f.p); if (h) { f.p = separa(h.p, h); f.v = reflete(f.v, h.normal); f.trave++; (f.ferros ||= []).push(h.ferro.nome); } }   // trave/travessão: colisão contínua com o cilindro (js/fisicaGol.js)
-  if (f.p[1] < BALL_R) { f.p[1] = BALL_R; if (f.v[1] < 0) { f.v[1] = -f.v[1]*.5; f.v[0] *= .85; f.v[2] *= .85; if (f.v[1] < .6) f.v[1] = 0; } if (f.v[1] === 0) { const k = Math.max(0, 1 - 1.4*dt); f.v[0] *= k; f.v[2] *= k; } }
+  if (f.p[1] < BALL_R) { f.p[1] = BALL_R; if (f.v[1] < 0) { f.v[1] = -f.v[1]*QUIQUE.e; f.v[0] *= QUIQUE.atrito; f.v[2] *= QUIQUE.atrito; if (f.v[1] < QUIQUE.min) f.v[1] = 0; } if (f.v[1] === 0) { const k = Math.max(0, 1 - 1.4*dt); f.v[0] *= k; f.v[2] *= k; } }   // quica algumas vezes e depois rola
   const hw = GOAL_W/2;
   if (!f.gol && pz > 0 && f.p[2] <= 0) {                                         // cruzou o plano do gol
     const dentro = Math.abs(f.p[0]) < hw - BALL_R && f.p[1] < GOAL_H - BALL_R;   // (os ferros já são colisão física acima)

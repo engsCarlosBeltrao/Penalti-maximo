@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import { KICK_CLIPS } from './js/kickClips.js';
 import { ENTRY_S, GOAL_REACTIONS, MISS_REACTIONS, SAVE_REACTIONS, VICTORY_REACTIONS, KEEPER_CHEER, reactionBag, kickSpec, waitSpec, forceFromAim, typeFromForce, FORCE_BANDS, styleOf, footOf, supportedTypes, clipStart, clipEnd, KICK_TYPES, STAR_STYLES } from './js/kicks.js';
-import { characters, ballWorld, flightTime, kickerState, chargeOf, widthOf, camTarget } from './js/frame.js';
+import { characters, ballWorld, flightTime, kickerState, chargeOf, widthOf, camTarget, CAM_COB } from './js/frame.js';
 import { AIM_LIM, AIM_BASE } from './js/aim.js';
 import { kickerPose, mirrorPose, goalToWorld, BALL0, BALL_R } from './js/rig.js';
 import { PLAYERS, squad } from './js/players.js';
@@ -14,7 +14,7 @@ const near = (a, b, e = 1e-6) => a.every((v, i) => Math.abs(v - b[i]) < e);
 // ---- clipes: carregamento, ossos, compatibilidade com o athlete.glb ----
 const O = readModel('assets/models/athlete.glb').json, skel = new Set(O.skins[0].joints.map(i => O.nodes[i].name)), rot = j => Object.fromEntries(j.nodes.map(n => [n.name, n.rotation || [0, 0, 0, 1]])), ro = rot(O);
 const IDS = Object.keys(KICK_CLIPS);
-t('15 clipes: os 5 estilos × chapada/médio/bomba', IDS.length === 15 && ['comum', 'neymar', 'gabigol', 'jorginho', 'arrascaeta'].every(e => ['chapada', 'medio', 'bomba'].every(tp => IDS.includes(`${e}_${tp}`))));
+t('18 clipes: os 5 estilos + a cobrança padrão canhota × chapada/médio/bomba', IDS.length === 18 && ['comum', 'canhoto', 'neymar', 'gabigol', 'jorginho', 'arrascaeta'].every(e => ['chapada', 'medio', 'bomba'].every(tp => IDS.includes(`${e}_${tp}`))));
 for (const id of IDS) {
   const c = KICK_CLIPS[id], f = 'assets/models/anim/' + c.arquivo; if (!fs.existsSync(f)) { t(`${id}: arquivo ${f}`, false); continue; }
   const C = readModel(f), cj = C.json, A = cj.animations || [], ex = cj.nodes.find(n => n.name === 'Armature').extras || {};
@@ -117,7 +117,7 @@ for (const [team, star, tipos] of [['vasco', null, ['chapada', 'medio', 'bomba']
     ev.length = 0; const r = partida(team, star, tp), mine = r.kicks;
     const est = star ? STAR_STYLES[star] : 'comum', res = ev.filter(e => ['gol', 'defesa', 'fora', 'trave'].includes(e.tipo)).length;
     t(`${est} + ${tp}: partida completa (resultado único por cobrança, encerramento)`, r.end !== null && res === GS.cobrancasRealizadas && ev.filter(e => e.tipo === 'partida_encerrada').length === 1);
-    t(`${est} + ${tp}: força da barra (${tp}) → clipe ${est}_${tp} e tempo de voo do tipo`, mine.length > 0 && mine.every(k => k.tipo === tp && k.tf === KICK_TYPES[tp].tf && typeFromForce(k.forca) === tp && (!star || k.id === `${est}_${tp}`)));
+    t(`${est} + ${tp}: força da barra (${tp}) → clipe ${est}_${tp} e tempo de voo do tipo (±6% pela força)`, mine.length > 0 && mine.every(k => k.tipo === tp && Math.abs(k.tf/KICK_TYPES[tp].tf - 1) <= .06 + 1e-9 && typeFromForce(k.forca) === tp) && (!star || mine[0].id === `${est}_${tp}`));   // o escolhido abre a fila (os 11 batem em seguida)
     t(`${est} + ${tp}: evento "chute" informa tipo e estilo`, ev.some(e => e.tipo === 'chute' && e.tipoCobranca === tp && e.estilo === (star ? est : 'comum')));
   }
 }
@@ -154,7 +154,7 @@ for (const [team, star, tipos] of [['vasco', null, ['chapada', 'medio', 'bomba']
 { const { camTarget } = await import('./js/frame.js'); const vis = (cam, p) => { const dx = p[0] - cam.pos[0], dz = cam.pos[2] - p[2], half = Math.atan(Math.tan(cam.fov*Math.PI/360)*16/9); return dz > 0 && Math.abs(Math.atan2(dx, dz)) < half*.95; };
   for (const pid of ['santos-gabriel-barbosa', 'santos-neymar-jr', comum.id]) { const ks = kickSpec(pid, 'medio'), st = clipStart(ks.clip).root, kx = ks.pe === 'l' ? -st[0] : st[0], cam = camTarget({ kick: ks, t: 3, dec: false }, null, BALL0, undefined, 0);
     t(`câmera na espera mostra ${ks.id} (partida a ${Math.hypot(st[0], st[2] - 11).toFixed(1)} m)`, vis(cam, [kx, 0, st[2]])); }
-  const base = camTarget({ kick: kickSpec(comum.id, 'medio'), t: 3, dec: false }, null, BALL0, undefined, 0); t('chute médio comum: enquadramento padrão inalterado', base.fov === 27 && base.pos[2] === 25); }
+  const base = camTarget({ kick: kickSpec(comum.id, 'medio'), t: 3, dec: false }, null, BALL0, undefined, 0); t('chute médio comum: câmera da cobrança (atrás do cobrador, estilo FIFA 17)', base.fov === CAM_COB.fov && base.pos[2] === CAM_COB.pos[2] && base.pos[1] === CAM_COB.pos[1]); }
 // regressão (vídeo do usuário, 03/11): ao segurar a barra o cobrador "pulava" para a bola. Causa: o PropertyMixer do three só escreve quando o valor
 // muda em relação à avaliação anterior DAQUELE mixer; com dois mixers no mesmo osso, reavaliar um clipe no mesmo instante não reescrevia a pose.
 { const THREE = await import('./vendor/three/three.module.js'), { forceWrite } = await import('./js/three/mixerUtil.js');
@@ -198,7 +198,7 @@ t('o goleiro comemora a defesa com as 10 comemorações de defesa', KEEPER_CHEER
 { GS.equipes = [TEAMS.find(x => x.key === 'vasco'), TEAMS[0]]; GS.vencedor = 0; const vit = Object.keys(VICTORY_REACTIONS).reverse();
   const fr = characters({ m: {}, fin: { t: 1.2, vit, perdeu: 'perdeu_olha_chao' }, escolha: [null, null], hum: () => true, t: 30 }, 5, null, null, null, 0, BALL0), L = fr.list, win = L.filter(c => c.role !== 'loser'), los = L.find(c => c.role === 'loser');
   t(`vitória: os 4 vencedores comemoram com clipes DIFERENTES (${win.map(c => c.anim?.clip).join(', ')}), de frente para a câmera`, fr.final && win.length === 4 && new Set(win.map(c => c.anim?.clip)).size === 4 && win.every(c => c.anim.clip in VICTORY_REACTIONS && Math.abs(c.anim.yaw) < .3 && c.anim.t === 1.2));
-  t('vitória: o derrotado faz uma reação de lamento (clipe)', los?.anim?.clip === 'perdeu_olha_chao'); }
+  t('vitória: os derrotados fazem reações de lamento (clipes de frustração)', L.filter(c => c.role === 'loser').length === 3 && L.filter(c => c.role === 'loser').every(c => c.anim?.clip in MISS_REACTIONS && c.anim.state === 'loser')); }
 for (const [nm, tab] of [['gol', GOAL_REACTIONS], ['frustração', MISS_REACTIONS]]) { let seed = 7; const rnd = () => (seed = (seed*16807) % 2147483647)/2147483647, bag = reactionBag(Object.keys(tab), rnd), seq = Array.from({ length: 200 }, bag);
   const n = Object.keys(tab).length, rep = seq.some((x, i) => i && x === seq[i - 1]), full = [0, n, 2*n, 200 - n].every(k => new Set(seq.slice(k, k + n)).size === n), cnt = Object.keys(tab).map(k => seq.filter(x => x === k).length);
   t(`sacola de ${nm}: 200 sorteios sem repetição imediata`, !rep); t(`sacola de ${nm}: cada bloco de ${n} usa as ${n} reações (uniforme: ${cnt.join('/')})`, full && cnt.every(c => c === 200/n)); }

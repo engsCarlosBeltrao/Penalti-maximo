@@ -22,8 +22,8 @@ function chute(seg, via) {
   if (via === 'arcade') sim.arcadeDown(agora); else Game.down(null);
   const carregou = GS.estado === 'MIRANDO' && !Game.ball;
   const passos = Math.round(seg/DT);
-  for (let i = 0; i < passos; i++) { agora += DT; Game.update(DT); Arduino.tick(); if (i % 12 === 0) ys.push(Game.aim.y); }
-  const semChuteSegurando = !Game.ball && chutes.length === n0, yAntes = Game.aim.y;
+  for (let i = 0; i < passos; i++) { agora += DT; Game.update(DT); Arduino.tick(); if (i % 12 === 0) ys.push(Game.aim.barra); }
+  const semChuteSegurando = !Game.ball && chutes.length === n0, yAntes = Game.aim.forca;
   if (via === 'arcade') sim.arcadeUp(agora); else Game.up();
   const b = Game.ball;
   return { carregou, semChuteSegurando, ys, yAntes, chutouNaSoltura: !!b && chutes.length === n0 + 1, forca: b?.forca, tipo: b?.tipo, gy: b?.gy };
@@ -37,7 +37,7 @@ for (const s of tempos) {
   t(`${s} s: começa a carregar ao APERTAR (sem chutar)`, a.carregou && a.semChuteSegurando);
   t(`${s} s: a barra sobe enquanto segura`, a.ys.every((y, i) => i === 0 || y >= a.ys[i - 1] - 1e-12) && (s < .2 || a.ys.at(-1) > a.ys[0]), a.ys.map(y => y.toFixed(3)).join(' '));
   t(`${s} s: chuta SÓ ao soltar, uma vez`, a.chutouNaSoltura);
-  t(`${s} s: chuta com a altura da barra no instante da soltura`, Math.abs(a.gy - a.yAntes) < 1e-9);
+  t(`${s} s: chuta com a força da barra no instante da soltura`, Math.abs(a.forca - a.yAntes) < 1e-9);
   t(`${s} s: mesma força do mouse no mesmo tempo (mesma mecânica)`, Math.abs(a.forca - m.forca) < 1e-9 && a.tipo === m.tipo, `${a.forca} × ${m.forca}`);
   t(`${s} s: força = tempo real de pressão (± 1 passo de 1/120 s)`, Math.abs(a.forca - esperado(s)) <= cfg.vs*DT/(AIM_LIM.ymax - AIM_LIM.ymin) + 1e-9, `${a.forca} × ${esperado(s)}`);
   t(`${s} s: quanto mais tempo, mais forte (até o máximo)`, a.forca >= ant - 1e-12); ant = a.forca;
@@ -55,8 +55,8 @@ t('segurar além do máximo para no máximo (100%)', Math.abs(chute(2.5, 'arcade
   sim.arcadeUp(agora); t('…e soltar não chuta', chutes.length === n0 && !Game.ball);
   sim.arcadeDown(agora); passo(.72); sim.arcadeUp(agora); t('o aperto seguinte funciona com o tempo real (0,72 s → médio)', Game.ball?.tipo === 'medio' && Math.abs(Game.ball.forca - forceFromAim(AIM_BASE + cfg.vs*.72)) < .01); }
 // latência: o evento é tratado no mesmo instante em que a linha chega (não espera o próximo quadro)
-{ pronto(); const y0 = Game.aim.y; sim.arcadeDown(agora); t('ARCADE_DOWN tratado na chegada: já está MIRANDO, barra na base', GS.estado === 'MIRANDO' && Game.aim.y === AIM_BASE);
-  passo(.6); const yS = Game.aim.y; sim.arcadeUp(agora); t('ARCADE_UP tratado na chegada: chuta com a barra daquele instante', !!Game.ball && Math.abs(Game.ball.gy - yS) < 1e-12, `${y0}`); }
+{ pronto(); const y0 = Game.aim.barra; sim.arcadeDown(agora); t('ARCADE_DOWN tratado na chegada: já está MIRANDO, barra na base', GS.estado === 'MIRANDO' && Game.aim.barra === AIM_BASE);
+  passo(.6); const fS = Game.aim.forca; sim.arcadeUp(agora); t('ARCADE_UP tratado na chegada: chuta com a força daquele instante', !!Game.ball && Math.abs(Game.ball.forca - fS) < 1e-12, `${y0}`); }
 console.log('Tempo segurado → força (botão ARCADE pelo protocolo serial):\n  ' + linhas.join('\n  '));
 console.log(`Faixas: chapada ≤ ${FORCE_BANDS.chapada*100}% · médio ≤ ${FORCE_BANDS.medio*100}% · bomba acima; barra cheia em ${((AIM_LIM.ymax - AIM_BASE)/cfg.vs).toFixed(2)} s`);
 console.log(`ARCADE OK ${ok} | FALHAS ${bad}`); process.exit(bad ? 1 : 0);

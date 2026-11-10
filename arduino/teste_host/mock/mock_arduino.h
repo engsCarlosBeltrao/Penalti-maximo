@@ -8,6 +8,10 @@
 #define INPUT_PULLUP 2
 #define LOW 0
 #define HIGH 1
+#define A0 14
+#define A1 15
+#define A2 16
+#define A3 17
 inline uint32_t _ms = 0; inline int _pino[64];
 inline void pinMode(int, int) {}
 inline int digitalRead(int p) { return _pino[p]; }

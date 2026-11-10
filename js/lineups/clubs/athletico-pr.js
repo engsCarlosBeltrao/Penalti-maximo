@@ -8,11 +8,11 @@ export const L_athletico_pr = {
     { n: 2, name: "Gilberto", pos: "RB" },
     { n: 13, name: "Terán", pos: "CB" },
     { n: 16, name: "Jadson", pos: "CB" },
-    { n: 3, name: "Léo", pos: "LB" },
-    { n: 5, name: "Felipinho", pos: "DM" },
+    { n: 3, name: "Léo", pos: "LB", foot: "left" },   // pé: Transfermarkt (perfil 403296), conferido em 10/11/2026
+    { n: 5, name: "Felipinho", pos: "DM", foot: "left" },   // pé: Transfermarkt (perfil 1115489), conferido em 10/11/2026
     { n: 8, name: "Giuliano", pos: "CM", r: 79 },
     { n: 10, name: "Bruno Zapelli", nick: "Zapelli", pos: "AM", r: 80 },
-    { n: 7, name: "Mendoza", pos: "RW" },
+    { n: 7, name: "Mendoza", pos: "RW", foot: "left" },   // pé: Transfermarkt (perfil 131101, "Stiven Mendoza"), conferido em 10/11/2026
     { n: 9, name: "Kevin Viveros", nick: "Viveros", pos: "ST" },
     { n: 11, name: "Isaac", pos: "LW" }
   ]

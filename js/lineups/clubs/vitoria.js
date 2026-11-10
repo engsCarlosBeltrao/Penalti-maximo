@@ -11,7 +11,7 @@ export const L_vitoria = {
     { n: 26, name: "Edenilson", pos: "LB" },
     { n: 8, name: "Ronald", pos: "DM" },
     { n: 44, name: "Gabriel Baralhas", nick: "Baralhas", pos: "CM" },
-    { n: 10, name: "Matheuzinho", pos: "AM" },
+    { n: 10, name: "Matheuzinho", pos: "AM", foot: "left" },   // pé: Transfermarkt (perfil 365368), conferido em 10/11/2026
     { n: 11, name: "Osvaldo", pos: "RW" },
     { n: 79, name: "Renato Kayzer", nick: "Kayzer", pos: "ST" },
     { n: 23, name: "Fabrí", pos: "LW" }

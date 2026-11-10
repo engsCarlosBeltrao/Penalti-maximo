@@ -647,7 +647,86 @@ def vit_pulo_punho():
     maos = {"r": {0: ("relaxada", 1), .9: ("punho", 1), 4.0: ("punho", 1), 4.2: ("relaxada", 1)}, "l": {0: ("relaxada", 1), .9: ("punho", 1), 1.2: ("aberta", .8), 1.55: ("punho", 1), 4.0: ("punho", 1), 4.2: ("relaxada", 1)}}
     return plano("VitPuloPunho", 4.2, steps, pel, prot, crot, head, arms, maos=maos)
 
+# ======================= FESTA DO TÍTULO: animações que se encaixam umas nas outras (a cena final monta a roda em volta do protagonista) =======================
+# Referencial: corpo de frente para -Y. Quem CORRE termina com a pelve a CHEGADA m à frente (o jogo põe o início a CHEGADA m do lugar marcado na roda).
+CHEGADA = 6.15
+ABR = lambda g: ((g*.40, -.80, -.30), (-g*.70, -.66, .12))            # abraço de frente: braço à frente na altura do peito, antebraço fechando por trás do colega
+NUCA = lambda g: ((g*.30, -.88, .30), (-g*.36, -.88, .30))            # quem chega pelo LADO: braço à frente e para cima, antebraço fecha para dentro — mão no ombro/nuca do protagonista
+def pulos_em(c_, R0, L0, tempos, h=.12):
+    """pulinhos no lugar já deslocado (depois de chegar correndo): mesmos apoios, pelve agacha, sobe e amortece"""
+    steps = {"r": [], "l": []}; pel = {}
+    for a, b_ in tempos:
+        steps["r"].append((a, b_, R0, R0, 0, h)); steps["l"].append((a, b_, L0, L0, 0, h))
+        pel[a - .1] = c_(.87); pel[(a + b_)/2] = c_(.93 + h*1.05); pel[b_] = c_(.88); pel[b_ + .12] = c_(.905)
+    return steps, pel
+
+def fest_recebe():
+    """PROTAGONISTA (fez o gol decisivo / defendeu): explode em dois pulos com os braços para o alto gritando, abre os braços chamando os
+    companheiros e, quando eles chegam, abraça os dois do lado pelos ombros e pula junto com o grupo; no fim ergue os punhos e se acalma."""
+    T = 9.0; jt = [(.32, .72), (1.02, 1.42)] + [(a, a + .30) for a in (3.0, 3.58, 4.16, 4.74, 5.32, 5.9, 6.48, 7.06, 7.64)]
+    steps, pel = pulos(jt[:2], .24); s2, p2 = pulos(jt[2:], .11)
+    for k in "rl": steps[k] += s2[k]
+    pel.update(p2); pel.update({0: (0, 0, .93), 1.7: (0, 0, .91), 2.4: (0, 0, .92), 8.3: (0, 0, .915), 9.0: (0, 0, .926)})
+    crot = {0: (0, 10, 0), .2: (0, 26, 0), .52: (0, -14, 0), .9: (0, 18, 0), 1.22: (0, -16, 0), 1.8: (0, -6, 0), 2.4: (0, -10, 0), 3.0: (0, 10, 0)}
+    for i, (a, b_) in enumerate(jt[2:]): crot[a - .05] = (0, 14, (-4 if i % 2 else 4)); crot[(a + b_)/2] = (0, 2, 0)
+    crot.update({8.3: (0, 6, 0), 9.0: (0, 5, 0)})
+    head = {0: (20, 0), .52: (-30, 0), .9: (0, 0), 1.22: (-32, 0), 1.8: (-12, 0), 2.4: (-20, 0), 3.0: (-8, 0), 4.5: (-24, 8), 6.0: (-20, -8), 7.5: (-26, 0), 8.3: (-10, 0), 9.0: (6, 0)}
+    arms = {s: {0: HANG(g), .2: CRO(g), .52: OVH(g, .3), .9: UPF(g), 1.22: OVH(g, .32), 1.65: UPF(g), 1.95: ASA(g, .28), 2.45: ASA(g, .18), 2.85: UPF(g),
+                8.3: UPF(g), 8.65: DNF(g), 9.0: SOLTO(g)} for s, g in (("l", 1), ("r", -1))}
+    for i, (a, b_) in enumerate(jt[2:]):                              # abraçado pelo grupo: punhos para o alto a cada pulo (acima das cabeças, sem atravessar ninguém)
+        for s, g in (("l", 1), ("r", -1)): arms[s][a - .06] = UPF(g); arms[s][(a + b_)/2] = OVH(g, .26 if (i + (s == "l")) % 2 else .14); arms[s][b_ + .1] = UPF(g)
+    maos = {s: {0: ("relaxada", 1), .18: ("punho", 1), 1.8: ("aberta", .9), 2.9: ("aberta", .9), 8.2: ("punho", 1), 8.9: ("relaxada", 1)} for s in "lr"}
+    return plano("FestRecebe", T, steps, pel, {0: (0, 6, 0), 9.0: (0, 3, 0)}, crot, head, arms, maos=maos)
+
+def _corre_chega():
+    """corrida de 6 m em linha reta acelerando, duas passadas de freada e a chegada com os pés juntos (base da roda)"""
+    ds = [.55, 1.32, 2.16, 3.03, 3.90, 4.75, 5.48, 6.02]; tts = [(.14, .37), (.37, .60), (.60, .83), (.83, 1.06), (1.06, 1.29), (1.29, 1.54), (1.54, 1.82), (1.82, 2.12)]
+    steps, pel, arms, (A, sd, c) = corrida(0, ds, tts, ["r", "l", "r", "l", "r", "l", "r", "l"])
+    FR = sd(CHEGADA + .03, -1); FL = steps["l"][-1][3]; steps["r"].append((2.02, 2.34, steps["r"][-1][3], FR, 0))
+    pel.update({0: (0, 0, .93), .1: (0, .01, .88), 2.2: c(CHEGADA - .02, .89), 2.42: c(CHEGADA, .91)})
+    return steps, pel, arms, c, FR, FL
+
+def fest_abraco():
+    """CORRE até o protagonista e o ABRAÇA de frente (chegando por trás/do lado dele), pulando junto com o grupo e gritando."""
+    T = 8.4; steps, pel, rarms, c, FR, FL = _corre_chega()
+    jt = [(a, a + .30) for a in (3.0, 3.58, 4.16, 4.74, 5.32, 5.9, 6.48, 7.06)]
+    s2, p2 = pulos_em(lambda z: c(CHEGADA, z), FR, FL, jt)
+    for k in "rl": steps[k] += s2[k]
+    pel.update(p2); pel.update({7.6: c(CHEGADA, .91), 8.4: c(CHEGADA, .925)})
+    prot = {0: (0, 6, 0), .1: (0, 14, 0), .6: (0, 15, 0), 1.6: (0, 13, 0), 2.1: (0, 6, 0), 2.5: (0, 10, 0), 8.4: (0, 6, 0)}
+    crot = {0: (0, 10, 0), .1: (0, 24, 0), .6: (0, 18, 0), 1.5: (0, 16, 0), 2.1: (0, 4, 0), 2.45: (0, 16, 0)}
+    for i, (a, b_) in enumerate(jt): crot[a - .05] = (0, 18, (3 if i % 2 else -3)); crot[(a + b_)/2] = (0, 9, 0)
+    crot.update({7.6: (0, 10, 0), 8.4: (0, 6, 0)})
+    head = {0: (16, 0), .3: (-4, 0), 1.0: (-10, 0), 1.9: (-14, 0), 2.4: (6, 0), 3.4: (-14, 0), 5.0: (-24, 0), 6.6: (-16, 0), 8.4: (4, 0)}
+    arms = {s: {0: HANG(g), .1: CRO(g)} for s, g in (("l", 1), ("r", -1))}
+    for s in "lr": arms[s].update(rarms[s])
+    for s, g in (("l", 1), ("r", -1)): arms[s].update({1.95: ((g*.5, -.6, .3), (g*.4, -.7, .5)), 2.3: ABR(g), 7.5: ABR(g), 7.9: UPF(g), 8.4: SOLTO(g)})
+    maos = {s: {0: ("relaxada", 1), .1: ("punho", .7), 1.9: ("aberta", .9), 7.6: ("aberta", .9), 7.9: ("punho", 1), 8.3: ("relaxada", 1)} for s in "lr"}
+    return plano("FestAbraco", T, steps, pel, prot, crot, head, arms, maos=maos)
+
+def fest_lado():
+    """CORRE e chega abraçando com UM braço (por cima do ombro do colega), socando o ar com o outro a cada pulo."""
+    T = 8.4; steps, pel, rarms, c, FR, FL = _corre_chega()
+    jt = [(a, a + .30) for a in (3.2, 3.8, 4.4, 5.0, 5.6, 6.2, 6.8)]
+    s2, p2 = pulos_em(lambda z: c(CHEGADA, z), FR, FL, jt, .14)
+    for k in "rl": steps[k] += s2[k]
+    pel.update(p2); pel.update({7.5: c(CHEGADA, .91), 8.4: c(CHEGADA, .925)})
+    prot = {0: (0, 6, 0), .1: (0, 14, 0), .6: (0, 15, 0), 1.6: (0, 13, 0), 2.1: (0, 6, 0), 2.6: (8, 6, 0), 8.4: (6, 4, 0)}
+    crot = {0: (0, 10, 0), .1: (0, 24, 0), .6: (0, 18, 0), 1.5: (0, 16, 0), 2.1: (0, 4, 0), 2.6: (10, 6, -6)}
+    for i, (a, b_) in enumerate(jt): crot[a - .05] = (10, 12, -8); crot[(a + b_)/2] = (10, -4, -4)
+    crot.update({7.5: (8, 6, 0), 8.4: (4, 5, 0)})
+    head = {0: (16, 0), .3: (-4, 0), 1.0: (-10, 0), 1.9: (-14, 0), 2.6: (-20, -6), 4.0: (-30, -6), 5.6: (-26, -6), 7.0: (-30, 0), 8.4: (4, 0)}
+    arms = {s: {0: HANG(g), .1: CRO(g)} for s, g in (("l", 1), ("r", -1))}
+    for s in "lr": arms[s].update(rarms[s])
+    arms["l"].update({1.95: ((.5, -.6, .3), (.4, -.7, .5)), 2.4: NUCA(1), 7.4: NUCA(1), 7.8: UPF(1), 8.4: SOLTO(1)})
+    arms["r"].update({1.95: ((-.5, -.6, .3), (-.4, -.7, .5)), 2.5: UPF(-1), 7.6: UPF(-1), 8.4: SOLTO(-1)})
+    for a, b_ in jt: arms["r"][a - .08] = DNF(-1); arms["r"][(a + b_)/2] = OVH(-1, .28); arms["r"][b_ + .1] = UPF(-1)
+    maos = {"l": {0: ("relaxada", 1), .1: ("punho", .7), 1.9: ("aberta", .9), 7.5: ("aberta", .9), 8.3: ("relaxada", 1)},
+            "r": {0: ("relaxada", 1), .1: ("punho", .7), 2.3: ("punho", 1), 8.0: ("punho", 1), 8.3: ("relaxada", 1)}}
+    return plano("FestLado", T, steps, pel, prot, crot, head, arms, maos=maos)
+
 PLANOS = {"entrada": plano_entrada,
+          "fest_recebe": fest_recebe, "fest_abraco": fest_abraco, "fest_lado": fest_lado,
           "gol_bracos_abertos": gol_bracos_abertos, "gol_punhos": gol_punhos, "gol_salto": gol_salto, "gol_aponta": gol_aponta, "gol_corrida": gol_corrida,
           "perdeu_cabeca_baixa": perdeu_cabeca_baixa, "perdeu_maos_cintura": perdeu_maos_cintura, "perdeu_mao_rosto": perdeu_mao_rosto,
           "perdeu_maos_cabeca": perdeu_maos_cabeca, "perdeu_olha_chao": perdeu_olha_chao,

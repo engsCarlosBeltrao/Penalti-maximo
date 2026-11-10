@@ -89,6 +89,11 @@ if (!Game.fin) {
   sim.aperta('BACK'); t('VOLTAR na pausa volta ao jogo (sem sair da partida)', !Game.paused && !!Game.m);
   sim.aperta('ADVANCE'); t('pausa de novo', Game.paused); sim.aperta('ADVANCE');   // pausaUI de teste: AVANÇAR confirma o item em foco (CONTINUAR) → aqui pelo nav real seria clique; simula
   pausaUI.fechar(); passo(.05); t('6. retomada continua de onde parou', !Game.paused && b.t > tb && b.t < tb + .1, `${b.t} ${tb}`);
+  // firmware 2: botões próprios de PAUSA e DESPAUSA
+  sim.aperta('RESUME'); t('DESPAUSA sem pausa: ignorado (o jogo segue)', !Game.paused && !!Game.m);
+  sim.aperta('PAUSE'); t('PAUSA na partida pausa', Game.paused && pausaUI.aberta());
+  const tb2 = b.t; passo(.5); sim.aperta('PAUSE'); t('PAUSA de novo: continua pausado (não alterna)', Game.paused && b.t === tb2);
+  sim.aperta('RESUME'); t('DESPAUSA volta ao jogo', !Game.paused && !!Game.m && !pausaUI.aberta());
 }
 // 15–16: queda e reconexão
 { while (GS.estado !== 'AGUARDANDO_COBRANCA' || Game.t < ENTRY_S) { passo(.1); if (Game.fin) break; }
@@ -105,5 +110,27 @@ if (!Game.fin) {
   passo(.2); t('14. LCD mostra o fim de jogo com o vencedor e o placar', sim.lcd[0].startsWith('FIM DE JOGO!') && sim.lcd.join('|').includes(`${Math.max(...GS.placar)} X ${Math.min(...GS.placar)}`), sim.lcd.join('|')); }
 // o LCD não é bombardeado: mensagens só quando muda
 { const n0 = Arduino.lcd.enviadas; passo(2); t('LCD só recebe mensagem quando a tela muda (nada repetido a cada quadro)', Arduino.lcd.enviadas === n0, `${Arduino.lcd.enviadas - n0}`); }
+// ---------- CONFIGURAR BOTÕES (firmware 2: mapa gravado no Arduino) ----------
+{ menuAberto = true; navLog.length = 0; const s2 = Arduino.sim; await espera();
+  t('ao conectar, o jogo pede e recebe o mapa atual', JSON.stringify(Arduino.mapa) === '[2,3,4,5,6,7,8]', JSON.stringify(Arduino.mapa));
+  t('configurar começa e põe o Arduino no modo aprender', Arduino.configurar() && s2.aprendendo && Arduino.config.estado === 'aprendendo');
+  t('LCD mostra o passo 1 (CIMA)', s2.lcd[0].startsWith('CONFIGURAR BOTOES') && s2.lcd[1].startsWith('1/7 APERTE') && s2.lcd[2].startsWith('CIMA'), s2.lcd.join('|'));
+  const nGame = Arduino.lcd.enviadas; passo(.5); t('durante a configuração o LCD do jogo não sobrescreve o assistente', Arduino.lcd.enviadas === nGame && s2.lcd[0].startsWith('CONFIGURAR'));
+  const novos = [12, 11, 10, 9, 14, 15, 16];
+  s2.apertaPino(12); s2.apertaPino(12); t('mesmo botão duas vezes: avisa e não avança', Arduino.config.passo === 1 && /já é/.test(Arduino.config.aviso), Arduino.config.aviso);
+  s2.apertaPino(11); t('VOLTAR UM PASSO desfaz o último', Arduino.configVoltar() && Arduino.config.passo === 1);
+  for (const p of novos.slice(1)) s2.apertaPino(p); await espera();
+  t('nenhum aperto durante a configuração mexeu no menu', navLog.length === 0, navLog.join());
+  t('7 botões: o mapa é gravado e confirmado pelo Arduino', Arduino.config.estado === 'pronto' && JSON.stringify(Arduino.mapa) === JSON.stringify(novos) && JSON.stringify(s2.mapa) === JSON.stringify(novos), JSON.stringify(Arduino.config));
+  t('o Arduino saiu do modo aprender', !s2.aprendendo); Arduino.configCancelar(); passo(.1);
+  t('fechou o assistente: o LCD volta à tela do jogo', !s2.lcd[0].startsWith('CONFIGURAR'), s2.lcd.join('|'));
+  s2.apertaPino(12); s2.apertaPino(14); s2.apertaPino(15); s2.apertaPino(2);
+  t('com o mapa novo, D12 = CIMA, A0 = AVANÇAR (confirma no menu), A1 = VOLTAR, D2 sem função', navLog.join() === 'UP,OK,VOLTAR', navLog.join());
+  Arduino.configurar(); s2.apertaPino(3); Arduino.configCancelar(); t('cancelar não grava nada', !s2.aprendendo && JSON.stringify(s2.mapa) === JSON.stringify(novos));
+  Arduino.mapaPadrao(); t('MAPA PADRÃO volta aos pinos do config.h', JSON.stringify(Arduino.mapa) === '[2,3,4,5,6,7,8]');
+  // firmware antigo: o assistente explica o que fazer
+  const v = Arduino.info.versao; Arduino.info.versao = '1'; t('firmware 1: não configura e manda gravar o firmware novo', Arduino.configurar() === false && /enviar\.bat/.test(Arduino.config.msg)); Arduino.config = null; Arduino.info.versao = v;
+  // queda no meio da configuração
+  Arduino.configurar(); s2.apertaPino(9); s2.cair(); t('cabo puxado no meio: erro claro, nada gravado', Arduino.config.estado === 'erro' && /caiu/.test(Arduino.config.msg)); Arduino.config = null; }
 t('nenhuma linha com checksum errado chegou ao Arduino simulado', sim.erros === 0, sim.erros);
 console.log(`ARDUINO OK ${ok} | FALHAS ${bad}`); process.exit(bad ? 1 : 0);

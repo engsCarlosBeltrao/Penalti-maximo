@@ -6,9 +6,9 @@ export const L_vasco = {
   xi: [
     { n: 1, name: "Léo Jardim", nick: "Jardim", pos: "GK" },
     { n: 2, name: "Puma Rodríguez", nick: "Puma", pos: "RB" },
-    { n: 30, name: "Robert Renan", pos: "CB" },
-    { n: 43, name: "Lucas Freitas", pos: "CB" },
-    { n: 6, name: "Lucas Piton", nick: "Piton", pos: "LB" },
+    { n: 30, name: "Robert Renan", pos: "CB", foot: "left" },   // pé: Transfermarkt (perfil 958598), conferido em 10/11/2026
+    { n: 43, name: "Lucas Freitas", pos: "CB", foot: "left" },   // pé: Transfermarkt (perfil 809716), conferido em 10/11/2026
+    { n: 6, name: "Lucas Piton", nick: "Piton", pos: "LB", foot: "left" },   // pé: Transfermarkt (perfil 670201), conferido em 10/11/2026
     { n: 5, name: "Santiago Sosa", nick: "Sosa", pos: "DM" },
     { n: 3, name: "Tchê Tchê", pos: "CM" },
     { n: 10, name: "Johan Rojas", nick: "Rojas", pos: "AM" },

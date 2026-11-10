@@ -8,9 +8,9 @@ export const L_botafogo = {
     { n: 2, name: "Vitinho", pos: "RB" },
     { n: 4, name: "Mateo Ponte", nick: "Ponte", pos: "CB" },
     { n: 15, name: "Bastos", pos: "CB" },
-    { n: 13, name: "Alex Telles", nick: "Telles", pos: "LB" },
+    { n: 13, name: "Alex Telles", nick: "Telles", pos: "LB", foot: "left" },   // pé: Transfermarkt (perfil 255755), conferido em 10/11/2026
     { n: 25, name: "Allan", pos: "DM" },
-    { n: 8, name: "Danilo", pos: "CM" },
+    { n: 8, name: "Danilo", pos: "CM", foot: "left" },   // pé: Transfermarkt (perfil 808509), conferido em 10/11/2026
     { n: 10, name: "Álvaro Montoro", nick: "Montoro", pos: "AM" },
     { n: 7, name: "Artur", pos: "RW" },
     { n: 19, name: "Arthur Cabral", nick: "Cabral", pos: "ST" },

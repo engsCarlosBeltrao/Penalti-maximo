@@ -23,6 +23,7 @@ struct Botao {
   bool imediato = false;                  // imediato = vale NO PRIMEIRO contato (sem esperar estabilizar) e ignora os quiques seguintes: latência zero (ARCADE)
   bool estavel = false, bruto = false; uint32_t tMuda = 0, tApertou = 0, tRep = 0;
   Botao(const char* n, bool r, bool im = false) : nome(n), repete(r), imediato(im) {}   // construtor explícito: o avr-gcc (C++11) exige
+  Botao() : nome(nullptr), repete(false) {}                                        // pino ainda sem função (o mapa diz qual é)
   // apertadoAgora = leitura crua do pino (já invertida: true = apertado). Devolve no máximo UM evento por chamada.
   Evento atualiza(bool apertadoAgora, uint32_t ms, uint16_t debounce, uint16_t atraso, uint16_t intervalo) {
     if (imediato) {                                                                  // borda aceita na hora; depois dela, `debounce` ms de trava contra o quique
@@ -79,5 +80,46 @@ struct Tela {
     return i;
   }
 };
+
+// ---------- mapa dos botões (função → pino) ----------
+// As 7 funções, nesta ordem, em "MAPA|<cima>,<baixo>,<esquerda>,<direita>,<pausa>,<despausa>,<arcade>"
+enum Funcao : uint8_t { F_CIMA = 0, F_BAIXO, F_ESQUERDA, F_DIREITA, F_PAUSA, F_DESPAUSA, F_ARCADE, N_FUNCOES };
+static const char* const NOME_FUNCAO[N_FUNCOES] = { "UP", "DOWN", "LEFT", "RIGHT", "PAUSE", "RESUME", "ARCADE" };
+// lê os 7 números de "MAPA|a,b,c,d,e,f,g" (só dígitos e vírgulas); devolve false se o formato estiver errado
+inline bool leMapa(const char* corpo, uint8_t* out) {
+  if (strncmp(corpo, "MAPA|", 5) != 0) return false;
+  const char* p = corpo + 5;
+  for (uint8_t i = 0; i < N_FUNCOES; i++) {
+    if (*p < '0' || *p > '9') return false;
+    int v = 0; while (*p >= '0' && *p <= '9') { v = v*10 + (*p - '0'); if (v > 99) return false; p++; }
+    out[i] = (uint8_t)v;
+    if (i + 1 < N_FUNCOES) { if (*p != ',') return false; p++; }
+  }
+  return *p == 0;
+}
+// mapa válido = todos os pinos estão na lista de pinos lidos e nenhum se repete
+inline bool mapaValido(const uint8_t* m, const uint8_t* cand, uint8_t nc) {
+  for (uint8_t i = 0; i < N_FUNCOES; i++) {
+    bool existe = false; for (uint8_t k = 0; k < nc; k++) if (cand[k] == m[i]) existe = true;
+    if (!existe) return false;
+    for (uint8_t j = 0; j < i; j++) if (m[j] == m[i]) return false;
+  }
+  return true;
+}
+// "MAPA|2,3,4,5,6,7,8"
+inline void escreveMapa(const uint8_t* m, char* out, size_t cap) {
+  size_t n = (size_t)snprintf(out, cap, "MAPA|");
+  for (uint8_t i = 0; i < N_FUNCOES && n < cap; i++) n += (size_t)snprintf(out + n, cap - n, i ? ",%u" : "%u", m[i]);
+}
+// EEPROM: 'P' 'M' 2 <7 pinos> <xor dos 7 pinos>  (11 bytes no endereço 0)
+static const uint8_t EE_TAM = 11;
+inline void empacotaEE(const uint8_t* m, uint8_t* ee) { ee[0] = 'P'; ee[1] = 'M'; ee[2] = 2; uint8_t x = 0; for (uint8_t i = 0; i < N_FUNCOES; i++) { ee[3 + i] = m[i]; x ^= m[i]; } ee[10] = x ^ 0x5A; }
+inline bool desempacotaEE(const uint8_t* ee, uint8_t* m) {
+  if (ee[0] != 'P' || ee[1] != 'M' || ee[2] != 2) return false;
+  uint8_t x = 0; for (uint8_t i = 0; i < N_FUNCOES; i++) x ^= ee[3 + i];
+  if ((uint8_t)(x ^ 0x5A) != ee[10]) return false;
+  for (uint8_t i = 0; i < N_FUNCOES; i++) m[i] = ee[3 + i];
+  return true;
+}
 
 }  // namespace arcade

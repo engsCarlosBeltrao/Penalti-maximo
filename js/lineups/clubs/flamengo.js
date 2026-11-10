@@ -6,13 +6,13 @@ export const L_flamengo = {
   xi: [
     { n: 1, name: "Agustín Rossi", nick: "Rossi", pos: "GK" },
     { n: 2, name: "Guillermo Varela", nick: "Varela", pos: "RB" },
-    { n: 4, name: "Léo Pereira", pos: "CB" },
+    { n: 4, name: "Léo Pereira", pos: "CB", foot: "left" },   // pé: Transfermarkt (perfil 288431), conferido em 10/11/2026
     { n: 13, name: "Danilo", pos: "CB" },
-    { n: 6, name: "Ayrton Lucas", pos: "LB" },
+    { n: 6, name: "Ayrton Lucas", pos: "LB", foot: "left" },   // pé: Transfermarkt (perfil 349585), conferido em 10/11/2026
     { n: 21, name: "Jorginho", pos: "DM", foot: "right" },   // pé: Transfermarkt (perfil 102017), conferido em 02/11/2026
-    { n: 11, name: "Lucas Paquetá", nick: "Paquetá", pos: "AM", star: true, r: 87, cel: "confident" },
+    { n: 11, name: "Lucas Paquetá", nick: "Paquetá", pos: "AM", star: true, r: 87, cel: "confident", foot: "left" },   // pé: Transfermarkt (perfil 444523), conferido em 10/11/2026
     { n: 10, name: "Giorgian de Arrascaeta", nick: "Arrascaeta", pos: "AM", star: true, r: 90, cel: "crest", foot: "right" },   // pé: Transfermarkt (perfil 248410), conferido em 02/11/2026
-    { n: 7, name: "Luiz Araújo", pos: "RW" },
+    { n: 7, name: "Luiz Araújo", pos: "RW", foot: "left" },   // pé: Transfermarkt (perfil 435485), conferido em 10/11/2026
     { n: 27, name: "Bruno Henrique", pos: "LW" },
     { n: 9, name: "Pedro", pos: "ST", star: true, r: 86, cel: "arms" }
   ],

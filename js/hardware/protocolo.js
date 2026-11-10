@@ -5,17 +5,29 @@
 //   HELLO|<versão>|<colunas>x<linhas>   ao ligar e em resposta a HELLO?      ex.: HELLO|1|20x4
 //   UP_PRESS · DOWN_PRESS · LEFT_PRESS · RIGHT_PRESS                     direcionais (pressionou)
 //   UP_REPEAT · DOWN_REPEAT · LEFT_REPEAT · RIGHT_REPEAT                 repetição controlada do direcional segurado
-//   ADVANCE_PRESS · BACK_PRESS                                           avançar / voltar
+//   PAUSE_PRESS · RESUME_PRESS                                           pausa / despausa (firmware 2)
+//   ADVANCE_PRESS · BACK_PRESS                                           avançar / voltar (firmware 1, ainda aceitos)
 //   ARCADE_DOWN · ARCADE_UP|<ms>                                         botão de chute: apertou / soltou (ms = tempo segurado, informativo)
 //   PONG                                                                 resposta ao PING (o jogo sabe que a ligação está viva)
+//   MAPA|<cima>,<baixo>,<esq>,<dir>,<pausa>,<despausa>,<arcade>        pinos de cada função (resposta a MAPA? e a um mapa novo aceito)
+//   MAPA_ERRO|<motivo>                                                   mapa recusado (formato, pino repetido ou fora da lista)
+//   APRENDER|<0|1>                                                       confirma a entrada/saída do modo de configuração
+//   PINO|<n>                                                             modo de configuração: o botão do pino n foi apertado
 //
 // JOGO → ARDUINO (o jogo é a fonte oficial; o Arduino só mostra)
 //   HELLO?                            pede a identificação
 //   PING                              a cada 2 s; sem nenhuma linha válida por 6 s, o Arduino mostra "SEM CONEXAO"
 //   L|<linha1>|<linha2>[|<linha3>|<linha4>]   o que o LCD mostra, já formatado no tamanho do display (sem acentos, sem "|" e "*")
 //   T|<0|1>                           luz de fundo
+//   MAPA?                             pede o mapa dos botões        MAPA|a,b,c,d,e,f,g   grava um mapa novo (EEPROM)   MAPA|PADRAO   volta ao config.h
+//   APRENDER|1 · APRENDER|0           entra / sai do modo de configuração (cada aperto vira PINO|n, nenhum comando de jogo)
 export const BAUD = 115200, MAX_LINHA = 120;
-export const COMANDOS = ['UP_PRESS', 'DOWN_PRESS', 'LEFT_PRESS', 'RIGHT_PRESS', 'UP_REPEAT', 'DOWN_REPEAT', 'LEFT_REPEAT', 'RIGHT_REPEAT', 'ADVANCE_PRESS', 'BACK_PRESS', 'ARCADE_DOWN', 'ARCADE_UP', 'PONG', 'HELLO'];
+export const COMANDOS = ['UP_PRESS', 'DOWN_PRESS', 'LEFT_PRESS', 'RIGHT_PRESS', 'UP_REPEAT', 'DOWN_REPEAT', 'LEFT_REPEAT', 'RIGHT_REPEAT', 'ADVANCE_PRESS', 'BACK_PRESS', 'PAUSE_PRESS', 'RESUME_PRESS', 'ARCADE_DOWN', 'ARCADE_UP', 'PONG', 'HELLO', 'MAPA', 'MAPA_ERRO', 'APRENDER', 'PINO'];
+// as 7 funções configuráveis, na ordem do MAPA
+export const FUNCOES = [['UP', '▲ CIMA'], ['DOWN', '▼ BAIXO'], ['LEFT', '◀ ESQUERDA'], ['RIGHT', '▶ DIREITA'], ['PAUSE', 'AVANÇAR / PAUSA'], ['RESUME', 'VOLTAR / DESPAUSA'], ['ARCADE', 'ARCADE (CHUTE)']];
+export const PINOS_CANDIDATOS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17];   // D2..D12 e A0..A3 (igual ao config.h)
+export const MAPA_PADRAO = [2, 3, 4, 5, 6, 7, 8];
+export const nomePino = n => n >= 14 ? 'A' + (n - 14) : 'D' + n;
 export const checksum = s => { let x = 0; for (let i = 0; i < s.length; i++) x ^= s.charCodeAt(i) & 0xff; return x.toString(16).toUpperCase().padStart(2, '0'); };
 export const empacota = s => `${s}*${checksum(s)}\n`;
 // valida uma linha recebida; devolve { cmd, args } ou { erro }

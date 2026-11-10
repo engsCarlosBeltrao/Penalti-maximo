@@ -8,7 +8,7 @@ export const L_bragantino = {
     { n: 23, name: "Agustín Sant'Anna", nick: "Sant'Anna", pos: "RB" },
     { n: 16, name: "Gustavo Marques", pos: "CB" },
     { n: 4, name: "Alix Vinicius", nick: "Alix", pos: "CB" },
-    { n: 29, name: "Juninho Capixaba", nick: "Capixaba", pos: "LB" },
+    { n: 29, name: "Juninho Capixaba", nick: "Capixaba", pos: "LB", foot: "left" },   // pé: Transfermarkt (perfil 406676), conferido em 10/11/2026
     { n: 5, name: "Fabinho", pos: "DM" },
     { n: 7, name: "Eric Ramires", nick: "Ramires", pos: "CM" },
     { n: 25, name: "Bruno Praxedes", nick: "Praxedes", pos: "AM" },
